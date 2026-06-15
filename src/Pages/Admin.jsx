@@ -1,10 +1,43 @@
 import { useEffect, useState } from "react";
 import "./Admin.css";
 import { db } from "../src/firebase";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  orderBy,
+  query,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 
 const Admin = () => {
   const [applications, setApplications] = useState([]);
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [trackFilter, setTrackFilter] = useState("All");
+  const [monthFilter, setMonthFilter] = useState("All");
+
+  const filteredApplications = applications.filter((app) => {
+    const matchesSearch =
+      app.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.whatsapp?.includes(searchTerm);
+
+    const matchesStatus = statusFilter === "All" || app.status === statusFilter;
+
+    const matchesTrack = trackFilter === "All" || app.track === trackFilter;
+
+    let matchesMonth = true;
+
+    if (monthFilter !== "All" && app.createdAt?.seconds) {
+      const appMonth = new Date(app.createdAt.seconds * 1000).getMonth() + 1;
+
+      matchesMonth = appMonth === Number(monthFilter);
+    }
+
+    return matchesSearch && matchesStatus && matchesTrack && matchesMonth;
+  });
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -35,6 +68,66 @@ const Admin = () => {
     (app) => app.status === "Rejected",
   ).length;
 
+  const updateStatus = async (id, status) => {
+    await updateDoc(doc(db, "scholarshipApplications", id), {
+      status,
+    });
+
+    setApplications((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, status } : app)),
+    );
+  };
+  const handleLogout = () => {
+    localStorage.removeItem("ovtechAdmin");
+    window.location.href = "/admin-login";
+  };
+
+  const exportToCSV = () => {
+    const headers = [
+      "Full Name",
+      "Email",
+      "WhatsApp",
+      "Location",
+      "Age Range",
+      "Track",
+      "Learning Method",
+      "Referral",
+      "Reason",
+      "Status",
+    ];
+
+    const rows = filteredApplications.map((app) => [
+      app.fullName,
+      app.email,
+      app.whatsapp,
+      app.location,
+      app.ageRange,
+      app.track,
+      app.learningMethod,
+      app.referral,
+      app.reason,
+      app.status,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((item) => `"${String(item || "").replace(/"/g, '""')}"`)
+          .join(","),
+      )
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "ovtech-scholarship-applications.csv";
+    link.click();
+
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main className="admin-page">
       <section className="admin-header">
@@ -46,9 +139,14 @@ const Admin = () => {
           </p>
         </div>
 
-        <a href="/" className="admin-home-btn">
-          Back to Website
-        </a>
+        <div style={{ gap: "1rem", display: "flex", alignItems: "center" }}>
+          <a href="/" className="admin-home-btn">
+            Back to Website
+          </a>
+          <button onClick={handleLogout} className="admin-logout-btn">
+            Logout
+          </button>
+        </div>
       </section>
 
       <section className="admin-stats">
@@ -72,6 +170,56 @@ const Admin = () => {
           <p>Rejected</p>
         </div>
       </section>
+      <div className="admin-filters">
+        <input
+          type="text"
+          placeholder="Search name, email or phone..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option>All</option>
+          <option>Pending</option>
+          <option>Approved</option>
+          <option>Rejected</option>
+        </select>
+
+        <select
+          value={trackFilter}
+          onChange={(e) => setTrackFilter(e.target.value)}
+        >
+          <option>All</option>
+          <option>Data Analytics</option>
+          <option>Software Development (Frontend)</option>
+          <option>Web Development</option>
+        </select>
+
+        <select
+          value={monthFilter}
+          onChange={(e) => setMonthFilter(e.target.value)}
+        >
+          <option value="All">All Months</option>
+          <option value="1">January</option>
+          <option value="2">February</option>
+          <option value="3">March</option>
+          <option value="4">April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+          <option value="7">July</option>
+          <option value="8">August</option>
+          <option value="9">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+      </div>
+      <button onClick={exportToCSV} className="admin-export-btn">
+        Export Filtered Applications
+      </button>
 
       <section className="admin-table-card">
         <h2>Recent Applications</h2>
@@ -86,11 +234,13 @@ const Admin = () => {
                 <th>Method</th>
                 <th>Location</th>
                 <th>Status</th>
+                <th>Actions</th>
+                <th>View</th>
               </tr>
             </thead>
 
             <tbody>
-              {applications.map((app) => (
+              {filteredApplications.map((app) => (
                 <tr key={app.id}>
                   <td>
                     <strong>{app.fullName}</strong>
@@ -103,16 +253,93 @@ const Admin = () => {
                   <td>
                     <span className="admin-status">{app.status}</span>
                   </td>
+                  <td>
+                    <div className="admin-actions">
+                      <button
+                        onClick={() => updateStatus(app.id, "Approved")}
+                        className="admin-approve"
+                      >
+                        Approve
+                      </button>
+
+                      <button
+                        onClick={() => updateStatus(app.id, "Rejected")}
+                        className="admin-reject"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => setSelectedApplication(app)}
+                      className="admin-view-btn"
+                    >
+                      View
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {applications.length === 0 && (
-            <p className="admin-empty">No applications submitted yet.</p>
+          {filteredApplications.length === 0 && (
+            <p className="admin-empty">No applications match your filters.</p>
           )}
         </div>
       </section>
+      {selectedApplication && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal">
+            <button
+              className="admin-modal-close"
+              onClick={() => setSelectedApplication(null)}
+            >
+              ×
+            </button>
+
+            <h2>{selectedApplication.fullName}</h2>
+            <p className="admin-modal-email">{selectedApplication.email}</p>
+
+            <div className="admin-details-grid">
+              <div>
+                <strong>WhatsApp</strong>
+                <span>{selectedApplication.whatsapp}</span>
+              </div>
+
+              <div>
+                <strong>Location</strong>
+                <span>{selectedApplication.location}</span>
+              </div>
+
+              <div>
+                <strong>Age Range</strong>
+                <span>{selectedApplication.ageRange}</span>
+              </div>
+
+              <div>
+                <strong>Preferred Track</strong>
+                <span>{selectedApplication.track}</span>
+              </div>
+
+              <div>
+                <strong>Learning Method</strong>
+                <span>{selectedApplication.learningMethod}</span>
+              </div>
+
+              <div>
+                <strong>Referral</strong>
+                <span>{selectedApplication.referral}</span>
+              </div>
+            </div>
+
+            <div className="admin-reason-box">
+              <strong>Reason for Applying</strong>
+              <p>{selectedApplication.reason}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };
