@@ -4,6 +4,7 @@ import Scholarship from "./pages/Scholarship";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
+import EnrolledStudents from "./pages/EnrolledStudents";
 
 function App() {
   return (
@@ -18,6 +19,14 @@ function App() {
           element={
             <ProtectedAdminRoute>
               <Admin />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/enrolled-students"
+          element={
+            <ProtectedAdminRoute>
+              <EnrolledStudents />
             </ProtectedAdminRoute>
           }
         />

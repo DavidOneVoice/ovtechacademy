@@ -8,7 +8,9 @@ import {
   query,
   doc,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
+import emailjs from "@emailjs/browser";
 
 const Admin = () => {
   const [applications, setApplications] = useState([]);
@@ -20,6 +22,7 @@ const Admin = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const filteredApplications = applications.filter((app) => {
     const matchesSearch =
@@ -100,14 +103,38 @@ const Admin = () => {
     (app) => app.status === "Rejected",
   ).length;
 
-  const updateStatus = async (id, status) => {
+  const updateStatus = async (id, status, app) => {
     await updateDoc(doc(db, "scholarshipApplications", id), {
       status,
     });
 
     setApplications((prev) =>
-      prev.map((app) => (app.id === id ? { ...app, status } : app)),
+      prev.map((item) => (item.id === id ? { ...item, status } : item)),
     );
+
+    if (status === "Approved") {
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        {
+          email: app.email,
+          to_name: app.fullName,
+
+          subjectTitle:
+            "Congratulations! Your OVTech Scholarship Has Been Approved",
+
+          mainMessage:
+            "We are pleased to inform you that your OVTech Scholarship application has been approved. You have been selected to receive a 90% scholarship for your chosen learning path.",
+
+          extraMessage:
+            "To secure your slot, kindly complete your registration payment using the link below. Once payment is completed, our team will contact you with onboarding details.",
+
+          ctaText: "Registration Payment Link",
+          ctaLink: import.meta.env.VITE_PAYSTACK_PAYMENT_LINK,
+        },
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+      );
+    }
   };
   const handleLogout = () => {
     localStorage.removeItem("ovtechAdmin");
@@ -169,6 +196,56 @@ const Admin = () => {
     setEndDate("");
   };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    await deleteDoc(doc(db, "scholarshipApplications", deleteTarget.id));
+
+    setApplications((prev) => prev.filter((app) => app.id !== deleteTarget.id));
+
+    setDeleteTarget(null);
+  };
+
+  const enrollStudent = async (app) => {
+    await updateDoc(doc(db, "scholarshipApplications", app.id), {
+      status: "Enrolled",
+      paymentStatus: "Paid",
+      enrolledAt: new Date(),
+    });
+
+    setApplications((prev) =>
+      prev.map((item) =>
+        item.id === app.id
+          ? {
+              ...item,
+              status: "Enrolled",
+              paymentStatus: "Paid",
+              enrolledAt: new Date(),
+            }
+          : item,
+      ),
+    );
+
+    await emailjs.send(
+      import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+      {
+        email: app.email,
+        to_name: app.fullName,
+        subjectTitle: "Payment Confirmed: Welcome to OVTech Academy",
+        mainMessage:
+          "We are pleased to confirm that your registration payment has been received successfully and your enrollment has been completed.",
+        extraMessage:
+          "You have now been admitted into the OVTech training program. Our team will contact you shortly with onboarding details, class schedule, and the next steps for joining your learning group.",
+        ctaText: "",
+        ctaLink: "",
+      },
+      import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+    );
+
+    setSelectedApplication(null);
+  };
+
   return (
     <main className="admin-page">
       <section className="admin-header">
@@ -183,6 +260,9 @@ const Admin = () => {
         <div style={{ gap: "1rem", display: "flex", alignItems: "center" }}>
           <a href="/" className="admin-home-btn">
             Back to Website
+          </a>
+          <a href="/enrolled-students" className="admin-home-btn">
+            Enrolled Students
           </a>
           <button onClick={handleLogout} className="admin-logout-btn">
             Logout
@@ -312,17 +392,17 @@ const Admin = () => {
                   <td>
                     <div className="admin-actions">
                       <button
-                        onClick={() => updateStatus(app.id, "Approved")}
+                        onClick={() => updateStatus(app.id, "Approved", app)}
                         className="admin-approve"
                       >
                         Approve
                       </button>
 
                       <button
-                        onClick={() => updateStatus(app.id, "Rejected")}
-                        className="admin-reject"
+                        onClick={() => setDeleteTarget(app)}
+                        className="admin-delete"
                       >
-                        Reject
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -399,6 +479,42 @@ const Admin = () => {
             <div className="admin-reason-box">
               <strong>Reason for Applying</strong>
               <p>{selectedApplication.reason}</p>
+            </div>
+            <div className="admin-modal-actions">
+              <button
+                onClick={() => enrollStudent(selectedApplication)}
+                className="admin-enroll-btn"
+              >
+                Enroll Student
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {deleteTarget && (
+        <div className="admin-modal-overlay">
+          <div className="admin-delete-modal">
+            <h2>Delete Application?</h2>
+
+            <p>
+              Are you sure you want to permanently delete the application
+              submitted by
+              <strong> {deleteTarget.fullName}</strong>?
+            </p>
+
+            <p>This action cannot be undone.</p>
+
+            <div className="admin-delete-actions">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="admin-cancel-delete"
+              >
+                Cancel
+              </button>
+
+              <button onClick={confirmDelete} className="admin-confirm-delete">
+                Yes, Delete
+              </button>
             </div>
           </div>
         </div>
