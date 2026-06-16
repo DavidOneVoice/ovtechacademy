@@ -17,6 +17,9 @@ const Admin = () => {
   const [statusFilter, setStatusFilter] = useState("All");
   const [trackFilter, setTrackFilter] = useState("All");
   const [monthFilter, setMonthFilter] = useState("All");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const filteredApplications = applications.filter((app) => {
     const matchesSearch =
@@ -35,25 +38,54 @@ const Admin = () => {
 
       matchesMonth = appMonth === Number(monthFilter);
     }
+    let matchesDateRange = true;
 
-    return matchesSearch && matchesStatus && matchesTrack && matchesMonth;
+    if (app.createdAt?.seconds) {
+      const appDate = new Date(app.createdAt.seconds * 1000);
+
+      if (startDate) {
+        const start = new Date(startDate);
+        matchesDateRange = matchesDateRange && appDate >= start;
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        matchesDateRange = matchesDateRange && appDate <= end;
+      }
+    }
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesTrack &&
+      matchesMonth &&
+      matchesDateRange
+    );
   });
 
   useEffect(() => {
     const fetchApplications = async () => {
-      const q = query(
-        collection(db, "scholarshipApplications"),
-        orderBy("createdAt", "desc"),
-      );
+      try {
+        setLoading(true);
 
-      const snapshot = await getDocs(q);
+        const q = query(
+          collection(db, "scholarshipApplications"),
+          orderBy("createdAt", "desc"),
+        );
 
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+        const snapshot = await getDocs(q);
 
-      setApplications(data);
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setApplications(data);
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchApplications();
@@ -126,6 +158,15 @@ const Admin = () => {
     link.click();
 
     URL.revokeObjectURL(url);
+  };
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("All");
+    setTrackFilter("All");
+    setMonthFilter("All");
+    setStartDate("");
+    setEndDate("");
   };
 
   return (
@@ -216,14 +257,28 @@ const Admin = () => {
           <option value="11">November</option>
           <option value="12">December</option>
         </select>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+        />
+
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+        />
       </div>
+      <button onClick={resetFilters} className="admin-reset-btn">
+        Reset Filters
+      </button>
       <button onClick={exportToCSV} className="admin-export-btn">
         Export Filtered Applications
       </button>
 
       <section className="admin-table-card">
         <h2>Recent Applications</h2>
-
+        {loading && <p className="admin-loading">Loading applications...</p>}
         <div className="admin-table-wrap">
           <table>
             <thead>
@@ -236,6 +291,7 @@ const Admin = () => {
                 <th>Status</th>
                 <th>Actions</th>
                 <th>View</th>
+                <th>Date Applied</th>
               </tr>
             </thead>
 
@@ -278,12 +334,19 @@ const Admin = () => {
                       View
                     </button>
                   </td>
+                  <td>
+                    {app.createdAt?.seconds
+                      ? new Date(
+                          app.createdAt.seconds * 1000,
+                        ).toLocaleDateString()
+                      : "N/A"}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {filteredApplications.length === 0 && (
+          {!loading && filteredApplications.length === 0 && (
             <p className="admin-empty">No applications match your filters.</p>
           )}
         </div>
