@@ -1155,3 +1155,267 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+/* STICKY NAVBAR */
+
+.ov-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(18, 35, 63, 0.96);
+  backdrop-filter: blur(14px);
+  width: 100%;
+  padding: 16px 7%;
+  box-shadow: 0 12px 35px rgba(8, 20, 38, 0.16);
+}
+
+.ov-logo h3 {
+  color: #ffffff;
+}
+
+.ov-logo span {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.ov-logo-mark {
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.ov-nav-links a {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.ov-nav-links a:hover {
+  color: var(--ov-gold);
+}
+
+.ov-menu-btn {
+  display: none;
+  border: none;
+  background: var(--ov-gold);
+  color: var(--ov-navy-dark);
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  font-size: 1.45rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+/* MOBILE MENU */
+
+.ov-mobile-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 20, 38, 0.72);
+  z-index: 2000;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ov-mobile-menu {
+  width: min(340px, 88%);
+  height: 100%;
+  background: #ffffff;
+  padding: 34px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: ovSlideIn 0.25s ease;
+}
+
+.ov-mobile-menu a {
+  text-decoration: none;
+  color: var(--ov-navy);
+  font-weight: 900;
+  padding: 14px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ov-mobile-close {
+  align-self: flex-end;
+  border: none;
+  background: #f3f4f6;
+  color: var(--ov-navy);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 1.6rem;
+  cursor: pointer;
+}
+
+.ov-mobile-cta {
+  background: var(--ov-gold);
+  color: var(--ov-navy-dark) !important;
+  text-align: center;
+  border-radius: 999px;
+  border-bottom: none !important;
+  margin-top: 10px;
+}
+
+@keyframes ovSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* FLOATING BUTTONS */
+
+.ov-back-top,
+.ov-whatsapp-float {
+  position: fixed;
+  bottom: 24px;
+  z-index: 1500;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  box-shadow: 0 16px 35px rgba(8, 20, 38, 0.22);
+}
+
+.ov-back-top {
+  left: 22px;
+  background: var(--ov-navy);
+  color: white;
+}
+
+.ov-whatsapp-float {
+  right: 22px;
+  background: #25d366;
+  color: white;
+}
+
+/* MOBILE ADVANTAGE TWO-ROW SCROLL */
+
+@media (max-width: 700px) {
+  .ov-nav-links,
+  .ov-nav-btn {
+    display: none;
+  }
+
+  .ov-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ov-navbar {
+    padding: 14px 18px;
+  }
+
+  .ov-advantages-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(2, auto);
+    grid-auto-columns: 78%;
+    overflow-x: auto;
+    gap: 18px;
+    padding-bottom: 18px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .ov-adv-card {
+    scroll-snap-align: start;
+  }
+
+  .ov-advantages-grid::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .ov-advantages-grid::-webkit-scrollbar-thumb {
+    background: var(--ov-gold);
+    border-radius: 999px;
+  }
+
+  .ov-back-top,
+  .ov-whatsapp-float {
+    bottom: 18px;
+    width: 50px;
+    height: 50px;
+  }
+}
+.ov-stats-section {
+  padding: 80px 7%;
+  background: #12233f;
+}
+
+.ov-stats-wrapper {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+}
+
+.ov-stats-wrapper div {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 26px;
+  padding: 34px 24px;
+  text-align: center;
+}
+
+.ov-stats-wrapper h3 {
+  color: #d4af37;
+  font-size: 3rem;
+  margin: 0 0 10px;
+}
+
+.ov-stats-wrapper p {
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0;
+  font-weight: 700;
+}
+
+@media (max-width: 800px) {
+  .ov-stats-wrapper {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.ov-faq-section {
+  padding: 120px 7%;
+  background: #f8fafc;
+}
+
+.ov-faq-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 60px;
+}
+
+.ov-faq-card {
+  background: white;
+  border-radius: 24px;
+  padding: 28px;
+  border: 1px solid #e5e7eb;
+  transition: 0.3s ease;
+}
+
+.ov-faq-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+}
+
+.ov-faq-card h3 {
+  color: var(--ov-navy);
+  margin-bottom: 14px;
+}
+
+.ov-faq-card p {
+  color: var(--ov-muted);
+  line-height: 1.8;
+}
+
+@media (max-width: 900px) {
+  .ov-faq-grid {
+    grid-template-columns: 1fr;
+  }
+}

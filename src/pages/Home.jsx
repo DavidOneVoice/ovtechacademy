@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import NorthIcon from "@mui/icons-material/North";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import "./Home.css";
 
 const courseData = [
@@ -90,10 +92,26 @@ const courseData = [
 
 const Home = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 700);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <main className="ov-home">
-      {/* NAVBAR */}
       <nav className="ov-navbar">
         <div className="ov-logo">
           <div className="ov-logo-mark">
@@ -103,6 +121,7 @@ const Home = () => {
               style={{ width: "100%", height: "100%" }}
             />
           </div>
+
           <div>
             <h3>OVTech</h3>
             <span>One Voice Tech</span>
@@ -120,6 +139,48 @@ const Home = () => {
         <a href="/scholarship" className="ov-nav-btn">
           Apply for Scholarship
         </a>
+
+        <button
+          className="ov-menu-btn"
+          onClick={() => setMobileMenuOpen(true)}
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+
+        {mobileMenuOpen && (
+          <div className="ov-mobile-menu-overlay">
+            <div className="ov-mobile-menu">
+              <button
+                className="ov-mobile-close"
+                onClick={closeMobileMenu}
+                aria-label="Close menu"
+              >
+                ×
+              </button>
+
+              <a href="#home" onClick={closeMobileMenu}>
+                Home
+              </a>
+              <a href="#paths" onClick={closeMobileMenu}>
+                Learning Paths
+              </a>
+              <a href="#scholarship" onClick={closeMobileMenu}>
+                Scholarship
+              </a>
+              <a href="#about" onClick={closeMobileMenu}>
+                About
+              </a>
+              <a href="/contact" onClick={closeMobileMenu}>
+                Contact
+              </a>
+
+              <a href="/scholarship" className="ov-mobile-cta">
+                Apply for Scholarship
+              </a>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* HERO SECTION */}
@@ -432,6 +493,112 @@ const Home = () => {
         </div>
       </section>
 
+      {/* STATISTICS SECTION */}
+      <section className="ov-stats-section">
+        <div className="ov-stats-wrapper">
+          <div>
+            <h3>3</h3>
+            <p>Career-Focused Learning Paths</p>
+          </div>
+
+          <div>
+            <h3>12</h3>
+            <p>Weeks of Practical Training</p>
+          </div>
+
+          <div>
+            <h3>90%</h3>
+            <p>Scholarship Support Available</p>
+          </div>
+
+          <div>
+            <h3>100%</h3>
+            <p>Project-Based Learning</p>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ SECTION */}
+      <section className="ov-faq-section">
+        <div className="ov-section-head">
+          <span>FAQ</span>
+
+          <h2>Frequently Asked Questions</h2>
+
+          <p>
+            Answers to some of the most common questions prospective students
+            ask.
+          </p>
+        </div>
+
+        <div className="ov-faq-grid">
+          <div className="ov-faq-card">
+            <h3>Do I need prior experience?</h3>
+            <p>
+              No. Our programs are beginner-friendly and designed to guide
+              learners from the fundamentals to practical projects.
+            </p>
+          </div>
+
+          <div className="ov-faq-card">
+            <h3>How long is each course?</h3>
+            <p>
+              Each learning path runs for approximately 12 weeks with practical
+              assignments and projects.
+            </p>
+          </div>
+
+          <div className="ov-faq-card">
+            <h3>Will I receive a certificate?</h3>
+            <p>
+              Yes. Students who successfully complete their training will
+              receive a certificate of completion.
+            </p>
+          </div>
+
+          <div className="ov-faq-card">
+            <h3>Do you offer scholarships?</h3>
+            <p>
+              Yes. OVTech periodically provides scholarship opportunities for
+              qualified applicants.
+            </p>
+          </div>
+
+          <div className="ov-faq-card">
+            <h3>Are classes live or self-paced?</h3>
+            <p>
+              Depending on the program, learners may choose live instructor-led
+              sessions or self-paced study options.
+            </p>
+          </div>
+
+          <div className="ov-faq-card">
+            <h3>How are classes conducted?</h3>
+            <p>
+              Classes are conducted online, allowing students to learn from
+              anywhere with an internet connection.
+            </p>
+          </div>
+          <div className="ov-faq-card">
+            <h3>What are the class schedules like?</h3>
+            <p>
+              Class schedules vary by program, but we offer flexible options to
+              accommodate different time zones and commitments. Live sessions
+              are typically held in the evenings or on weekends, while
+              self-paced learners can access materials at any time.
+            </p>
+          </div>
+          <div className="ov-faq-card">
+            <h3>What happens if i miss a session?</h3>
+            <p>
+              Don't worry! All live sessions are recorded and made available to
+              students. You can watch the recordings at your convenience to
+              catch up on any missed content.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* COURSE OUTLINE MODAL */}
       {selectedCourse && (
         <div className="ov-course-modal-overlay">
@@ -669,6 +836,20 @@ const Home = () => {
           </a>
         </div>
       </section>
+      {showBackToTop && (
+        <button className="ov-back-top" onClick={scrollToTop}>
+          <NorthIcon style={{ fontSize: "2rem", color: "#fff" }} />
+        </button>
+      )}
+
+      <a
+        href="https://wa.me/2348130624789"
+        target="_blank"
+        rel="noreferrer"
+        className="ov-whatsapp-float"
+      >
+        <WhatsAppIcon style={{ fontSize: "2rem", color: "#fff" }} />
+      </a>
     </main>
   );
 };

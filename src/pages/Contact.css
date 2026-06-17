@@ -1,0 +1,150 @@
+.contact-page {
+  background: white;
+}
+
+.contact-hero {
+  padding: 140px 7% 100px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.contact-left span {
+  color: var(--ov-gold);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.contact-left h1 {
+  font-size: clamp(2.8rem, 5vw, 5rem);
+  color: var(--ov-navy);
+  margin: 20px 0;
+}
+
+.contact-left p {
+  color: var(--ov-muted);
+  line-height: 1.9;
+}
+
+.contact-cards {
+  margin-top: 40px;
+  display: grid;
+  gap: 18px;
+}
+
+.contact-card {
+  background: #f8fafc;
+  border-radius: 22px;
+  padding: 24px;
+}
+
+.contact-card h3 {
+  color: var(--ov-navy);
+}
+
+.contact-image {
+  height: 500px;
+  border-radius: 30px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ov-muted);
+}
+
+.contact-form-section {
+  padding: 0 7% 120px;
+}
+
+.contact-form-card {
+  background: white;
+  border-radius: 30px;
+  padding: 40px;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.08);
+}
+
+.contact-form-card h2 {
+  margin-bottom: 30px;
+  color: var(--ov-navy);
+}
+
+.contact-form-card form {
+  display: grid;
+  gap: 18px;
+}
+
+.contact-form-card input,
+.contact-form-card textarea {
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid #dbe1ea;
+}
+
+.contact-form-card button {
+  border: none;
+  padding: 18px;
+  border-radius: 999px;
+  background: var(--ov-gold);
+  color: var(--ov-navy-dark);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.contact-cta {
+  padding: 100px 7%;
+  background: var(--ov-navy);
+  text-align: center;
+}
+
+.contact-cta h2 {
+  color: white;
+}
+
+.contact-cta p {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.contact-cta a {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 16px 30px;
+  background: #25d366;
+  color: white;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .contact-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-image {
+    height: 350px;
+  }
+}
+@media (max-width: 500px) {
+  .contact-form-card {
+    padding: 24px;
+  }
+}
+.contact-success {
+  background: #dcfce7;
+  color: #166534;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-weight: 800;
+  margin-bottom: 20px;
+}
+
+.contact-error {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-weight: 800;
+  margin-bottom: 20px;
+}
