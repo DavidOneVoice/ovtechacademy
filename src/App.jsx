@@ -5,6 +5,7 @@ import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 import EnrolledStudents from "./pages/EnrolledStudents";
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
             </ProtectedAdminRoute>
           }
         />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
       </Routes>
     </BrowserRouter>
   );
