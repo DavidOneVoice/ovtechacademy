@@ -907,3 +907,251 @@
     grid-template-columns: 1fr;
   }
 }
+.ov-path-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* COURSE META */
+
+.ov-course-meta {
+  display: grid;
+  gap: 10px;
+  margin: 22px 0;
+}
+
+.ov-course-meta div {
+  background: #f8f9fc;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 13px 14px;
+}
+
+.ov-course-meta strong {
+  display: block;
+  color: var(--ov-navy);
+  font-size: 0.82rem;
+  margin-bottom: 4px;
+}
+
+.ov-course-meta span {
+  color: var(--ov-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.ov-outline-btn {
+  width: 100%;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.08);
+  color: var(--ov-navy);
+  padding: 14px;
+  border-radius: 999px;
+  font-weight: 900;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+
+.ov-course-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.ov-course-actions a,
+.ov-modal-actions a {
+  text-decoration: none;
+  text-align: center;
+  padding: 14px 16px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.ov-course-scholarship {
+  background: var(--ov-navy);
+  color: white;
+}
+
+.ov-course-pay {
+  background: var(--ov-gold);
+  color: var(--ov-navy-dark);
+}
+
+/* COURSE MODAL */
+
+.ov-course-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 20, 38, 0.75);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.ov-course-modal {
+  width: min(760px, 100%);
+  max-height: 92vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 30px;
+  padding: 34px;
+  position: relative;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+}
+
+.ov-course-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 22px;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: var(--ov-navy);
+  font-size: 1.6rem;
+  cursor: pointer;
+}
+
+.ov-course-modal > span {
+  color: var(--ov-gold);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 0.78rem;
+}
+
+.ov-course-modal h2 {
+  color: var(--ov-navy);
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin: 12px 0 24px;
+  letter-spacing: -1px;
+}
+
+.ov-modal-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.ov-modal-summary div {
+  background: #f8f9fc;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.ov-modal-summary strong {
+  color: var(--ov-navy);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.ov-modal-summary p {
+  margin: 0;
+  color: var(--ov-muted);
+  line-height: 1.5;
+}
+
+.ov-modal-section {
+  margin-top: 24px;
+}
+
+.ov-modal-section h3 {
+  color: var(--ov-navy);
+  margin-bottom: 12px;
+}
+
+.ov-modal-section ul {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--ov-muted);
+  line-height: 1.9;
+}
+
+.ov-tool-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ov-tool-tags span {
+  background: #f8f9fc;
+  color: var(--ov-navy);
+  border: 1px solid #e5e7eb;
+  padding: 9px 13px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.88rem;
+}
+
+.ov-modal-actions {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 700px) {
+  .ov-modal-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .ov-modal-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .ov-course-modal {
+    padding: 28px 22px;
+  }
+}
+.ov-advantages {
+  padding: 120px 7%;
+  background: #ffffff;
+}
+
+.ov-advantages-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-top: 60px;
+}
+
+.ov-adv-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 28px;
+  transition: 0.3s ease;
+}
+
+.ov-adv-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+}
+
+.ov-adv-icon {
+  font-size: 2rem;
+  margin-bottom: 18px;
+}
+
+.ov-adv-card h3 {
+  color: var(--ov-navy);
+  margin-bottom: 12px;
+}
+
+.ov-adv-card p {
+  color: var(--ov-muted);
+  line-height: 1.7;
+}
+
+@media (max-width: 1024px) {
+  .ov-advantages-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

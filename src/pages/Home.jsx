@@ -1,12 +1,101 @@
+import { useState } from "react";
 import "./Home.css";
 
+const courseData = [
+  {
+    id: 1,
+    label: "📊 Learning Path 01",
+    title: "Data Analytics",
+    image: "/ovtimg2.png",
+    alt: "Data Analytics Dashboard",
+    imageClass: "ov-data-img",
+    description:
+      "Learn how to clean, analyze, visualize, and present data using tools like Excel, Power BI, SQL, and Python.",
+    tools: ["Excel", "Power BI", "SQL", "Python"],
+    projects: [
+      "Sales Analytics Dashboard",
+      "Executive Business Dashboard",
+      "Business Insight Report",
+      "Portfolio Analytics Project",
+    ],
+    outline: [
+      "Excel Fundamentals",
+      "Data Cleaning & Preparation",
+      "Formulas, Functions & Pivot Tables",
+      "Power BI Dashboard Design",
+      "SQL for Data Analysis",
+      "Python for Data Analytics",
+      "Portfolio Project",
+      "Career Preparation",
+    ],
+  },
+  {
+    id: 2,
+    label: "💻 Learning Path 02",
+    title: "Software Development (Frontend)",
+    image: "/ovtimg3.png",
+    alt: "Frontend App Dashboard",
+    imageClass: "ov-dev-img",
+    featured: true,
+    description:
+      "Learn how to build responsive, interactive, and modern web applications using frontend technologies.",
+    tools: ["HTML", "CSS", "JavaScript", "React", "Git", "GitHub"],
+    projects: [
+      "Portfolio Website",
+      "Modern React Dashboard",
+      "Business Website",
+      "Frontend Web Application",
+    ],
+    outline: [
+      "HTML Fundamentals",
+      "CSS Styling & Layout",
+      "Responsive Design",
+      "JavaScript Fundamentals",
+      "Git & GitHub",
+      "React Development",
+      "API Integration",
+      "AI-Assisted Development",
+      "Deployment & Portfolio Projects",
+    ],
+  },
+  {
+    id: 3,
+    label: "🌐 Learning Path 03",
+    title: "Web Development",
+    image: "/ovtimg4.png",
+    alt: "Modern Website",
+    imageClass: "ov-web-img",
+    description:
+      "Learn how to plan, design, build, deploy, and manage modern websites for personal, business, and client use.",
+    tools: ["HTML", "CSS", "JavaScript", "Hosting", "Domains", "Deployment"],
+    projects: [
+      "Business Website",
+      "Landing Page",
+      "Portfolio Website",
+      "Client Website Project",
+    ],
+    outline: [
+      "Website Planning",
+      "Website Structure",
+      "HTML & CSS",
+      "Responsive Layouts",
+      "JavaScript Basics",
+      "Hosting & Domain Setup",
+      "Deployment Workflow",
+      "Website Optimization",
+      "Client Project",
+    ],
+  },
+];
+
 const Home = () => {
+  const [selectedCourse, setSelectedCourse] = useState(null);
+
   return (
     <main className="ov-home">
       {/* NAVBAR */}
       <nav className="ov-navbar">
         <div className="ov-logo">
-          {/* Replace this with your actual logo image later */}
           <div className="ov-logo-mark">
             <img
               src="/ovlogo2.png"
@@ -25,7 +114,7 @@ const Home = () => {
           <a href="#paths">Learning Paths</a>
           <a href="#scholarship">Scholarship</a>
           <a href="#about">About</a>
-          <a href="#contact">Contact</a>
+          <a href="/contact">Contact</a>
         </div>
 
         <a href="/scholarship" className="ov-nav-btn">
@@ -96,6 +185,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+
       {/* WHY OVTECH EXISTS */}
       <section className="ov-why" id="about">
         <div className="ov-why-container">
@@ -148,6 +238,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+
       {/* LEARNING PATHS */}
       <section className="ov-paths" id="paths">
         <div className="ov-section-head">
@@ -160,87 +251,263 @@ const Home = () => {
         </div>
 
         <div className="ov-paths-grid">
-          <div className="ov-path-card">
-            <div className="ov-path-image ov-data-img">
-              <img
-                src="/ovtimg2.png"
-                alt="Data Analytics Dashboard"
-                style={{ width: "100%", height: "100%" }}
-              />
-            </div>
+          {courseData.map((course) => (
+            <div
+              className={`ov-path-card ${course.featured ? "featured" : ""}`}
+              key={course.id}
+            >
+              <div className={`ov-path-image ${course.imageClass}`}>
+                <img
+                  src={course.image}
+                  alt={course.alt}
+                  className="ov-path-img"
+                />
+              </div>
 
-            <div className="ov-path-body">
-              <small>📊 Learning Path 01</small>
-              <h3>Data Analytics</h3>
-              <p>
-                Learn how to clean, analyze, visualize, and present data using
-                tools like Excel, Power BI, SQL, and Python.
-              </p>
+              <div className="ov-path-body">
+                <small>{course.label}</small>
+                <h3>{course.title}</h3>
 
-              <ul>
-                <li>Excel & Data Cleaning</li>
-                <li>Power BI Dashboards</li>
-                <li>SQL & Python Basics</li>
-                <li>Portfolio Projects</li>
-              </ul>
+                <p>{course.description}</p>
+
+                <div className="ov-course-meta">
+                  <div>
+                    <strong>Duration</strong>
+                    <span>12 Weeks</span>
+                  </div>
+
+                  <div>
+                    <strong>Course Fee</strong>
+                    <span>₦100,000</span>
+                  </div>
+
+                  <div>
+                    <strong>Certification</strong>
+                    <span>Certificate upon completion</span>
+                  </div>
+                </div>
+
+                <button
+                  className="ov-outline-btn"
+                  onClick={() => setSelectedCourse(course)}
+                >
+                  View Course Outline
+                </button>
+
+                <div className="ov-course-actions">
+                  <a href="/scholarship" className="ov-course-scholarship">
+                    Apply for Scholarship
+                  </a>
+
+                  <a
+                    href="https://paystack.shop/pay/ovtech-tuition"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ov-course-pay"
+                  >
+                    Pay Full Tuition
+                  </a>
+                </div>
+              </div>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* WHAT MAKES OVTECH DIFFERENT */}
+      <section className="ov-advantages">
+        <div className="ov-section-head">
+          <span>Why OVTech?</span>
+
+          <h2>What Makes OVTech Different?</h2>
+
+          <p>
+            We designed OVTech Academy to help learners move beyond theory and
+            gain practical skills, real-world experience, and career confidence.
+          </p>
+        </div>
+
+        <div className="ov-advantages-grid">
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">🚀</div>
+            <h3>Project-Based Learning</h3>
+            <p>
+              Build real-world projects from day one and create a portfolio you
+              can proudly showcase.
+            </p>
           </div>
 
-          <div className="ov-path-card featured">
-            <div className="ov-path-image ov-dev-img">
-              <img
-                src="/ovtimg3.png"
-                alt="Frontend App Dashboard"
-                style={{ width: "100%", height: "100%" }}
-              />
-            </div>
-
-            <div className="ov-path-body">
-              <small>💻 Learning Path 02</small>
-              <h3>
-                Software Development <span>(Frontend)</span>
-              </h3>
-              <p>
-                Learn how to build responsive, interactive, and modern web
-                applications using frontend technologies.
-              </p>
-
-              <ul>
-                <li>HTML, CSS & JavaScript</li>
-                <li>Git & GitHub</li>
-                <li>React Development</li>
-                <li>AI-Assisted Development</li>
-              </ul>
-            </div>
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">👨‍🏫</div>
+            <h3>Industry Mentorship</h3>
+            <p>
+              Learn directly from professionals actively working in the
+              technology industry.
+            </p>
           </div>
 
-          <div className="ov-path-card">
-            <div className="ov-path-image ov-web-img">
-              <img
-                src="/ovtimg4.png"
-                alt="Modern Website"
-                style={{ width: "100%", height: "100%" }}
-              />
-            </div>
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">💼</div>
+            <h3>Career Guidance</h3>
+            <p>
+              Get support with portfolio building, CV improvement, and career
+              preparation.
+            </p>
+          </div>
 
-            <div className="ov-path-body">
-              <small>🌐 Learning Path 03</small>
-              <h3>Web Development</h3>
-              <p>
-                Learn how to plan, design, build, deploy, and manage modern
-                websites for personal, business, and client use.
-              </p>
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">🎓</div>
+            <h3>Scholarship Opportunities</h3>
+            <p>
+              Access periodic scholarship opportunities designed to support
+              serious learners.
+            </p>
+          </div>
 
-              <ul>
-                <li>Website Structure</li>
-                <li>Responsive Layouts</li>
-                <li>Hosting & Domains</li>
-                <li>Deployment Workflow</li>
-              </ul>
-            </div>
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">🎥</div>
+            <h3>Class Recordings</h3>
+            <p>
+              Never miss a lesson. Access recordings to learn at your own pace.
+            </p>
+          </div>
+
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">🌍</div>
+            <h3>Learn From Anywhere</h3>
+            <p>
+              Join classes from any location with flexible online learning
+              options.
+            </p>
+          </div>
+
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">🤝</div>
+            <h3>Community Support</h3>
+            <p>
+              Learn together with like-minded individuals pursuing similar
+              goals.
+            </p>
+          </div>
+
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">🏅</div>
+            <h3>Certification</h3>
+            <p>
+              Receive a certificate upon successful completion of your training.
+            </p>
+          </div>
+
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">🛠️</div>
+            <h3>Practical Assignments</h3>
+            <p>Reinforce every lesson with hands-on exercises and projects.</p>
+          </div>
+
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">📈</div>
+            <h3>Growth-Focused Curriculum</h3>
+            <p>
+              Learn modern tools and technologies currently used in the
+              industry.
+            </p>
+          </div>
+
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">⚡</div>
+            <h3>Fast-Track Learning</h3>
+            <p>
+              Follow a structured roadmap designed to accelerate your progress.
+            </p>
+          </div>
+
+          <div className="ov-adv-card">
+            <div className="ov-adv-icon">🌟</div>
+            <h3>Portfolio Development</h3>
+            <p>
+              Graduate with projects that demonstrate your capabilities to
+              employers and clients.
+            </p>
           </div>
         </div>
       </section>
+
+      {/* COURSE OUTLINE MODAL */}
+      {selectedCourse && (
+        <div className="ov-course-modal-overlay">
+          <div className="ov-course-modal">
+            <button
+              className="ov-course-modal-close"
+              onClick={() => setSelectedCourse(null)}
+            >
+              ×
+            </button>
+
+            <span>{selectedCourse.label}</span>
+            <h2>{selectedCourse.title}</h2>
+
+            <div className="ov-modal-summary">
+              <div>
+                <strong>Duration</strong>
+                <p>12 Weeks</p>
+              </div>
+
+              <div>
+                <strong>Course Fee</strong>
+                <p>₦100,000</p>
+              </div>
+
+              <div>
+                <strong>Certification</strong>
+                <p>Certificate issued upon completion</p>
+              </div>
+            </div>
+
+            <div className="ov-modal-section">
+              <h3>Course Outline</h3>
+              <ul>
+                {selectedCourse.outline.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="ov-modal-section">
+              <h3>Tools You’ll Learn</h3>
+              <div className="ov-tool-tags">
+                {selectedCourse.tools.map((tool) => (
+                  <span key={tool}>{tool}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="ov-modal-section">
+              <h3>Projects You’ll Build</h3>
+              <ul>
+                {selectedCourse.projects.map((project) => (
+                  <li key={project}>{project}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="ov-modal-actions">
+              <a href="/scholarship" className="ov-course-scholarship">
+                Apply for Scholarship
+              </a>
+
+              <a
+                href="https://paystack.shop/pay/ovtech-tuition"
+                target="_blank"
+                rel="noreferrer"
+                className="ov-course-pay"
+              >
+                Pay Full Tuition
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* WHAT YOU'LL BUILD */}
       <section className="ov-build">
         <div className="ov-build-header">
@@ -366,6 +633,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+
       {/* SCHOLARSHIP SECTION */}
       <section className="ov-scholarship" id="scholarship">
         <div className="ov-scholarship-content">
