@@ -121,7 +121,7 @@ const Scholarship = () => {
           <a href="#home">Home</a>
           <a href="#paths">Learning Paths</a>
           <a href="/scholarship">Scholarship</a>
-          <a href="#about">About</a>
+          <a href="/about">About</a>
           <a href="/contact">Contact</a>
         </div>
 
@@ -157,7 +157,7 @@ const Scholarship = () => {
               <a href="#scholarship" onClick={closeMobileMenu}>
                 Scholarship
               </a>
-              <a href="/#about" onClick={closeMobileMenu}>
+              <a href="/about" onClick={closeMobileMenu}>
                 About
               </a>
               <a href="/contact" onClick={closeMobileMenu}>
