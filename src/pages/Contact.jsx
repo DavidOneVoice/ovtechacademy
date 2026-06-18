@@ -3,6 +3,7 @@ import NorthIcon from "@mui/icons-material/North";
 import { useState, useEffect } from "react";
 import emailjs from "@emailjs/browser";
 import Footer from "../components/Footer";
+import CloseIcon from "@mui/icons-material/Close";
 
 const Contact = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -130,7 +131,7 @@ ${formData.message}`,
                 onClick={closeMobileMenu}
                 aria-label="Close menu"
               >
-                ×
+                <CloseIcon />
               </button>
 
               <a href="/" onClick={closeMobileMenu}>

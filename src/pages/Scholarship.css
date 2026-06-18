@@ -2,7 +2,6 @@
   min-height: 100vh;
   background: #f8f9fc;
   color: #1f2937;
-  padding-bottom: 80px;
 }
 
 .sch-hero {
@@ -47,6 +46,7 @@
   width: min(900px, calc(100% - 32px));
   margin: -45px auto 0;
   background: white;
+  margin-bottom: 60px;
   padding: 34px;
   border-radius: 30px;
   box-shadow: 0 25px 70px rgba(18, 35, 63, 0.14);

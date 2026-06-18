@@ -6,6 +6,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import emailjs from "@emailjs/browser";
 import Footer from "../components/Footer";
+import CloseIcon from "@mui/icons-material/Close";
 const Scholarship = () => {
   const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
@@ -118,7 +119,7 @@ const Scholarship = () => {
         </div>
 
         <div className="ov-nav-links">
-          <a href="#home">Home</a>
+          <a href="/">Home</a>
           <a href="#paths">Learning Paths</a>
           <a href="/scholarship">Scholarship</a>
           <a href="/about">About</a>
@@ -145,7 +146,7 @@ const Scholarship = () => {
                 onClick={closeMobileMenu}
                 aria-label="Close menu"
               >
-                ×
+                <CloseIcon />
               </button>
 
               <a href="#home" onClick={closeMobileMenu}>

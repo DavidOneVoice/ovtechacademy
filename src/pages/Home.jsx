@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import NorthIcon from "@mui/icons-material/North";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Footer from "../components/Footer";
+import CloseIcon from "@mui/icons-material/Close";
 import "./Home.css";
 
 const courseData = [
@@ -95,6 +96,7 @@ const Home = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -157,7 +159,7 @@ const Home = () => {
                 onClick={closeMobileMenu}
                 aria-label="Close menu"
               >
-                ×
+                <CloseIcon />
               </button>
 
               <a href="#home" onClick={closeMobileMenu}>
@@ -532,71 +534,53 @@ const Home = () => {
           </p>
         </div>
 
-        <div className="ov-faq-grid">
-          <div className="ov-faq-card">
-            <h3>Do I need prior experience?</h3>
-            <p>
-              No. Our programs are beginner-friendly and designed to guide
-              learners from the fundamentals to practical projects.
-            </p>
-          </div>
+        <div className="ov-faq-accordion">
+          {[
+            {
+              q: "Do I need prior experience?",
+              a: "No. Our programs are beginner-friendly and designed to guide learners from the fundamentals to practical projects.",
+            },
+            {
+              q: "How long is each course?",
+              a: "Each learning path runs for approximately 12 weeks with practical assignments and projects.",
+            },
+            {
+              q: "Will I receive a certificate?",
+              a: "Yes. Students who successfully complete their training will receive a certificate of completion.",
+            },
+            {
+              q: "Do you offer scholarships?",
+              a: "Yes. OVTech periodically provides scholarship opportunities for qualified applicants.",
+            },
+            {
+              q: "Are classes live or self-paced?",
+              a: "Depending on the program, learners may choose live instructor-led sessions or self-paced study options.",
+            },
+            {
+              q: "How are classes conducted?",
+              a: "Classes are conducted online, allowing students to learn from anywhere with an internet connection.",
+            },
+          ].map((item, index) => (
+            <div
+              className={`ov-faq-item ${openFaq === index ? "active" : ""}`}
+              key={item.q}
+            >
+              <button
+                type="button"
+                className="ov-faq-question"
+                onClick={() => setOpenFaq(openFaq === index ? null : index)}
+              >
+                <span>{item.q}</span>
+                <strong>{openFaq === index ? "−" : "+"}</strong>
+              </button>
 
-          <div className="ov-faq-card">
-            <h3>How long is each course?</h3>
-            <p>
-              Each learning path runs for approximately 12 weeks with practical
-              assignments and projects.
-            </p>
-          </div>
-
-          <div className="ov-faq-card">
-            <h3>Will I receive a certificate?</h3>
-            <p>
-              Yes. Students who successfully complete their training will
-              receive a certificate of completion.
-            </p>
-          </div>
-
-          <div className="ov-faq-card">
-            <h3>Do you offer scholarships?</h3>
-            <p>
-              Yes. OVTech periodically provides scholarship opportunities for
-              qualified applicants.
-            </p>
-          </div>
-
-          <div className="ov-faq-card">
-            <h3>Are classes live or self-paced?</h3>
-            <p>
-              Depending on the program, learners may choose live instructor-led
-              sessions or self-paced study options.
-            </p>
-          </div>
-
-          <div className="ov-faq-card">
-            <h3>How are classes conducted?</h3>
-            <p>
-              Classes are conducted online, allowing students to learn from
-              anywhere with an internet connection.
-            </p>
-          </div>
-          <div className="ov-faq-card">
-            <h3>What are the class schedules like?</h3>
-            <p>
-              Class schedules vary by program, but we offer flexible options to
-              accommodate different time zones and commitments. Live sessions
-              are typically held in the evenings or on weekends, while
-              self-paced learners can access materials at any time.
-            </p>
-          </div>
-          <div className="ov-faq-card">
-            <h3>What happens if i miss a session?</h3>
-            <p>
-              Don't worry! All live sessions are recorded and made available to
-              students. You can watch the recordings at your convenience to
-              catch up on any missed content.
-            </p>
-          </div>
+              {openFaq === index && (
+                <div className="ov-faq-answer">
+                  <p>{item.a}</p>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </section>
 

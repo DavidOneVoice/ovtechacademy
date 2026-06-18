@@ -93,3 +93,16 @@
     padding: 70px 7% 45px;
   }
 }
+
+@media (max-width: 700px) {
+  .ov-socials {
+    justify-content: space-between;
+  }
+  .ov-footer-brand h3 {
+    text-align: center;
+  }
+  .ov-footer-links,
+  .ov-footer-brand p {
+    text-align: center;
+  }
+}

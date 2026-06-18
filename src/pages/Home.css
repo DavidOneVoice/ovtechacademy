@@ -440,6 +440,10 @@
     left: 30px;
     bottom: 55px;
   }
+
+  .ov-advantages {
+    margin-top: -150px;
+  }
 }
 /* WHY OVTECH EXISTS */
 
@@ -449,6 +453,11 @@
   padding: 100px 0;
   position: relative;
   overflow: hidden;
+  margin-top: -200px;
+}
+
+.ov-paths {
+  margin-top: -80px;
 }
 
 .ov-why::before {
@@ -1115,19 +1124,40 @@
   background: #ffffff;
 }
 
-.ov-advantages-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-  margin-top: 60px;
-}
+@media (max-width: 700px) {
+  .ov-advantages-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(2, 1fr);
+    grid-auto-columns: 82%;
+    gap: 18px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 18px 20px 18px;
+    margin-left: -18px;
+    margin-right: -18px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
 
-.ov-adv-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 24px;
-  padding: 28px;
-  transition: 0.3s ease;
+  .ov-adv-card {
+    scroll-snap-align: start;
+    min-height: 240px;
+  }
+
+  .ov-advantages-grid::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .ov-advantages-grid::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 999px;
+  }
+
+  .ov-advantages-grid::-webkit-scrollbar-thumb {
+    background: var(--ov-gold);
+    border-radius: 999px;
+  }
 }
 
 .ov-adv-card:hover {
@@ -1148,12 +1178,6 @@
 .ov-adv-card p {
   color: var(--ov-muted);
   line-height: 1.7;
-}
-
-@media (max-width: 1024px) {
-  .ov-advantages-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 /* STICKY NAVBAR */
 
@@ -1215,7 +1239,8 @@
 
 .ov-mobile-menu {
   width: min(340px, 88%);
-  height: 100%;
+  height: 100vh;
+  overflow-y: auto;
   background: #050505;
   padding: 34px 26px;
   display: flex;
@@ -1294,6 +1319,22 @@
   color: white;
 }
 
+.ov-advantages-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-top: 60px;
+}
+
+.ov-adv-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 28px;
+  min-height: 240px;
+  transition: 0.3s ease;
+}
+
 /* MOBILE ADVANTAGE TWO-ROW SCROLL */
 
 @media (max-width: 700px) {
@@ -1312,28 +1353,32 @@
     padding: 14px 18px;
   }
 
-  .ov-advantages-grid {
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: repeat(2, auto);
-    grid-auto-columns: 78%;
-    overflow-x: auto;
-    gap: 18px;
-    padding-bottom: 18px;
-    scroll-snap-type: x mandatory;
-  }
+  @media (max-width: 700px) {
+    .ov-advantages-grid {
+      display: flex;
+      overflow-x: auto;
+      gap: 18px;
+      padding: 0 18px 20px;
+      margin-left: -18px;
+      margin-right: -18px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
 
-  .ov-adv-card {
-    scroll-snap-align: start;
-  }
+    .ov-adv-card {
+      flex: 0 0 82%;
+      scroll-snap-align: start;
+      min-height: 250px;
+    }
 
-  .ov-advantages-grid::-webkit-scrollbar {
-    height: 6px;
-  }
+    .ov-advantages-grid::-webkit-scrollbar {
+      height: 6px;
+    }
 
-  .ov-advantages-grid::-webkit-scrollbar-thumb {
-    background: var(--ov-gold);
-    border-radius: 999px;
+    .ov-advantages-grid::-webkit-scrollbar-thumb {
+      background: var(--ov-gold);
+      border-radius: 999px;
+    }
   }
 
   .ov-back-top,
@@ -1417,5 +1462,77 @@
 @media (max-width: 900px) {
   .ov-faq-grid {
     grid-template-columns: 1fr;
+  }
+}
+.ov-faq-accordion {
+  max-width: 900px;
+  margin: 60px auto 0;
+  display: grid;
+  gap: 16px;
+}
+
+.ov-faq-item {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 12px 35px rgba(18, 35, 63, 0.05);
+}
+
+.ov-faq-question {
+  width: 100%;
+  border: none;
+  background: white;
+  padding: 22px 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ov-faq-question span {
+  color: var(--ov-navy);
+  font-weight: 900;
+  font-size: 1rem;
+}
+
+.ov-faq-question strong {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 50%;
+  background: #f8fafc;
+  color: var(--ov-navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.ov-faq-item.active .ov-faq-question strong {
+  background: var(--ov-gold);
+  color: var(--ov-navy-dark);
+}
+
+.ov-faq-answer {
+  padding: 0 24px 22px;
+}
+
+.ov-faq-answer p {
+  color: var(--ov-muted);
+  line-height: 1.8;
+  margin: 0;
+}
+
+@media (max-width: 500px) {
+  .ov-faq-section,
+  .ov-scholarship {
+    padding-top: 60px;
+  }
+  .ov-build {
+    padding-top: 60px;
+    margin-top: -80px;
   }
 }
