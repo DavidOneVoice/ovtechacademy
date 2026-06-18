@@ -273,14 +273,9 @@
     transform: translateY(-10px);
   }
 }
-
 /* RESPONSIVE */
 
 @media (max-width: 980px) {
-  .ov-nav-links {
-    display: none;
-  }
-
   .ov-hero-content {
     grid-template-columns: 1fr;
   }
@@ -304,59 +299,62 @@
   }
 }
 
-.ov-nav-btn {
-  display: none;
-}
+@media (max-width: 620px) {
+  .ov-hero {
+    padding-top: 32px;
+  }
 
-.ov-hero {
-  padding-top: 32px;
-}
+  .ov-hero-content {
+    width: min(100% - 24px, 1180px);
+    gap: 36px;
+  }
 
-.ov-hero-content {
-  width: min(100% - 24px, 1180px);
-}
+  .ov-hero h1 {
+    letter-spacing: -2px;
+  }
 
-.ov-hero h1 {
-  letter-spacing: -2px;
-}
+  .ov-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-.ov-hero-actions {
-  flex-direction: column;
-  align-items: stretch;
-}
+  .ov-primary-btn,
+  .ov-secondary-btn {
+    text-align: center;
+  }
 
-.ov-primary-btn,
-.ov-secondary-btn {
-  text-align: center;
-}
+  .ov-main-image-placeholder {
+    min-height: 340px;
+    border-radius: 26px;
+  }
 
-.ov-main-image-placeholder {
-  min-height: 340px;
-  border-radius: 26px;
-}
+  .ov-main-hero-image {
+    border-radius: 24px;
+  }
 
-.ov-floating-card {
-  font-size: 0.82rem;
-  padding: 12px 14px;
-}
+  .ov-hero-visual {
+    padding: 0;
+  }
 
-.ov-card-analytics {
-  left: 6px;
-  top: 30px;
-}
+  .ov-floating-card {
+    font-size: 0.72rem;
+    padding: 10px 12px;
+  }
 
-.ov-card-software {
-  right: 4px;
-  top: 165px;
-}
+  .ov-card-analytics {
+    left: 6px;
+    top: 30px;
+  }
 
-.ov-card-web {
-  left: 30px;
-  bottom: 55px;
-}
+  .ov-card-software {
+    right: 4px;
+    top: 165px;
+  }
 
-.ov-advantages {
-  margin-top: -150px;
+  .ov-card-web {
+    left: 30px;
+    bottom: 55px;
+  }
 }
 /* WHY OVTECH EXISTS */
 
@@ -1238,5 +1236,55 @@
   .ov-build {
     padding-top: 60px;
     margin-top: -80px;
+  }
+}
+.ov-cohort-banner {
+  padding: 100px 7%;
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 50px;
+  align-items: center;
+  background: #f8fafc;
+}
+
+.ov-cohort-content span {
+  color: var(--ov-gold);
+  font-weight: 800;
+}
+
+.ov-cohort-content h2 {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  color: var(--ov-navy);
+  margin: 15px 0;
+}
+
+.ov-cohort-content p {
+  line-height: 1.8;
+  color: var(--ov-muted);
+  max-width: 600px;
+}
+
+.ov-cohort-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+
+.ov-cohort-image img {
+  width: 100%;
+  border-radius: 28px;
+  display: block;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 900px) {
+  .ov-cohort-banner {
+    grid-template-columns: 1fr;
+    padding: 70px 6%;
+  }
+
+  .ov-cohort-image {
+    order: -1;
   }
 }

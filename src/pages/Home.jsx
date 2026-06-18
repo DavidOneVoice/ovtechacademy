@@ -305,6 +305,43 @@ const Home = () => {
         </div>
       </section>
 
+      <section className="ov-cohort-banner">
+        <div className="ov-cohort-content">
+          <span>🚀 July 2026 Cohort</span>
+
+          <h2>
+            Applications Are Open.
+            <br />
+            Scholarship Available.
+          </h2>
+
+          <p>
+            Join the next cohort and gain practical skills in Data Analytics,
+            Software Development, or Web Development through project-based
+            learning.
+          </p>
+
+          <div className="ov-cohort-actions">
+            <a href="/scholarship" className="ov-primary-btn">
+              Apply For Scholarship
+            </a>
+
+            <a
+              href="https://paystack.shop/pay/ovtech-tuition"
+              target="_blank"
+              rel="noreferrer"
+              className="ov-secondary-btn"
+            >
+              Secure Your Slot
+            </a>
+          </div>
+        </div>
+
+        <div className="ov-cohort-image">
+          <img src="/flyer.png" alt="OVTech July 2026 Cohort" />
+        </div>
+      </section>
+
       {/* WHAT MAKES OVTECH DIFFERENT */}
       <section className="ov-advantages">
         <div className="ov-section-head">
