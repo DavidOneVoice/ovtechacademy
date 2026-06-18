@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Footer from "../components/Footer";
 import "./PaymentSuccess.css";
 
 const PaymentSuccess = () => {
@@ -44,6 +45,7 @@ const PaymentSuccess = () => {
           </a>
         </div>
       </div>
+      <Footer />
     </main>
   );
 };

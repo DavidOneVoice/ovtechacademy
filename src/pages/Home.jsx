@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import NorthIcon from "@mui/icons-material/North";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import Footer from "../components/Footer";
 import "./Home.css";
 
 const courseData = [
@@ -131,8 +132,8 @@ const Home = () => {
         <div className="ov-nav-links">
           <a href="#home">Home</a>
           <a href="#paths">Learning Paths</a>
-          <a href="#scholarship">Scholarship</a>
-          <a href="#about">About</a>
+          <a href="/scholarship">Scholarship</a>
+          <a href="/#about">About</a>
           <a href="/contact">Contact</a>
         </div>
 
@@ -168,7 +169,7 @@ const Home = () => {
               <a href="#scholarship" onClick={closeMobileMenu}>
                 Scholarship
               </a>
-              <a href="#about" onClick={closeMobileMenu}>
+              <a href="/#about" onClick={closeMobileMenu}>
                 About
               </a>
               <a href="/contact" onClick={closeMobileMenu}>
@@ -850,6 +851,7 @@ const Home = () => {
       >
         <WhatsAppIcon style={{ fontSize: "2rem", color: "#fff" }} />
       </a>
+      <Footer />
     </main>
   );
 };

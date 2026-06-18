@@ -2,6 +2,7 @@ import "./Contact.css";
 import NorthIcon from "@mui/icons-material/North";
 import { useState, useEffect } from "react";
 import emailjs from "@emailjs/browser";
+import Footer from "../components/Footer";
 
 const Contact = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -277,6 +278,7 @@ ${formData.message}`,
           <NorthIcon style={{ fontSize: "2rem", color: "#fff" }} />
         </button>
       )}
+      <Footer />
     </main>
   );
 };

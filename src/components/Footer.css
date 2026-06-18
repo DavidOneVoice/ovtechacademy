@@ -1,0 +1,95 @@
+.ov-footer {
+  background: #081426;
+  color: white;
+  margin-top: 0;
+}
+
+.ov-footer-top {
+  padding: 90px 7% 60px;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 50px;
+}
+
+.ov-footer-logo {
+  width: 70px;
+  height: 70px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: white;
+  margin-bottom: 20px;
+}
+
+.ov-footer-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ov-footer-brand h3 {
+  margin-bottom: 15px;
+  color: white;
+}
+
+.ov-footer-brand p {
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.8;
+  max-width: 400px;
+}
+
+.ov-footer-links h4 {
+  margin-bottom: 18px;
+  color: #d4af37;
+}
+
+.ov-footer-links a,
+.ov-footer-links p {
+  display: block;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.ov-footer-links a:hover {
+  color: #d4af37;
+}
+
+.ov-socials {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.ov-socials a {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: 0.3s ease;
+}
+
+.ov-socials a:hover {
+  background: #d4af37;
+  color: #081426;
+  transform: translateY(-4px);
+}
+
+.ov-footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+  padding: 24px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+@media (max-width: 900px) {
+  .ov-footer-top {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    padding: 70px 7% 45px;
+  }
+}

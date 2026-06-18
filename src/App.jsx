@@ -7,6 +7,7 @@ import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 import EnrolledStudents from "./pages/EnrolledStudents";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Contact from "./pages/Contact";
+import About from "./pages/About";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
         />
         <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/about" element={<About />} />
       </Routes>
     </BrowserRouter>
   );

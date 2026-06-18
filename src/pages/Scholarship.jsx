@@ -5,12 +5,14 @@ import { db } from "../src/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import emailjs from "@emailjs/browser";
+import Footer from "../components/Footer";
 const Scholarship = () => {
   const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showError, setShowError] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -43,6 +45,7 @@ const Scholarship = () => {
     setShowModal(true);
   };
 
+  const closeMobileMenu = () => setMobileMenuOpen(false);
   const confirmSubmit = async () => {
     try {
       setIsSubmitting(true);
@@ -98,13 +101,77 @@ const Scholarship = () => {
 
   return (
     <main className="sch-page">
-      <section className="sch-hero">
-        <a href="/" className="sch-back">
-          ← Back to Home
+      <nav className="ov-navbar">
+        <div className="ov-logo">
+          <div className="ov-logo-mark">
+            <img
+              src="/ovlogo2.png"
+              alt="OVTech Logo"
+              style={{ width: "100%", height: "100%" }}
+            />
+          </div>
+
+          <div>
+            <h3>OVTech</h3>
+            <span>One Voice Tech</span>
+          </div>
+        </div>
+
+        <div className="ov-nav-links">
+          <a href="#home">Home</a>
+          <a href="#paths">Learning Paths</a>
+          <a href="/scholarship">Scholarship</a>
+          <a href="#about">About</a>
+          <a href="/contact">Contact</a>
+        </div>
+
+        <a href="/scholarship" className="ov-nav-btn">
+          Apply for Scholarship
         </a>
 
-        <br />
+        <button
+          className="ov-menu-btn"
+          onClick={() => setMobileMenuOpen(true)}
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
 
+        {mobileMenuOpen && (
+          <div className="ov-mobile-menu-overlay">
+            <div className="ov-mobile-menu">
+              <button
+                className="ov-mobile-close"
+                onClick={closeMobileMenu}
+                aria-label="Close menu"
+              >
+                ×
+              </button>
+
+              <a href="#home" onClick={closeMobileMenu}>
+                Home
+              </a>
+              <a href="#paths" onClick={closeMobileMenu}>
+                Learning Paths
+              </a>
+              <a href="#scholarship" onClick={closeMobileMenu}>
+                Scholarship
+              </a>
+              <a href="/#about" onClick={closeMobileMenu}>
+                About
+              </a>
+              <a href="/contact" onClick={closeMobileMenu}>
+                Contact
+              </a>
+
+              <a href="/scholarship" className="ov-mobile-cta">
+                Apply for Scholarship
+              </a>
+            </div>
+          </div>
+        )}
+      </nav>
+      <section className="sch-hero">
         <span>OVTech Scholarship Application</span>
 
         <h1>Take the First Step Toward Your Tech Journey.</h1>
@@ -384,6 +451,7 @@ const Scholarship = () => {
           </div>
         </div>
       )}
+      <Footer />
     </main>
   );
 };
