@@ -1216,7 +1216,7 @@
 .ov-mobile-menu {
   width: min(340px, 88%);
   height: 100%;
-  background: #ffffff;
+  background: #050505;
   padding: 34px 26px;
   display: flex;
   flex-direction: column;
@@ -1226,17 +1226,17 @@
 
 .ov-mobile-menu a {
   text-decoration: none;
-  color: var(--ov-navy);
+  color: #ffffff;
   font-weight: 900;
   padding: 14px 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .ov-mobile-close {
   align-self: flex-end;
   border: none;
-  background: #f3f4f6;
-  color: var(--ov-navy);
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
   width: 42px;
   height: 42px;
   border-radius: 50%;
