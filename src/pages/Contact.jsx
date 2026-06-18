@@ -106,7 +106,7 @@ ${formData.message}`,
           <a href="/">Home</a>
           <a href="/#paths">Learning Paths</a>
           <a href="/#scholarship">Scholarship</a>
-          <a href="/#about">About</a>
+          <a href="/about">About</a>
           <a href="/contact">Contact</a>
         </div>
 
@@ -142,7 +142,7 @@ ${formData.message}`,
               <a href="/#scholarship" onClick={closeMobileMenu}>
                 Scholarship
               </a>
-              <a href="/#about" onClick={closeMobileMenu}>
+              <a href="/about" onClick={closeMobileMenu}>
                 About
               </a>
               <a href="/contact" onClick={closeMobileMenu}>
