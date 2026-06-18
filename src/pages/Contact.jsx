@@ -3,10 +3,8 @@ import NorthIcon from "@mui/icons-material/North";
 import { useState, useEffect } from "react";
 import emailjs from "@emailjs/browser";
 import Footer from "../components/Footer";
-import CloseIcon from "@mui/icons-material/Close";
-
+import Navbar from "../components/Navbar";
 const Contact = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -27,8 +25,6 @@ const Contact = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -87,76 +83,7 @@ ${formData.message}`,
 
   return (
     <main className="contact-page">
-      <nav className="ov-navbar">
-        <div className="ov-logo">
-          <div className="ov-logo-mark">
-            <img
-              src="/ovlogo2.png"
-              alt="OVTech Logo"
-              style={{ width: "100%", height: "100%" }}
-            />
-          </div>
-
-          <div>
-            <h3>OVTech</h3>
-            <span>One Voice Tech</span>
-          </div>
-        </div>
-
-        <div className="ov-nav-links">
-          <a href="/">Home</a>
-          <a href="/#paths">Learning Paths</a>
-          <a href="/#scholarship">Scholarship</a>
-          <a href="/about">About</a>
-          <a href="/contact">Contact</a>
-        </div>
-
-        <a href="/scholarship" className="ov-nav-btn">
-          Apply for Scholarship
-        </a>
-
-        <button
-          className="ov-menu-btn"
-          onClick={() => setMobileMenuOpen(true)}
-          aria-label="Open menu"
-        >
-          ☰
-        </button>
-
-        {mobileMenuOpen && (
-          <div className="ov-mobile-menu-overlay">
-            <div className="ov-mobile-menu">
-              <button
-                className="ov-mobile-close"
-                onClick={closeMobileMenu}
-                aria-label="Close menu"
-              >
-                <CloseIcon />
-              </button>
-
-              <a href="/" onClick={closeMobileMenu}>
-                Home
-              </a>
-              <a href="/#paths" onClick={closeMobileMenu}>
-                Learning Paths
-              </a>
-              <a href="/#scholarship" onClick={closeMobileMenu}>
-                Scholarship
-              </a>
-              <a href="/about" onClick={closeMobileMenu}>
-                About
-              </a>
-              <a href="/contact" onClick={closeMobileMenu}>
-                Contact
-              </a>
-
-              <a href="/scholarship" className="ov-mobile-cta">
-                Apply for Scholarship
-              </a>
-            </div>
-          </div>
-        )}
-      </nav>
+      <Navbar />
 
       <section className="contact-hero">
         <div className="contact-left">

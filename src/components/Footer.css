@@ -14,10 +14,11 @@
 .ov-footer-logo {
   width: 70px;
   height: 70px;
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
   background: white;
   margin-bottom: 20px;
+  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.18);
 }
 
 .ov-footer-logo img {
@@ -37,6 +38,10 @@
   max-width: 400px;
 }
 
+.ov-social-title {
+  display: none;
+}
+
 .ov-footer-links h4 {
   margin-bottom: 18px;
   color: #d4af37;
@@ -53,6 +58,12 @@
 
 .ov-footer-links a:hover {
   color: #d4af37;
+}
+
+.ov-footer-whatsapp {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
 }
 
 .ov-socials {
@@ -86,23 +97,88 @@
   color: rgba(255, 255, 255, 0.65);
 }
 
+/* TABLET / MOBILE */
 @media (max-width: 900px) {
   .ov-footer-top {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 46px;
     padding: 70px 7% 45px;
+    text-align: center;
+  }
+
+  .ov-footer-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ov-footer-logo {
+    margin-left: auto;
+    margin-right: auto;
+    width: 66px;
+    height: 66px;
+  }
+
+  .ov-footer-brand p {
+    max-width: 360px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .ov-social-title {
+    display: block;
+    margin: 18px 0 10px;
+    color: #d4af37 !important;
+    font-weight: 900;
+  }
+
+  .ov-socials {
+    justify-content: center;
+    gap: 18px;
+    margin-top: 4px;
+  }
+
+  .ov-socials a {
+    width: 50px;
+    height: 50px;
+  }
+
+  .ov-footer-links {
+    text-align: center;
+  }
+
+  .ov-footer-links h4 {
+    margin-bottom: 14px;
+  }
+
+  .ov-footer-whatsapp {
+    justify-content: center;
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 520px) {
+  .ov-footer-top {
+    padding: 60px 24px 42px;
+    gap: 42px;
+  }
+
+  .ov-footer-logo {
+    width: 60px;
+    height: 60px;
+  }
+
+  .ov-footer-brand h3 {
+    font-size: 1.25rem;
+  }
+
   .ov-socials {
+    width: 100%;
+    max-width: 330px;
     justify-content: space-between;
   }
-  .ov-footer-brand h3 {
-    text-align: center;
-  }
-  .ov-footer-links,
-  .ov-footer-brand p {
-    text-align: center;
+
+  .ov-footer-bottom {
+    font-size: 0.85rem;
+    padding: 22px 18px;
   }
 }

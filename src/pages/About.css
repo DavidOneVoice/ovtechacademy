@@ -204,3 +204,16 @@
     height: 380px;
   }
 }
+
+@media (max-width: 900px) {
+  .about-hero {
+    padding: 60px;
+  }
+  .about-founder,
+  .about-values {
+    padding-top: 0px;
+  }
+  .about-cta {
+    padding-top: 60px;
+  }
+}
