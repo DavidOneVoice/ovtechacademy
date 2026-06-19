@@ -124,7 +124,7 @@ const Admin = () => {
             "Congratulations! Your OVTech Scholarship Has Been Approved",
 
           mainMessage:
-            "We are pleased to inform you that your OVTech Scholarship application has been approved. You have been selected to receive a 90% scholarship for your chosen learning path.",
+            "We are pleased to inform you that your OVTech Scholarship application has been approved. You have been selected to receive a 95% scholarship for your chosen learning path.",
 
           extraMessage:
             "To secure your slot, kindly complete your registration payment using the link below. Once payment is completed, our team will contact you with onboarding details.",

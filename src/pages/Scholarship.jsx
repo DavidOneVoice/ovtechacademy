@@ -293,8 +293,8 @@ const Scholarship = () => {
           <div className="sch-modal">
             <h2>Scholarship Commitment</h2>
             <p>
-              Selected applicants will receive a 90% scholarship. This means you
-              will only be required to pay the remaining 10%, which is ₦10,000,
+              Selected applicants will receive a 95% scholarship. This means you
+              will only be required to pay the remaining 5%, which is ₦12,500,
               as a registration fee to secure your slot.
             </p>
 
