@@ -122,7 +122,7 @@ const About = () => {
         </div>
 
         <div>
-          <h3>90%</h3>
+          <h3>95%</h3>
           <p>Scholarship Support</p>
         </div>
       </section>

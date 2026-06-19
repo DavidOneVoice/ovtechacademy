@@ -269,7 +269,7 @@ const Home = () => {
 
                   <div>
                     <strong>Course Fee</strong>
-                    <span>₦100,000</span>
+                    <span>₦250,000</span>
                   </div>
 
                   <div>
@@ -474,7 +474,7 @@ const Home = () => {
           </div>
 
           <div>
-            <h3>90%</h3>
+            <h3>95%</h3>
             <p>Scholarship Support Available</p>
           </div>
 
@@ -570,7 +570,7 @@ const Home = () => {
 
               <div>
                 <strong>Course Fee</strong>
-                <p>₦100,000</p>
+                <p>₦250,000</p>
               </div>
 
               <div>
@@ -765,7 +765,7 @@ const Home = () => {
 
           <div className="ov-scholarship-box">
             <div>
-              <h3>90%</h3>
+              <h3>95%</h3>
               <p>Scholarship support available for selected applicants</p>
             </div>
 
