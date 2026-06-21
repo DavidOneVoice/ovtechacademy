@@ -23,6 +23,7 @@ const Scholarship = () => {
     track: "",
     reason: "",
     referral: "",
+    referralCode: "",
   });
 
   const handleChange = (e) => {
@@ -282,6 +283,13 @@ const Scholarship = () => {
             <option value="Other">Other</option>
           </select>
         </label>
+        <input
+          type="text"
+          name="referralCode"
+          placeholder="Referral Code (Optional)"
+          value={formData.referralCode}
+          onChange={handleChange}
+        />
 
         <button type="submit" className="sch-submit" disabled={isSubmitting}>
           {isSubmitting ? "Submitting..." : "Submit Application"}
