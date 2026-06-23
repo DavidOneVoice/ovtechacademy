@@ -3,94 +3,13 @@ import NorthIcon from "@mui/icons-material/North";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
+import courses from "../data/courses";
 import "./Home.css";
 
-const courseData = [
-  {
-    id: 1,
-    label: "📊 Learning Path 01",
-    title: "Data Analytics",
-    image: "/ovtimg2.png",
-    alt: "Data Analytics Dashboard",
-    imageClass: "ov-data-img",
-    description:
-      "Learn how to clean, analyze, visualize, and present data using tools like Excel, Power BI, SQL, and Python.",
-    tools: ["Excel", "Power BI", "SQL", "Python"],
-    projects: [
-      "Sales Analytics Dashboard",
-      "Executive Business Dashboard",
-      "Business Insight Report",
-      "Portfolio Analytics Project",
-    ],
-    outline: [
-      "Excel Fundamentals",
-      "Data Cleaning & Preparation",
-      "Formulas, Functions & Pivot Tables",
-      "Power BI Dashboard Design",
-      "SQL for Data Analysis",
-      "Python for Data Analytics",
-      "Portfolio Project",
-      "Career Preparation",
-    ],
-  },
-  {
-    id: 2,
-    label: "💻 Learning Path 02",
-    title: "Software Development (Frontend)",
-    image: "/ovtimg3.png",
-    alt: "Frontend App Dashboard",
-    imageClass: "ov-dev-img",
-    featured: true,
-    description:
-      "Learn how to build responsive, interactive, and modern web applications using frontend technologies.",
-    tools: ["HTML", "CSS", "JavaScript", "React", "Git", "GitHub"],
-    projects: [
-      "Portfolio Website",
-      "Modern React Dashboard",
-      "Business Website",
-      "Frontend Web Application",
-    ],
-    outline: [
-      "HTML Fundamentals",
-      "CSS Styling & Layout",
-      "Responsive Design",
-      "JavaScript Fundamentals",
-      "Git & GitHub",
-      "React Development",
-      "API Integration",
-      "AI-Assisted Development",
-      "Deployment & Portfolio Projects",
-    ],
-  },
-  {
-    id: 3,
-    label: "🌐 Learning Path 03",
-    title: "Web Development",
-    image: "/ovtimg4.png",
-    alt: "Modern Website",
-    imageClass: "ov-web-img",
-    description:
-      "Learn how to plan, design, build, deploy, and manage modern websites for personal, business, and client use.",
-    tools: ["HTML", "CSS", "JavaScript", "Hosting", "Domains", "Deployment"],
-    projects: [
-      "Business Website",
-      "Landing Page",
-      "Portfolio Website",
-      "Client Website Project",
-    ],
-    outline: [
-      "Website Planning",
-      "Website Structure",
-      "HTML & CSS",
-      "Responsive Layouts",
-      "JavaScript Basics",
-      "Hosting & Domain Setup",
-      "Deployment Workflow",
-      "Website Optimization",
-      "Client Project",
-    ],
-  },
-];
+const featuredCourses = courses
+  .filter((course) => course.featured)
+  .sort((a, b) => a.featuredOrder - b.featuredOrder)
+  .slice(0, 3);
 
 const Home = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -242,17 +161,25 @@ const Home = () => {
         </div>
 
         <div className="ov-paths-grid">
-          {courseData.map((course) => (
+          {featuredCourses.map((course) => (
             <div
               className={`ov-path-card ${course.featured ? "featured" : ""}`}
               key={course.id}
             >
-              <div className={`ov-path-image ${course.imageClass}`}>
-                <img
-                  src={course.image}
-                  alt={course.alt}
-                  className="ov-path-img"
-                />
+              <div
+                className={`ov-path-image ${course.imageClass || "ov-icon-card"}`}
+              >
+                {course.image ? (
+                  <img
+                    src={course.image}
+                    alt={course.alt}
+                    className="ov-path-img"
+                  />
+                ) : (
+                  <div className="ov-path-icon" aria-hidden="true">
+                    {course.icon}
+                  </div>
+                )}
               </div>
 
               <div className="ov-path-body">
@@ -264,12 +191,12 @@ const Home = () => {
                 <div className="ov-course-meta">
                   <div>
                     <strong>Duration</strong>
-                    <span>12 Weeks</span>
+                    <span>{course.duration}</span>
                   </div>
 
                   <div>
                     <strong>Course Fee</strong>
-                    <span>₦250,000</span>
+                    <span>{course.tuitionFee}</span>
                   </div>
 
                   <div>
@@ -302,6 +229,12 @@ const Home = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="ov-view-all-wrap">
+          <a href="/courses" className="ov-view-all-btn">
+            View All Courses
+          </a>
         </div>
       </section>
 
@@ -565,12 +498,12 @@ const Home = () => {
             <div className="ov-modal-summary">
               <div>
                 <strong>Duration</strong>
-                <p>12 Weeks</p>
+                <p>{selectedCourse.duration}</p>
               </div>
 
               <div>
                 <strong>Course Fee</strong>
-                <p>₦250,000</p>
+                <p>{selectedCourse.tuitionFee}</p>
               </div>
 
               <div>

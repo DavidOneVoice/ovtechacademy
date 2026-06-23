@@ -26,7 +26,7 @@ const Navbar = () => {
 
       <div className="ov-nav-links">
         <a href="/">Home</a>
-        <a href="/#paths">Learning Paths</a>
+        <a href="/courses">Courses</a>
         <a href="/scholarship">Scholarship</a>
         <a href="/about">About</a>
         <a href="/contact">Contact</a>
@@ -59,8 +59,8 @@ const Navbar = () => {
               Home
             </a>
 
-            <a href="/#paths" onClick={closeMobileMenu}>
-              Learning Paths
+            <a href="/courses" onClick={closeMobileMenu}>
+              Courses
             </a>
 
             <a href="/scholarship" onClick={closeMobileMenu}>
