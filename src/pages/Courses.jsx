@@ -1,9 +1,12 @@
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import courses from "../data/courses";
+import usePricing from "../hooks/usePricing";
 import "./Courses.css";
 
 const Courses = () => {
+  const { tuition, scholarship, scholarshipPercent, fullTuitionPaymentLink } =
+    usePricing();
   return (
     <main className="ov-courses-page">
       <Navbar />
@@ -62,18 +65,18 @@ const Courses = () => {
                   </div>
                   <div>
                     <strong>Course Fee</strong>
-                    <span>{course.tuitionFee}</span>
+                    <span>{tuition}</span>
                   </div>
                   <div>
                     <strong>Scholarship</strong>
-                    <span>{course.scholarshipFee}</span>
+                    <span>{`${scholarshipPercent} scholarship (${scholarship})`}</span>
                   </div>
                 </div>
 
                 <div className="ov-courses-actions">
                   <a href="/scholarship">Apply for Scholarship</a>
                   <a
-                    href="https://paystack.shop/pay/ovtech-tuition"
+                    href={fullTuitionPaymentLink}
                     target="_blank"
                     rel="noreferrer"
                     className="pay"

@@ -1,8 +1,10 @@
 import "./About.css";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
+import usePricing from "../hooks/usePricing";
 
 const About = () => {
+  const { scholarshipPercent } = usePricing();
   return (
     <main className="about-page">
       <Navbar />
@@ -122,7 +124,7 @@ const About = () => {
         </div>
 
         <div>
-          <h3>95%</h3>
+          <h3>{scholarshipPercent}</h3>
           <p>Scholarship Support</p>
         </div>
       </section>

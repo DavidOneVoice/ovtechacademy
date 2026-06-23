@@ -6,8 +6,6 @@ const courses = [
     description:
       "Learn how to clean, analyze, visualize, and present data using tools like Excel, Power BI, SQL, and Python.",
     duration: "12 Weeks",
-    tuitionFee: "₦250,000",
-    scholarshipFee: "Scholarship Available",
     icon: "📊",
     image: "/ovtimg2.png",
     alt: "Data Analytics Dashboard",
@@ -39,8 +37,6 @@ const courses = [
     description:
       "Learn how to build responsive, interactive, and modern web applications using frontend technologies.",
     duration: "12 Weeks",
-    tuitionFee: "₦250,000",
-    scholarshipFee: "Scholarship Available",
     icon: "💻",
     image: "/ovtimg3.png",
     alt: "Frontend App Dashboard",
@@ -72,8 +68,6 @@ const courses = [
     description:
       "Learn how to plan, design, build, deploy, and manage modern websites for personal, business, and client use.",
     duration: "12 Weeks",
-    tuitionFee: "₦250,000",
-    scholarshipFee: "Scholarship Available",
     icon: "🌐",
     image: "/ovtimg4.png",
     alt: "Modern Website",
@@ -106,8 +100,6 @@ const courses = [
     description:
       "Learn administrative support, communication, scheduling, customer management, productivity tools, and remote work skills required to work as a professional virtual assistant for businesses and entrepreneurs worldwide.",
     duration: "8 Weeks",
-    tuitionFee: "₦250,000",
-    scholarshipFee: "Scholarship Available",
     icon: "🗂️",
     image: "/va.png",
     alt: "Virtual Assistance",
@@ -142,8 +134,6 @@ const courses = [
     description:
       "Learn cybersecurity fundamentals, digital safety, threat detection, network security, ethical security practices, and essential tools used to protect systems and data.",
     duration: "12 Weeks",
-    tuitionFee: "₦250,000",
-    scholarshipFee: "Scholarship Available",
     icon: "🔐",
     image: "/cyber.png",
     alt: "Cyber Security",
