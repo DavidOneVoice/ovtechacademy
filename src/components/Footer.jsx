@@ -65,7 +65,7 @@ const Footer = () => {
         <div className="ov-footer-links">
           <h4>Quick Links</h4>
           <a href="/">Home</a>
-          <a href="/#paths">Learning Paths</a>
+          <a href="/courses">Courses</a>
           <a href="/scholarship">Scholarship</a>
           <a href="/about">About</a>
           <a href="/contact">Contact</a>
@@ -73,9 +73,9 @@ const Footer = () => {
 
         <div className="ov-footer-links">
           <h4>Programs</h4>
-          <a href="/#paths">Data Analytics</a>
-          <a href="/#paths">Software Development</a>
-          <a href="/#paths">Web Development</a>
+          <a href="/courses">Data Analytics</a>
+          <a href="/courses">Front-End Development</a>
+          <a href="/courses">Software Development</a>
         </div>
 
         <div className="ov-footer-links">

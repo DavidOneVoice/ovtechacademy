@@ -973,3 +973,41 @@
     height: 50px;
   }
 }
+
+.ov-icon-card {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #3f3dff, #00c2a8);
+}
+
+.ov-path-icon {
+  display: grid;
+  width: 112px;
+  height: 112px;
+  place-items: center;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  font-size: 3.7rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26);
+}
+
+.ov-view-all-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 38px;
+}
+
+.ov-view-all-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 15px 26px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #3f3dff, #00c2a8);
+  color: white;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 0 16px 36px rgba(63, 61, 255, 0.2);
+}

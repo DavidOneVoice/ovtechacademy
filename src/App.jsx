@@ -8,6 +8,7 @@ import EnrolledStudents from "./pages/EnrolledStudents";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Contact from "./pages/Contact";
 import About from "./pages/About";
+import Courses from "./pages/Courses";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/scholarship" element={<Scholarship />} />
+        <Route path="/courses" element={<Courses />} />
         <Route path="/admin-login" element={<AdminLogin />} />
 
         <Route
