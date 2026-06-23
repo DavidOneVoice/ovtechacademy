@@ -4,6 +4,7 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import courses from "../data/courses";
+import usePricing from "../hooks/usePricing";
 import "./Home.css";
 
 const featuredCourses = courses
@@ -15,6 +16,13 @@ const Home = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
+  const {
+    tuition,
+    scholarship,
+    scholarshipPercent,
+    studentPaysPercent,
+    fullTuitionPaymentLink,
+  } = usePricing();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -196,7 +204,7 @@ const Home = () => {
 
                   <div>
                     <strong>Course Fee</strong>
-                    <span>{course.tuitionFee}</span>
+                    <span>{tuition}</span>
                   </div>
 
                   <div>
@@ -218,7 +226,7 @@ const Home = () => {
                   </a>
 
                   <a
-                    href="https://paystack.shop/pay/ovtech-tuition"
+                    href={fullTuitionPaymentLink}
                     target="_blank"
                     rel="noreferrer"
                     className="ov-course-pay"
@@ -260,7 +268,7 @@ const Home = () => {
             </a>
 
             <a
-              href="https://paystack.shop/pay/ovtech-tuition"
+              href={fullTuitionPaymentLink}
               target="_blank"
               rel="noreferrer"
               className="ov-secondary-btn"
@@ -407,7 +415,7 @@ const Home = () => {
           </div>
 
           <div>
-            <h3>95%</h3>
+            <h3>{scholarshipPercent}</h3>
             <p>Scholarship Support Available</p>
           </div>
 
@@ -447,7 +455,7 @@ const Home = () => {
             },
             {
               q: "Do you offer scholarships?",
-              a: "Yes. OVTech periodically provides scholarship opportunities for qualified applicants.",
+              a: `Yes. OVTech periodically provides scholarship opportunities of up to ${scholarshipPercent} for qualified applicants. Selected learners pay only ${studentPaysPercent}, currently ${scholarship}.`,
             },
             {
               q: "Are classes live or self-paced?",
@@ -503,7 +511,7 @@ const Home = () => {
 
               <div>
                 <strong>Course Fee</strong>
-                <p>{selectedCourse.tuitionFee}</p>
+                <p>{tuition}</p>
               </div>
 
               <div>
@@ -545,7 +553,7 @@ const Home = () => {
               </a>
 
               <a
-                href="https://paystack.shop/pay/ovtech-tuition"
+                href={fullTuitionPaymentLink}
                 target="_blank"
                 rel="noreferrer"
                 className="ov-course-pay"
@@ -698,7 +706,7 @@ const Home = () => {
 
           <div className="ov-scholarship-box">
             <div>
-              <h3>95%</h3>
+              <h3>{scholarshipPercent}</h3>
               <p>Scholarship support available for selected applicants</p>
             </div>
 

@@ -7,7 +7,10 @@ import { useNavigate } from "react-router-dom";
 import emailjs from "@emailjs/browser";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
+import usePricing from "../hooks/usePricing";
+
 const Scholarship = () => {
+  const pricing = usePricing();
   const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,6 +68,15 @@ const Scholarship = () => {
 
       await addDoc(collection(db, "scholarshipApplications"), {
         ...formData,
+        detectedCountry: pricing.country,
+        detectedCountryCode: pricing.countryCode,
+        currency: pricing.currency,
+        tuition: pricing.tuition,
+        scholarshipFee: pricing.scholarship,
+        scholarshipPercent: pricing.scholarshipPercent,
+        studentPaysPercent: pricing.studentPaysPercent,
+        scholarshipPaymentLink: pricing.scholarshipPaymentLink,
+        fullTuitionPaymentLink: pricing.fullTuitionPaymentLink,
         status: "Pending",
         createdAt: serverTimestamp(),
       });
@@ -344,9 +356,10 @@ const Scholarship = () => {
           <div className="sch-modal">
             <h2>Scholarship Commitment</h2>
             <p>
-              Selected applicants will receive a 95% scholarship. This means you
-              will only be required to pay the remaining 5%, which is ₦12,500,
-              as a registration fee to secure your slot.
+              Selected applicants will receive a {pricing.scholarshipPercent}
+              scholarship. This means you will only be required to pay the
+              remaining {pricing.studentPaysPercent}, which is {pricing.scholarship}, as
+              a registration fee to secure your slot.
             </p>
 
             <p>

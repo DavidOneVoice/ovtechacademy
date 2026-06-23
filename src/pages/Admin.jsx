@@ -11,6 +11,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import emailjs from "@emailjs/browser";
+import { pricing } from "../data/pricing";
 
 const Admin = () => {
   const [applications, setApplications] = useState([]);
@@ -123,14 +124,17 @@ const Admin = () => {
           subjectTitle:
             "Congratulations! Your OVTech Scholarship Has Been Approved",
 
-          mainMessage:
-            "We are pleased to inform you that your OVTech Scholarship application has been approved. You have been selected to receive a 95% scholarship for your chosen learning path.",
+          mainMessage: `We are pleased to inform you that your OVTech Scholarship application has been approved. You have been selected to receive a ${
+            app.scholarshipPercent || pricing.NG.scholarshipPercent
+          } scholarship for your chosen learning path.`,
 
-          extraMessage:
-            "To secure your slot, kindly complete your registration payment using the link below. Once payment is completed, our team will contact you with onboarding details.",
+          extraMessage: `To secure your slot, kindly complete your registration payment of ${
+            app.scholarshipFee || pricing.NG.scholarship
+          } using the link below. Once payment is completed, our team will contact you with onboarding details.`,
 
           ctaText: "Registration Payment Link",
-          ctaLink: import.meta.env.VITE_PAYSTACK_PAYMENT_LINK,
+          ctaLink:
+            app.scholarshipPaymentLink || pricing.NG.scholarshipPaymentLink,
         },
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
       );
