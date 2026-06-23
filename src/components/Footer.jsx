@@ -75,7 +75,8 @@ const Footer = () => {
           <h4>Programs</h4>
           <a href="/courses">Data Analytics</a>
           <a href="/courses">Front-End Development</a>
-          <a href="/courses">Software Development</a>
+          <a href="/courses">Virtual Assistance</a>
+          <a href="/courses">Cyber Security</a>
         </div>
 
         <div className="ov-footer-links">

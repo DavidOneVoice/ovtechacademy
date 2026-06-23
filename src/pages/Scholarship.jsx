@@ -27,10 +27,23 @@ const Scholarship = () => {
   });
 
   const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    const { name, value } = e.target;
+
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: value,
+      };
+
+      if (
+        name === "track" &&
+        ["Cyber Security", "Virtual Assistance"].includes(value)
+      ) {
+        updated.learningMethod = "";
+      }
+
+      return updated;
+    });
   };
 
   const handleSubmit = (e) => {
@@ -195,24 +208,6 @@ const Scholarship = () => {
               <option value="45+">45+</option>
             </select>
           </label>
-
-          <label>
-            Preferred Learning Method
-            <select
-              name="learningMethod"
-              required
-              value={formData.learningMethod}
-              onChange={handleChange}
-            >
-              <option value="" disabled>
-                Select learning method
-              </option>
-              <option value="Live Online Classes">Live Online Classes</option>
-              <option value="Self-Paced Pre-recorded Videos">
-                Self-Paced Pre-recorded Videos
-              </option>
-            </select>
-          </label>
         </div>
 
         <div className="sch-radio-group">
@@ -245,13 +240,60 @@ const Scholarship = () => {
             <input
               type="radio"
               name="track"
+              value="Cyber Security"
+              checked={formData.track === "Cyber Security"}
+              onChange={handleChange}
+            />
+            Cyber Security
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="track"
               value="Web Development"
               checked={formData.track === "Web Development"}
               onChange={handleChange}
             />
             Web Development
           </label>
+
+          <label>
+            <input
+              type="radio"
+              name="track"
+              value="Virtual Assistance"
+              checked={formData.track === "Virtual Assistance"}
+              onChange={handleChange}
+            />
+            Virtual Assistance
+          </label>
         </div>
+        {[
+          "Data Analytics",
+          "Software Development (Frontend)",
+          "Web Development",
+        ].includes(formData.track) && (
+          <label className="sch-full">
+            Preferred Learning Method
+            <select
+              name="learningMethod"
+              required
+              value={formData.learningMethod}
+              onChange={handleChange}
+            >
+              <option value="" disabled>
+                Select learning method
+              </option>
+
+              <option value="Live Online Classes">Live Online Classes</option>
+
+              <option value="Self-Paced Pre-recorded Videos">
+                Self-Paced Pre-recorded Videos
+              </option>
+            </select>
+          </label>
+        )}
 
         <label className="sch-full">
           Why do you want this scholarship?
@@ -289,6 +331,7 @@ const Scholarship = () => {
           placeholder="Referral Code (Optional)"
           value={formData.referralCode}
           onChange={handleChange}
+          style={{ marginBottom: "20px" }}
         />
 
         <button type="submit" className="sch-submit" disabled={isSubmitting}>

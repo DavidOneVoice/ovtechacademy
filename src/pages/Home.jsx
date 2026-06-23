@@ -397,7 +397,7 @@ const Home = () => {
       <section className="ov-stats-section">
         <div className="ov-stats-wrapper">
           <div>
-            <h3>3</h3>
+            <h3>5</h3>
             <p>Career-Focused Learning Paths</p>
           </div>
 
@@ -703,7 +703,7 @@ const Home = () => {
             </div>
 
             <div>
-              <h3>3</h3>
+              <h3>5</h3>
               <p>Career-focused learning paths to choose from</p>
             </div>
 
