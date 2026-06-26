@@ -292,7 +292,7 @@
 }
 .admin-filters {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr repeat(6, 1fr);
   gap: 14px;
   margin-bottom: 24px;
 }
@@ -373,4 +373,233 @@
   border-radius: 999px;
   font-weight: 900;
   cursor: pointer;
+}
+
+.admin-header-actions {
+  gap: 1rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-referral-controls {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.admin-commission-card,
+.admin-top-referrer,
+.admin-referral-performance {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 26px;
+  box-shadow: 0 16px 45px rgba(18, 35, 63, 0.06);
+}
+
+.admin-commission-card label,
+.admin-top-referrer span,
+.admin-total-commission span {
+  display: block;
+  color: #12233f;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.admin-commission-card input {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  background: #f8f9fc;
+  border-radius: 14px;
+  padding: 14px;
+  font: inherit;
+  font-weight: 800;
+  color: #12233f;
+  box-sizing: border-box;
+}
+
+.admin-top-referrer h3 {
+  margin: 0;
+  color: #12233f;
+  font-size: 2rem;
+}
+
+.admin-top-referrer p {
+  color: #6b7280;
+  font-weight: 800;
+}
+
+.admin-top-referrer strong {
+  color: #166534;
+}
+
+.admin-referral-performance {
+  margin-bottom: 32px;
+}
+
+.admin-section-heading {
+  margin-bottom: 20px;
+}
+
+.admin-section-heading h2 {
+  margin: 0 0 8px;
+  color: #12233f;
+}
+
+.admin-section-heading p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.admin-referral-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.admin-referral-card {
+  background: #f8f9fc;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 18px;
+}
+
+.admin-referral-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.admin-referral-code-btn {
+  border: none;
+  background: transparent;
+  color: #12233f;
+  font-size: 1.35rem;
+  font-weight: 900;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-copy-btn,
+.admin-view-details-btn {
+  border: none;
+  border-radius: 999px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-copy-btn {
+  background: #fff7db;
+  color: #7a5b00;
+  padding: 8px 12px;
+}
+
+.admin-view-details-btn {
+  width: 100%;
+  background: #12233f;
+  color: white;
+  padding: 12px;
+  margin-top: 14px;
+}
+
+.admin-referral-metrics {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-referral-metrics p {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.admin-referral-metrics strong {
+  color: #12233f;
+}
+
+.admin-total-commission {
+  margin-top: 20px;
+  background: #12233f;
+  color: white;
+  border-radius: 18px;
+  padding: 20px;
+}
+
+.admin-total-commission span {
+  color: #d4af37;
+}
+
+.admin-total-commission strong {
+  display: block;
+  font-size: 2rem;
+}
+
+.admin-filter-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.admin-filter-actions .admin-reset-btn,
+.admin-filter-actions .admin-export-btn {
+  margin-bottom: 0;
+}
+
+.admin-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1200;
+  background: #12233f;
+  color: white;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 900;
+  box-shadow: 0 16px 45px rgba(18, 35, 63, 0.18);
+}
+
+.admin-referral-modal {
+  width: min(1120px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+}
+
+.admin-referral-analytics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.admin-referral-analytics div {
+  background: #f8f9fc;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.admin-referral-analytics span {
+  display: block;
+  color: #6b7280;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.admin-referral-analytics strong {
+  color: #12233f;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 900px) {
+  .admin-referral-controls {
+    grid-template-columns: 1fr;
+  }
 }

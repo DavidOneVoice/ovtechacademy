@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./Admin.css";
 import { db } from "../src/firebase";
 import {
@@ -13,9 +13,75 @@ import {
 import emailjs from "@emailjs/browser";
 import { pricing } from "../data/pricing";
 
+const DEFAULT_COMMISSION = 2500;
+
+const getReferralCode = (app) => app.referralCode?.trim() || "DIRECT";
+
+const getDateApplied = (app) =>
+  app.createdAt?.seconds
+    ? new Date(app.createdAt.seconds * 1000).toLocaleDateString()
+    : "N/A";
+
+const formatCurrency = (amount) => `₦${Number(amount || 0).toLocaleString()}`;
+
+const isEnrolled = (app) =>
+  app.status === "Enrolled" || app.paymentStatus === "Paid";
+
+const csvEscape = (item) => `"${String(item || "").replace(/"/g, '""')}"`;
+
+const downloadCSV = (filename, rows) => {
+  const csvContent = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+  link.click();
+
+  URL.revokeObjectURL(url);
+};
+
+const getApplicationCSVRows = (apps) => {
+  const headers = [
+    "Full Name",
+    "Email",
+    "WhatsApp",
+    "Location",
+    "Age Range",
+    "Track",
+    "Learning Method",
+    "Referral Source",
+    "Referral Code",
+    "Reason",
+    "Status",
+    "Payment Status",
+    "Date Applied",
+  ];
+
+  const rows = apps.map((app) => [
+    app.fullName,
+    app.email,
+    app.whatsapp,
+    app.location,
+    app.ageRange,
+    app.track,
+    app.learningMethod,
+    app.referral,
+    getReferralCode(app),
+    app.reason,
+    app.status,
+    app.paymentStatus,
+    getDateApplied(app),
+  ]);
+
+  return [headers, ...rows];
+};
+
 const Admin = () => {
   const [applications, setApplications] = useState([]);
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [selectedReferral, setSelectedReferral] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [trackFilter, setTrackFilter] = useState("All");
@@ -25,69 +91,19 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [referralFilter, setReferralFilter] = useState("All");
-
-  const filteredApplications = applications.filter((app) => {
-    const matchesReferral =
-      referralFilter === "All" || app.referralCode === referralFilter;
-    const matchesSearch =
-      app.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.whatsapp?.includes(searchTerm);
-
-    const matchesStatus = statusFilter === "All" || app.status === statusFilter;
-
-    const matchesTrack = trackFilter === "All" || app.track === trackFilter;
-
-    let matchesMonth = true;
-
-    if (monthFilter !== "All" && app.createdAt?.seconds) {
-      const appMonth = new Date(app.createdAt.seconds * 1000).getMonth() + 1;
-
-      matchesMonth = appMonth === Number(monthFilter);
-    }
-    let matchesDateRange = true;
-
-    if (app.createdAt?.seconds) {
-      const appDate = new Date(app.createdAt.seconds * 1000);
-
-      if (startDate) {
-        const start = new Date(startDate);
-        matchesDateRange = matchesDateRange && appDate >= start;
-      }
-
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        matchesDateRange = matchesDateRange && appDate <= end;
-      }
-    }
-    return (
-      matchesSearch &&
-      matchesStatus &&
-      matchesTrack &&
-      matchesMonth &&
-      matchesDateRange &&
-      matchesReferral
-    );
-  });
+  const [commissionPerStudent, setCommissionPerStudent] = useState(DEFAULT_COMMISSION);
+  const [toast, setToast] = useState("");
 
   useEffect(() => {
     const fetchApplications = async () => {
       try {
         setLoading(true);
-
         const q = query(
           collection(db, "scholarshipApplications"),
           orderBy("createdAt", "desc"),
         );
-
         const snapshot = await getDocs(q);
-
-        const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
+        const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setApplications(data);
       } catch (error) {
         console.log(error);
@@ -99,20 +115,114 @@ const Admin = () => {
     fetchApplications();
   }, []);
 
+  const referralCodes = useMemo(
+    () => [...new Set(applications.map(getReferralCode))].sort(),
+    [applications],
+  );
+
+  const referralSummaries = useMemo(() => {
+    const summaryMap = applications.reduce((acc, app) => {
+      const code = getReferralCode(app);
+      if (!acc[code]) {
+        acc[code] = {
+          code,
+          applications: 0,
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          enrolled: 0,
+          students: [],
+        };
+      }
+
+      acc[code].applications += 1;
+      acc[code].students.push(app);
+
+      if (app.status === "Pending") acc[code].pending += 1;
+      if (app.status === "Approved") acc[code].approved += 1;
+      if (app.status === "Rejected") acc[code].rejected += 1;
+      if (isEnrolled(app)) acc[code].enrolled += 1;
+
+      return acc;
+    }, {});
+
+    return Object.values(summaryMap)
+      .map((summary) => ({
+        ...summary,
+        commission: summary.enrolled * Number(commissionPerStudent || 0),
+        approvalRate: summary.applications
+          ? Math.round((summary.approved / summary.applications) * 100)
+          : 0,
+        enrollmentRate: summary.applications
+          ? Math.round((summary.enrolled / summary.applications) * 100)
+          : 0,
+      }))
+      .sort((a, b) => b.applications - a.applications || a.code.localeCompare(b.code));
+  }, [applications, commissionPerStudent]);
+
+  const topReferrer = useMemo(
+    () => [...referralSummaries].sort((a, b) => b.enrolled - a.enrolled)[0],
+    [referralSummaries],
+  );
+
+  const totalCommission = referralSummaries.reduce(
+    (sum, summary) => sum + summary.commission,
+    0,
+  );
+
+  const selectedReferralSummary = referralSummaries.find(
+    (summary) => summary.code === selectedReferral,
+  );
+
+  const filteredApplications = useMemo(() => {
+    const normalizedSearch = searchTerm.toLowerCase();
+
+    return applications.filter((app) => {
+      const code = getReferralCode(app);
+      const matchesReferral = referralFilter === "All" || code === referralFilter;
+      const matchesSearch =
+        app.fullName?.toLowerCase().includes(normalizedSearch) ||
+        app.email?.toLowerCase().includes(normalizedSearch) ||
+        app.whatsapp?.includes(searchTerm) ||
+        code.toLowerCase().includes(normalizedSearch);
+      const matchesStatus = statusFilter === "All" || app.status === statusFilter;
+      const matchesTrack = trackFilter === "All" || app.track === trackFilter;
+
+      let matchesMonth = true;
+      if (monthFilter !== "All" && app.createdAt?.seconds) {
+        matchesMonth =
+          new Date(app.createdAt.seconds * 1000).getMonth() + 1 === Number(monthFilter);
+      }
+
+      let matchesDateRange = true;
+      if (app.createdAt?.seconds) {
+        const appDate = new Date(app.createdAt.seconds * 1000);
+        if (startDate) matchesDateRange = matchesDateRange && appDate >= new Date(startDate);
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          matchesDateRange = matchesDateRange && appDate <= end;
+        }
+      }
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesTrack &&
+        matchesMonth &&
+        matchesDateRange &&
+        matchesReferral
+      );
+    });
+  }, [applications, endDate, monthFilter, referralFilter, searchTerm, startDate, statusFilter, trackFilter]);
+
   const total = applications.length;
   const pending = applications.filter((app) => app.status === "Pending").length;
-  const approved = applications.filter(
-    (app) => app.status === "Approved",
-  ).length;
-  const rejected = applications.filter(
-    (app) => app.status === "Rejected",
-  ).length;
+  const approved = applications.filter((app) => app.status === "Approved").length;
+  const rejected = applications.filter((app) => app.status === "Rejected").length;
 
   const updateStatus = async (id, status, app) => {
-    await updateDoc(doc(db, "scholarshipApplications", id), {
-      status,
-    });
-
+    await updateDoc(doc(db, "scholarshipApplications", id), { status });
     setApplications((prev) =>
       prev.map((item) => (item.id === id ? { ...item, status } : item)),
     );
@@ -124,77 +234,28 @@ const Admin = () => {
         {
           email: app.email,
           to_name: app.fullName,
-
-          subjectTitle:
-            "Congratulations! Your OVTech Scholarship Has Been Approved",
-
-          mainMessage: `We are pleased to inform you that your OVTech Scholarship application has been approved. You have been selected to receive a ${
-            app.scholarshipPercent || pricing.NG.scholarshipPercent
-          } scholarship for your chosen learning path.`,
-
-          extraMessage: `To secure your slot, kindly complete your registration payment of ${
-            app.scholarshipFee || pricing.NG.scholarship
-          } using the link below. Once payment is completed, our team will contact you with onboarding details.`,
-
+          subjectTitle: "Congratulations! Your OVTech Scholarship Has Been Approved",
+          mainMessage: `We are pleased to inform you that your OVTech Scholarship application has been approved. You have been selected to receive a ${app.scholarshipPercent || pricing.NG.scholarshipPercent} scholarship for your chosen learning path.`,
+          extraMessage: `To secure your slot, kindly complete your registration payment of ${app.scholarshipFee || pricing.NG.scholarship} using the link below. Once payment is completed, our team will contact you with onboarding details.`,
           ctaText: "Registration Payment Link",
-          ctaLink:
-            app.scholarshipPaymentLink || pricing.NG.scholarshipPaymentLink,
+          ctaLink: app.scholarshipPaymentLink || pricing.NG.scholarshipPaymentLink,
         },
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
       );
     }
   };
+
   const handleLogout = () => {
     localStorage.removeItem("ovtechAdmin");
     window.location.href = "/admin-login";
   };
 
   const exportToCSV = () => {
-    const headers = [
-      "Full Name",
-      "Email",
-      "WhatsApp",
-      "Location",
-      "Age Range",
-      "Track",
-      "Learning Method",
-      "Referral Source",
-      "Referral Code",
-      "Reason",
-      "Status",
-    ];
+    downloadCSV("ovtech-scholarship-applications.csv", getApplicationCSVRows(filteredApplications));
+  };
 
-    const rows = filteredApplications.map((app) => [
-      app.fullName,
-      app.email,
-      app.whatsapp,
-      app.location,
-      app.ageRange,
-      app.track,
-      app.learningMethod,
-      app.referral,
-      app.referralCode,
-      app.reason,
-      app.status,
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map((row) =>
-        row
-          .map((item) => `"${String(item || "").replace(/"/g, '""')}"`)
-          .join(","),
-      )
-      .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "ovtech-scholarship-applications.csv";
-    link.click();
-
-    URL.revokeObjectURL(url);
+  const exportReferralToCSV = (summary) => {
+    downloadCSV(`${summary.code}.csv`, getApplicationCSVRows(summary.students));
   };
 
   const resetFilters = () => {
@@ -207,32 +268,41 @@ const Admin = () => {
     setReferralFilter("All");
   };
 
+  const copyReferralCode = async (code) => {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(code);
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = code;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+    }
+
+    setToast("Referral code copied.");
+    setTimeout(() => setToast(""), 2200);
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-
     await deleteDoc(doc(db, "scholarshipApplications", deleteTarget.id));
-
     setApplications((prev) => prev.filter((app) => app.id !== deleteTarget.id));
-
     setDeleteTarget(null);
   };
 
   const enrollStudent = async (app) => {
+    const enrolledAt = new Date();
     await updateDoc(doc(db, "scholarshipApplications", app.id), {
       status: "Enrolled",
       paymentStatus: "Paid",
-      enrolledAt: new Date(),
+      enrolledAt,
     });
 
     setApplications((prev) =>
       prev.map((item) =>
         item.id === app.id
-          ? {
-              ...item,
-              status: "Enrolled",
-              paymentStatus: "Paid",
-              enrolledAt: new Date(),
-            }
+          ? { ...item, status: "Enrolled", paymentStatus: "Paid", enrolledAt }
           : item,
       ),
     );
@@ -259,149 +329,133 @@ const Admin = () => {
 
   return (
     <main className="admin-page">
+      {toast && <div className="admin-toast">{toast}</div>}
+
       <section className="admin-header">
         <div>
           <span>OVTech Admin</span>
           <h1>Scholarship Applications</h1>
-          <p>
-            Review and manage scholarship applications submitted by learners.
-          </p>
+          <p>Review and manage scholarship applications submitted by learners.</p>
         </div>
 
-        <div style={{ gap: "1rem", display: "flex", alignItems: "center" }}>
-          <a href="/" className="admin-home-btn">
-            Back to Website
-          </a>
-          <a href="/enrolled-students" className="admin-home-btn">
-            Enrolled Students
-          </a>
-          <button onClick={handleLogout} className="admin-logout-btn">
-            Logout
-          </button>
+        <div className="admin-header-actions">
+          <a href="/" className="admin-home-btn">Back to Website</a>
+          <a href="/enrolled-students" className="admin-home-btn">Enrolled Students</a>
+          <button onClick={handleLogout} className="admin-logout-btn">Logout</button>
         </div>
       </section>
 
       <section className="admin-stats">
-        <div>
-          <h3>{total}</h3>
-          <p>Total Applications</p>
+        <div><h3>{total}</h3><p>Total Applications</p></div>
+        <div><h3>{pending}</h3><p>Pending</p></div>
+        <div><h3>{approved}</h3><p>Approved</p></div>
+        <div><h3>{rejected}</h3><p>Rejected</p></div>
+      </section>
+
+      <section className="admin-referral-controls">
+        <div className="admin-commission-card">
+          <label htmlFor="commissionPerStudent">Commission Per Enrolled Student</label>
+          <input
+            id="commissionPerStudent"
+            type="number"
+            min="0"
+            value={commissionPerStudent}
+            onChange={(e) => setCommissionPerStudent(e.target.value)}
+          />
         </div>
 
-        <div>
-          <h3>{pending}</h3>
-          <p>Pending</p>
+        {topReferrer && (
+          <div className="admin-top-referrer">
+            <span>🏆 Top Referrer</span>
+            <h3>{topReferrer.code}</h3>
+            <p>{topReferrer.enrolled} Enrolled Students</p>
+            <strong>Commission {formatCurrency(topReferrer.commission)}</strong>
+          </div>
+        )}
+      </section>
+
+      <section className="admin-referral-performance">
+        <div className="admin-section-heading">
+          <h2>Referral Performance</h2>
+          <p>Track marketer applications, enrollments, and commissions.</p>
         </div>
 
-        <div>
-          <h3>{approved}</h3>
-          <p>Approved</p>
-        </div>
+        <div className="admin-referral-grid">
+          {referralSummaries.map((summary) => (
+            <article key={summary.code} className="admin-referral-card">
+              <div className="admin-referral-card-head">
+                <button
+                  className="admin-referral-code-btn"
+                  onClick={() => setReferralFilter(summary.code)}
+                >
+                  {summary.code}
+                </button>
+                <button
+                  className="admin-copy-btn"
+                  onClick={() => copyReferralCode(summary.code)}
+                >
+                  Copy
+                </button>
+              </div>
 
-        <div>
-          <h3>{rejected}</h3>
-          <p>Rejected</p>
-        </div>
-        <div className="admin-referral-summary">
-          <h3>Referral Performance</h3>
+              <div className="admin-referral-metrics">
+                <p>Applications: <strong>{summary.applications}</strong></p>
+                <p>Pending: <strong>{summary.pending}</strong></p>
+                <p>Approved: <strong>{summary.approved}</strong></p>
+                <p>Rejected: <strong>{summary.rejected}</strong></p>
+                <p>Enrolled: <strong>{summary.enrolled}</strong></p>
+                <p>Commission: <strong>{formatCurrency(summary.commission)}</strong></p>
+              </div>
 
-          {[
-            ...new Set(
-              applications.map((app) => app.referralCode).filter(Boolean),
-            ),
-          ].map((code) => (
-            <div key={code} className="ref-row">
-              <span>{code}</span>
-
-              <strong>
-                {applications.filter((a) => a.referralCode === code).length}
-              </strong>
-            </div>
+              <button
+                className="admin-view-details-btn"
+                onClick={() => setSelectedReferral(summary.code)}
+              >
+                View Details
+              </button>
+            </article>
           ))}
         </div>
+
+        {referralSummaries.length === 0 && (
+          <p className="admin-empty">No referral performance data yet.</p>
+        )}
+
+        <div className="admin-total-commission">
+          <span>Total Commission Owed</span>
+          <strong>{formatCurrency(totalCommission)}</strong>
+        </div>
       </section>
+
       <div className="admin-filters">
         <input
           type="text"
-          placeholder="Search name, email or phone..."
+          placeholder="Search name, email, phone or referral code..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option>All</option>
-          <option>Pending</option>
-          <option>Approved</option>
-          <option>Rejected</option>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option>All</option><option>Pending</option><option>Approved</option><option>Rejected</option><option>Enrolled</option>
         </select>
-
-        <select
-          value={trackFilter}
-          onChange={(e) => setTrackFilter(e.target.value)}
-        >
-          <option>All</option>
-          <option>Data Analytics</option>
-          <option>Software Development (Frontend)</option>
-          <option>Web Development</option>
+        <select value={trackFilter} onChange={(e) => setTrackFilter(e.target.value)}>
+          <option>All</option><option>Data Analytics</option><option>Software Development (Frontend)</option><option>Web Development</option>
         </select>
-
-        <select
-          value={monthFilter}
-          onChange={(e) => setMonthFilter(e.target.value)}
-        >
+        <select value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)}>
           <option value="All">All Months</option>
-          <option value="1">January</option>
-          <option value="2">February</option>
-          <option value="3">March</option>
-          <option value="4">April</option>
-          <option value="5">May</option>
-          <option value="6">June</option>
-          <option value="7">July</option>
-          <option value="8">August</option>
-          <option value="9">September</option>
-          <option value="10">October</option>
-          <option value="11">November</option>
-          <option value="12">December</option>
+          <option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
         </select>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
-
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-        />
-        <select
-          value={referralFilter}
-          onChange={(e) => setReferralFilter(e.target.value)}
-        >
+        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        <select value={referralFilter} onChange={(e) => setReferralFilter(e.target.value)}>
           <option value="All">All Referral Codes</option>
-
-          {[
-            ...new Set(
-              applications
-                .map((app) => app.referralCode)
-                .filter(Boolean)
-                .sort(),
-            ),
-          ].map((code) => (
-            <option key={code} value={code}>
-              {code}
-            </option>
-          ))}
+          {referralCodes.map((code) => <option key={code} value={code}>{code}</option>)}
         </select>
       </div>
-      <button onClick={resetFilters} className="admin-reset-btn">
-        Reset Filters
-      </button>
-      <button onClick={exportToCSV} className="admin-export-btn">
-        Export Filtered Applications
-      </button>
+
+      <div className="admin-filter-actions">
+        <button onClick={resetFilters} className="admin-reset-btn">Reset Filters</button>
+        <button onClick={exportToCSV} className="admin-export-btn">Export Filtered Applications</button>
+      </div>
 
       <section className="admin-table-card">
         <h2>Recent Applications</h2>
@@ -410,165 +464,105 @@ const Admin = () => {
           <table>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>WhatsApp</th>
-                <th>Track</th>
-                <th>Method</th>
-                <th>Location</th>
-                <th>Referral Code</th>
-                <th>Status</th>
-                <th>Actions</th>
-                <th>View</th>
-                <th>Date Applied</th>
+                <th>Name</th><th>WhatsApp</th><th>Track</th><th>Learning Method</th><th>Referral Code</th><th>Location</th><th>Status</th><th>Actions</th><th>View</th><th>Date Applied</th>
               </tr>
             </thead>
-
             <tbody>
               {filteredApplications.map((app) => (
                 <tr key={app.id}>
-                  <td>
-                    <strong>{app.fullName}</strong>
-                    <small>{app.email}</small>
-                  </td>
+                  <td><strong>{app.fullName}</strong><small>{app.email}</small></td>
                   <td>{app.whatsapp}</td>
                   <td>{app.track}</td>
                   <td>{app.learningMethod || "—"}</td>
-                  <td>{app.referralCode || "—"}</td>
+                  <td>{getReferralCode(app)}</td>
                   <td>{app.location}</td>
-                  <td>
-                    <span className="admin-status">{app.status}</span>
-                  </td>
+                  <td><span className="admin-status">{app.status}</span></td>
                   <td>
                     <div className="admin-actions">
-                      <button
-                        onClick={() => updateStatus(app.id, "Approved", app)}
-                        className="admin-approve"
-                      >
-                        Approve
-                      </button>
-
-                      <button
-                        onClick={() => setDeleteTarget(app)}
-                        className="admin-delete"
-                      >
-                        Delete
-                      </button>
+                      <button onClick={() => updateStatus(app.id, "Approved", app)} className="admin-approve">Approve</button>
+                      <button onClick={() => updateStatus(app.id, "Rejected", app)} className="admin-reject">Reject</button>
+                      <button onClick={() => setDeleteTarget(app)} className="admin-delete">Delete</button>
                     </div>
                   </td>
-                  <td>
-                    <button
-                      onClick={() => setSelectedApplication(app)}
-                      className="admin-view-btn"
-                    >
-                      View
-                    </button>
-                  </td>
-                  <td>
-                    {app.createdAt?.seconds
-                      ? new Date(
-                          app.createdAt.seconds * 1000,
-                        ).toLocaleDateString()
-                      : "N/A"}
-                  </td>
+                  <td><button onClick={() => setSelectedApplication(app)} className="admin-view-btn">View</button></td>
+                  <td>{getDateApplied(app)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-
-          {!loading && filteredApplications.length === 0 && (
-            <p className="admin-empty">No applications match your filters.</p>
-          )}
+          {!loading && filteredApplications.length === 0 && <p className="admin-empty">No applications match your filters.</p>}
         </div>
       </section>
-      {selectedApplication && (
+
+      {selectedReferralSummary && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal">
-            <button
-              className="admin-modal-close"
-              onClick={() => setSelectedApplication(null)}
-            >
-              ×
-            </button>
+          <div className="admin-modal admin-referral-modal">
+            <button className="admin-modal-close" onClick={() => setSelectedReferral(null)}>×</button>
+            <h2>{selectedReferralSummary.code}</h2>
+            <p className="admin-modal-email">Referral analytics and student list</p>
 
-            <h2>{selectedApplication.fullName}</h2>
-            <p className="admin-modal-email">{selectedApplication.email}</p>
-
-            <div className="admin-details-grid">
-              <div>
-                <strong>WhatsApp</strong>
-                <span>{selectedApplication.whatsapp}</span>
-              </div>
-
-              <div>
-                <strong>Location</strong>
-                <span>{selectedApplication.location}</span>
-              </div>
-
-              <div>
-                <strong>Age Range</strong>
-                <span>{selectedApplication.ageRange}</span>
-              </div>
-
-              <div>
-                <strong>Preferred Track</strong>
-                <span>{selectedApplication.track}</span>
-              </div>
-
-              <div>
-                <strong>Learning Method</strong>
-                <span>{selectedApplication.learningMethod}</span>
-              </div>
-
-              <div>
-                <strong>Referral Source</strong>
-                <span>{selectedApplication.referral || "—"}</span>
-              </div>
-
-              <div>
-                <strong>Referral Code</strong>
-                <span>{selectedApplication.referralCode || "—"}</span>
-              </div>
+            <div className="admin-referral-analytics">
+              <div><span>Applications</span><strong>{selectedReferralSummary.applications}</strong></div>
+              <div><span>Approved</span><strong>{selectedReferralSummary.approved}</strong></div>
+              <div><span>Rejected</span><strong>{selectedReferralSummary.rejected}</strong></div>
+              <div><span>Pending</span><strong>{selectedReferralSummary.pending}</strong></div>
+              <div><span>Enrolled</span><strong>{selectedReferralSummary.enrolled}</strong></div>
+              <div><span>Approval Rate</span><strong>{selectedReferralSummary.approvalRate}%</strong></div>
+              <div><span>Enrollment Rate</span><strong>{selectedReferralSummary.enrollmentRate}%</strong></div>
+              <div><span>Commission Earned</span><strong>{formatCurrency(selectedReferralSummary.commission)}</strong></div>
             </div>
 
-            <div className="admin-reason-box">
-              <strong>Reason for Applying</strong>
-              <p>{selectedApplication.reason}</p>
-            </div>
-            <div className="admin-modal-actions">
-              <button
-                onClick={() => enrollStudent(selectedApplication)}
-                className="admin-enroll-btn"
-              >
-                Enroll Student
-              </button>
+            <button className="admin-export-btn" onClick={() => exportReferralToCSV(selectedReferralSummary)}>Export This Referral</button>
+
+            <div className="admin-table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Student Name</th><th>Track</th><th>Learning Method</th><th>Date Applied</th><th>Status</th><th>Payment Status</th><th>Location</th><th>Email</th><th>WhatsApp</th><th>View</th></tr>
+                </thead>
+                <tbody>
+                  {selectedReferralSummary.students.map((app) => (
+                    <tr key={app.id}>
+                      <td>{app.fullName}</td><td>{app.track}</td><td>{app.learningMethod || "—"}</td><td>{getDateApplied(app)}</td><td>{app.status}</td><td>{app.paymentStatus || "—"}</td><td>{app.location}</td><td>{app.email}</td><td>{app.whatsapp}</td>
+                      <td><button className="admin-view-btn" onClick={() => setSelectedApplication(app)}>View</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
+
+      {selectedApplication && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal">
+            <button className="admin-modal-close" onClick={() => setSelectedApplication(null)}>×</button>
+            <h2>{selectedApplication.fullName}</h2>
+            <p className="admin-modal-email">{selectedApplication.email}</p>
+            <div className="admin-details-grid">
+              <div><strong>WhatsApp</strong><span>{selectedApplication.whatsapp}</span></div>
+              <div><strong>Location</strong><span>{selectedApplication.location}</span></div>
+              <div><strong>Age Range</strong><span>{selectedApplication.ageRange}</span></div>
+              <div><strong>Preferred Track</strong><span>{selectedApplication.track}</span></div>
+              <div><strong>Learning Method</strong><span>{selectedApplication.learningMethod}</span></div>
+              <div><strong>Referral Source</strong><span>{selectedApplication.referral || "—"}</span></div>
+              <div><strong>Referral Code</strong><span>{getReferralCode(selectedApplication)}</span></div>
+            </div>
+            <div className="admin-reason-box"><strong>Reason for Applying</strong><p>{selectedApplication.reason}</p></div>
+            <div className="admin-modal-actions"><button onClick={() => enrollStudent(selectedApplication)} className="admin-enroll-btn">Enroll Student</button></div>
+          </div>
+        </div>
+      )}
+
       {deleteTarget && (
         <div className="admin-modal-overlay">
           <div className="admin-delete-modal">
             <h2>Delete Application?</h2>
-
-            <p>
-              Are you sure you want to permanently delete the application
-              submitted by
-              <strong> {deleteTarget.fullName}</strong>?
-            </p>
-
+            <p>Are you sure you want to permanently delete the application submitted by<strong> {deleteTarget.fullName}</strong>?</p>
             <p>This action cannot be undone.</p>
-
             <div className="admin-delete-actions">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                className="admin-cancel-delete"
-              >
-                Cancel
-              </button>
-
-              <button onClick={confirmDelete} className="admin-confirm-delete">
-                Yes, Delete
-              </button>
+              <button onClick={() => setDeleteTarget(null)} className="admin-cancel-delete">Cancel</button>
+              <button onClick={confirmDelete} className="admin-confirm-delete">Yes, Delete</button>
             </div>
           </div>
         </div>
