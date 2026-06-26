@@ -24,8 +24,11 @@ const Admin = () => {
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [referralFilter, setReferralFilter] = useState("All");
 
   const filteredApplications = applications.filter((app) => {
+    const matchesReferral =
+      referralFilter === "All" || app.referralCode === referralFilter;
     const matchesSearch =
       app.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,7 +66,8 @@ const Admin = () => {
       matchesStatus &&
       matchesTrack &&
       matchesMonth &&
-      matchesDateRange
+      matchesDateRange &&
+      matchesReferral
     );
   });
 
@@ -154,7 +158,8 @@ const Admin = () => {
       "Age Range",
       "Track",
       "Learning Method",
-      "Referral",
+      "Referral Source",
+      "Referral Code",
       "Reason",
       "Status",
     ];
@@ -168,6 +173,7 @@ const Admin = () => {
       app.track,
       app.learningMethod,
       app.referral,
+      app.referralCode,
       app.reason,
       app.status,
     ]);
@@ -198,6 +204,7 @@ const Admin = () => {
     setMonthFilter("All");
     setStartDate("");
     setEndDate("");
+    setReferralFilter("All");
   };
 
   const confirmDelete = async () => {
@@ -294,6 +301,23 @@ const Admin = () => {
           <h3>{rejected}</h3>
           <p>Rejected</p>
         </div>
+        <div className="admin-referral-summary">
+          <h3>Referral Performance</h3>
+
+          {[
+            ...new Set(
+              applications.map((app) => app.referralCode).filter(Boolean),
+            ),
+          ].map((code) => (
+            <div key={code} className="ref-row">
+              <span>{code}</span>
+
+              <strong>
+                {applications.filter((a) => a.referralCode === code).length}
+              </strong>
+            </div>
+          ))}
+        </div>
       </section>
       <div className="admin-filters">
         <input
@@ -352,6 +376,25 @@ const Admin = () => {
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
+        <select
+          value={referralFilter}
+          onChange={(e) => setReferralFilter(e.target.value)}
+        >
+          <option value="All">All Referral Codes</option>
+
+          {[
+            ...new Set(
+              applications
+                .map((app) => app.referralCode)
+                .filter(Boolean)
+                .sort(),
+            ),
+          ].map((code) => (
+            <option key={code} value={code}>
+              {code}
+            </option>
+          ))}
+        </select>
       </div>
       <button onClick={resetFilters} className="admin-reset-btn">
         Reset Filters
@@ -372,6 +415,7 @@ const Admin = () => {
                 <th>Track</th>
                 <th>Method</th>
                 <th>Location</th>
+                <th>Referral Code</th>
                 <th>Status</th>
                 <th>Actions</th>
                 <th>View</th>
@@ -388,7 +432,8 @@ const Admin = () => {
                   </td>
                   <td>{app.whatsapp}</td>
                   <td>{app.track}</td>
-                  <td>{app.learningMethod}</td>
+                  <td>{app.learningMethod || "—"}</td>
+                  <td>{app.referralCode || "—"}</td>
                   <td>{app.location}</td>
                   <td>
                     <span className="admin-status">{app.status}</span>
@@ -475,8 +520,13 @@ const Admin = () => {
               </div>
 
               <div>
-                <strong>Referral</strong>
-                <span>{selectedApplication.referral}</span>
+                <strong>Referral Source</strong>
+                <span>{selectedApplication.referral || "—"}</span>
+              </div>
+
+              <div>
+                <strong>Referral Code</strong>
+                <span>{selectedApplication.referralCode || "—"}</span>
               </div>
             </div>
 

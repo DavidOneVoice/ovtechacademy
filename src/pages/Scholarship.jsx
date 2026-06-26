@@ -115,6 +115,7 @@ const Scholarship = () => {
         track: "",
         reason: "",
         referral: "",
+        referralCode: "",
       });
     } catch (error) {
       console.log(error);
@@ -358,8 +359,8 @@ const Scholarship = () => {
             <p>
               Selected applicants will receive a {pricing.scholarshipPercent}
               scholarship. This means you will only be required to pay the
-              remaining {pricing.studentPaysPercent}, which is {pricing.scholarship}, as
-              a registration fee to secure your slot.
+              remaining {pricing.studentPaysPercent}, which is{" "}
+              {pricing.scholarship}, as a registration fee to secure your slot.
             </p>
 
             <p>
