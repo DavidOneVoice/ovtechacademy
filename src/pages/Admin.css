@@ -86,7 +86,43 @@
 .admin-table-wrap table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 900px;
+  min-width: 1320px;
+  table-layout: auto;
+}
+
+.admin-table-wrap th:nth-child(1),
+.admin-table-wrap td:nth-child(1) {
+  min-width: 220px;
+}
+
+.admin-table-wrap th:nth-child(2),
+.admin-table-wrap td:nth-child(2),
+.admin-table-wrap th:nth-child(4),
+.admin-table-wrap td:nth-child(4),
+.admin-table-wrap th:nth-child(6),
+.admin-table-wrap td:nth-child(6) {
+  min-width: 150px;
+}
+
+.admin-table-wrap th:nth-child(3),
+.admin-table-wrap td:nth-child(3) {
+  min-width: 170px;
+}
+
+.admin-table-wrap th:nth-child(5),
+.admin-table-wrap td:nth-child(5),
+.admin-table-wrap th:nth-child(7),
+.admin-table-wrap td:nth-child(7),
+.admin-table-wrap th:nth-child(9),
+.admin-table-wrap td:nth-child(9),
+.admin-table-wrap th:nth-child(10),
+.admin-table-wrap td:nth-child(10) {
+  min-width: 120px;
+}
+
+.admin-table-wrap th:nth-child(8),
+.admin-table-wrap td:nth-child(8) {
+  min-width: 310px;
 }
 
 .admin-table-wrap th {
@@ -95,12 +131,14 @@
   font-size: 0.85rem;
   padding: 14px;
   background: #f8f9fc;
+  white-space: nowrap;
 }
 
 .admin-table-wrap td {
-  padding: 16px 14px;
+  padding: 16px 18px;
   border-bottom: 1px solid #e5e7eb;
   color: #374151;
+  vertical-align: middle;
 }
 
 .admin-table-wrap td small {
@@ -112,10 +150,16 @@
 .admin-status {
   background: #fff7db;
   color: #7a5b00;
-  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  padding: 8px 14px;
   border-radius: 999px;
   font-weight: 800;
   font-size: 0.82rem;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .admin-empty {
@@ -945,7 +989,7 @@
   .admin-table-wrap table {
     border-collapse: collapse;
     border-spacing: 0;
-    min-width: 1080px;
+    min-width: 1320px;
   }
 
   .admin-table-wrap thead,
