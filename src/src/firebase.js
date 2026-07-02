@@ -15,14 +15,16 @@ const missingConfigKeys = Object.entries(requiredConfig)
   .filter(([, value]) => !value)
   .map(([key]) => key);
 
-if (missingConfigKeys.length > 0) {
-  throw new Error(
+export const isFirebaseConfigured = missingConfigKeys.length === 0;
+
+if (!isFirebaseConfigured) {
+  console.warn(
     `Missing Firebase environment configuration: ${missingConfigKeys.join(", ")}. ` +
-      "Add the matching VITE_FIREBASE_* values from the Firebase project settings before deploying.",
+      "Firebase-backed features are disabled until the matching VITE_FIREBASE_* values are added.",
   );
 }
 
-const app = initializeApp(requiredConfig);
+const app = isFirebaseConfigured ? initializeApp(requiredConfig) : null;
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const auth = app ? getAuth(app) : null;
+export const db = app ? getFirestore(app) : null;
