@@ -603,3 +603,310 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Responsive admin dashboard refinements */
+.admin-page,
+.admin-page *,
+.admin-page *::before,
+.admin-page *::after {
+  box-sizing: border-box;
+}
+
+.admin-page {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.admin-header > div:first-child,
+.admin-section-heading,
+.admin-table-card,
+.admin-modal,
+.admin-delete-modal,
+.admin-referral-card,
+.admin-commission-card,
+.admin-top-referrer {
+  min-width: 0;
+}
+
+.admin-header-actions,
+.admin-filter-actions,
+.admin-actions {
+  min-width: 0;
+}
+
+.admin-home-btn,
+.admin-logout-btn,
+.admin-reset-btn,
+.admin-export-btn,
+.admin-view-btn,
+.admin-actions button,
+.admin-view-details-btn,
+.admin-copy-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.admin-filters input,
+.admin-filters select {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-table-wrap {
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.admin-modal-overlay {
+  overflow-y: auto;
+  align-items: flex-start;
+}
+
+.admin-modal,
+.admin-delete-modal {
+  margin: auto 0;
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+}
+
+.admin-details-grid span,
+.admin-reason-box p,
+.admin-table-wrap td,
+.admin-referral-code-btn,
+.admin-referral-metrics p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 1100px) {
+  .admin-page {
+    padding: 28px;
+  }
+
+  .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .admin-page {
+    padding: 18px 14px 28px;
+  }
+
+  .admin-header {
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+
+  .admin-header h1 {
+    font-size: clamp(1.8rem, 11vw, 2.6rem);
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+  }
+
+  .admin-header p,
+  .admin-section-heading p {
+    line-height: 1.6;
+  }
+
+  .admin-header-actions,
+  .admin-filter-actions,
+  .admin-delete-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .admin-home-btn,
+  .admin-logout-btn,
+  .admin-reset-btn,
+  .admin-export-btn {
+    width: 100%;
+    padding: 13px 16px;
+    margin-bottom: 0;
+  }
+
+  .admin-stats,
+  .admin-referral-controls,
+  .admin-filters,
+  .admin-referral-grid,
+  .admin-referral-analytics,
+  .admin-details-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .admin-stats {
+    margin-bottom: 22px;
+  }
+
+  .admin-stats div,
+  .admin-commission-card,
+  .admin-top-referrer,
+  .admin-referral-performance,
+  .admin-table-card,
+  .admin-modal,
+  .admin-delete-modal {
+    border-radius: 18px;
+    padding: 18px;
+  }
+
+  .admin-stats h3,
+  .admin-total-commission strong {
+    font-size: 1.8rem;
+  }
+
+  .admin-top-referrer h3,
+  .admin-referral-code-btn {
+    font-size: 1.35rem;
+  }
+
+  .admin-referral-card-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-copy-btn {
+    width: 100%;
+  }
+
+  .admin-referral-metrics p {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .admin-table-wrap {
+    overflow-x: visible;
+  }
+
+  .admin-table-wrap table,
+  .admin-table-wrap thead,
+  .admin-table-wrap tbody,
+  .admin-table-wrap tr,
+  .admin-table-wrap th,
+  .admin-table-wrap td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-table-wrap table {
+    border-collapse: separate;
+    border-spacing: 0 14px;
+  }
+
+  .admin-table-wrap thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .admin-table-wrap tr {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 12px;
+    box-shadow: 0 12px 30px rgba(18, 35, 63, 0.06);
+  }
+
+  .admin-table-wrap td {
+    display: grid;
+    grid-template-columns: minmax(96px, 38%) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    border-bottom: 1px solid #eef2f7;
+    padding: 12px 4px;
+  }
+
+  .admin-table-wrap td:last-child {
+    border-bottom: 0;
+  }
+
+  .admin-table-wrap td::before {
+    content: attr(data-label);
+    color: #12233f;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .admin-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .admin-actions button,
+  .admin-view-btn {
+    width: 100%;
+  }
+
+  .admin-modal-overlay {
+    padding: 12px;
+  }
+
+  .admin-modal,
+  .admin-delete-modal {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+  }
+
+  .admin-modal h2,
+  .admin-delete-modal h2 {
+    padding-right: 44px;
+    font-size: 1.45rem;
+    line-height: 1.2;
+  }
+
+  .admin-modal-close {
+    right: 14px;
+    top: 14px;
+  }
+
+  .admin-toast {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    text-align: center;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-page {
+    padding-inline: 10px;
+  }
+
+  .admin-table-card,
+  .admin-referral-performance,
+  .admin-stats div,
+  .admin-commission-card,
+  .admin-top-referrer,
+  .admin-modal,
+  .admin-delete-modal {
+    padding: 14px;
+  }
+
+  .admin-table-wrap td {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
