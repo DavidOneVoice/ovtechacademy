@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Scholarship from "./pages/Scholarship";
 import Admin from "./pages/Admin";
@@ -18,8 +18,9 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/scholarship" element={<Scholarship />} />
         <Route path="/courses" element={<Courses />} />
-        <Route path="/lms" element={<LmsDashboard />} />
-        <Route path="/student-lms" element={<LmsDashboard />} />
+        <Route path="/lms" caseSensitive element={<LmsDashboard />} />
+        <Route path="/LMS" caseSensitive element={<Navigate to="/lms" replace />} />
+        <Route path="/student-lms" element={<Navigate to="/lms" replace />} />
         <Route path="/admin-login" element={<AdminLogin />} />
 
         <Route
