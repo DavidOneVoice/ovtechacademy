@@ -93,6 +93,7 @@ const Admin = () => {
   const [referralFilter, setReferralFilter] = useState("All");
   const [commissionPerStudent, setCommissionPerStudent] = useState(DEFAULT_COMMISSION);
   const [toast, setToast] = useState("");
+  const [enrollingId, setEnrollingId] = useState(null);
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -292,39 +293,61 @@ const Admin = () => {
   };
 
   const enrollStudent = async (app) => {
+    if (enrollingId) return;
+
     const enrolledAt = new Date();
-    await updateDoc(doc(db, "scholarshipApplications", app.id), {
-      status: "Enrolled",
-      paymentStatus: "Paid",
-      enrolledAt,
-    });
+    setEnrollingId(app.id);
+    setToast("Enrolling student...");
 
-    setApplications((prev) =>
-      prev.map((item) =>
-        item.id === app.id
-          ? { ...item, status: "Enrolled", paymentStatus: "Paid", enrolledAt }
-          : item,
-      ),
-    );
+    try {
+      await updateDoc(doc(db, "scholarshipApplications", app.id), {
+        status: "Enrolled",
+        paymentStatus: "Paid",
+        enrolledAt,
+      });
 
-    await emailjs.send(
-      import.meta.env.VITE_EMAILJS_SERVICE_ID,
-      import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-      {
-        email: app.email,
-        to_name: app.fullName,
-        subjectTitle: "Payment Confirmed: Welcome to OVTech Academy",
-        mainMessage:
-          "We are pleased to confirm that your registration payment has been received successfully and your enrollment has been completed.",
-        extraMessage:
-          "You have now been admitted into the OVTech training program. Our team will contact you shortly with onboarding details, class schedule, and the next steps for joining your learning group.",
-        ctaText: "",
-        ctaLink: "",
-      },
-      import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
-    );
+      const enrolledApplication = {
+        ...app,
+        status: "Enrolled",
+        paymentStatus: "Paid",
+        enrolledAt,
+      };
 
-    setSelectedApplication(null);
+      setApplications((prev) =>
+        prev.map((item) => (item.id === app.id ? { ...item, ...enrolledApplication } : item)),
+      );
+      setSelectedApplication(enrolledApplication);
+
+      try {
+        await emailjs.send(
+          import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+          {
+            email: app.email,
+            to_name: app.fullName,
+            subjectTitle: "Payment Confirmed: Welcome to OVTech Academy",
+            mainMessage:
+              "We are pleased to confirm that your registration payment has been received successfully and your enrollment has been completed.",
+            extraMessage:
+              "You have now been admitted into the OVTech training program. Our team will contact you shortly with onboarding details, class schedule, and the next steps for joining your learning group.",
+            ctaText: "",
+            ctaLink: "",
+          },
+          import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+        );
+      } catch (emailError) {
+        console.log(emailError);
+      }
+
+      setToast(`${app.fullName} has been enrolled successfully.`);
+      setTimeout(() => setToast(""), 3000);
+    } catch (error) {
+      console.log(error);
+      setToast("Enrollment could not be completed. Please try again.");
+      setTimeout(() => setToast(""), 3000);
+    } finally {
+      setEnrollingId(null);
+    }
   };
 
   return (
@@ -549,7 +572,22 @@ const Admin = () => {
               <div><strong>Referral Code</strong><span>{getReferralCode(selectedApplication)}</span></div>
             </div>
             <div className="admin-reason-box"><strong>Reason for Applying</strong><p>{selectedApplication.reason}</p></div>
-            <div className="admin-modal-actions"><button onClick={() => enrollStudent(selectedApplication)} className="admin-enroll-btn">Enroll Student</button></div>
+            <div className="admin-modal-actions">
+              {isEnrolled(selectedApplication) ? (
+                <div className="admin-enrolled-card" role="status">
+                  <strong>Student has been enrolled</strong>
+                  <span>Status is now Enrolled and payment is marked as Paid.</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => enrollStudent(selectedApplication)}
+                  className="admin-enroll-btn"
+                  disabled={enrollingId === selectedApplication.id}
+                >
+                  {enrollingId === selectedApplication.id ? "Enrolling Student..." : "Enroll Student"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
