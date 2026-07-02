@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, doc, getDoc, getDocs, orderBy, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { db } from "../src/firebase";
@@ -65,15 +65,15 @@ const buildLoginQueries = (login) => {
 
   if (email) {
     STUDENT_EMAIL_FIELDS.forEach((field) => {
-      queries.push(query(collection(db, "scholarshipApplications"), where(field, "==", email)));
-      if (normalizedEmail !== email) queries.push(query(collection(db, "scholarshipApplications"), where(field, "==", normalizedEmail)));
+      queries.push(query(collection(db, "scholarshipApplications"), where(field, "==", email), limit(1)));
+      if (normalizedEmail !== email) queries.push(query(collection(db, "scholarshipApplications"), where(field, "==", normalizedEmail), limit(1)));
     });
   }
 
   if (rawPhone) {
     STUDENT_PHONE_FIELDS.forEach((field) => {
-      queries.push(query(collection(db, "scholarshipApplications"), where(field, "==", rawPhone)));
-      if (digitsPhone !== rawPhone) queries.push(query(collection(db, "scholarshipApplications"), where(field, "==", digitsPhone)));
+      queries.push(query(collection(db, "scholarshipApplications"), where(field, "==", rawPhone), limit(1)));
+      if (digitsPhone !== rawPhone) queries.push(query(collection(db, "scholarshipApplications"), where(field, "==", digitsPhone), limit(1)));
     });
   }
 
