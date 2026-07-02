@@ -9,7 +9,10 @@ const projectRoot = path.resolve(__dirname, "..");
 const DEFAULT_WORKBOOK_PATH = path.join(projectRoot, "data", "OVTech Master Curriculum.xlsx");
 const SERVICE_ACCOUNT_PATH = path.join(projectRoot, "serviceAccountKey.json");
 
+const REQUIRED_HEADERS = ["Course", "Section", "Lesson ID", "Title", "YouTube Link"];
+
 const slugify = (value) => String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+const normalizeHeader = (value) => String(value || "").trim().replace(/\s+/g, " ");
 const pick = (row, names) => names.map((name) => row[name]).find((value) => value !== undefined && value !== null && String(value).trim() !== "");
 const boolValue = (value, fallback = true) => (value === undefined || value === "" ? fallback : !["false", "no", "0", "draft", "unpublished"].includes(String(value).toLowerCase()));
 const numberValue = (value, fallback) => {
@@ -17,24 +20,54 @@ const numberValue = (value, fallback) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+const rowHasCurriculumHeaders = (row) => {
+  const headers = new Set(row.map(normalizeHeader).filter(Boolean));
+  return REQUIRED_HEADERS.every((header) => headers.has(header));
+};
+
+const parseWorksheetRows = (worksheet) => {
+  const sheetRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", blankrows: false });
+  const headerRowIndex = sheetRows.findIndex(rowHasCurriculumHeaders);
+  if (headerRowIndex === -1) return null;
+
+  const headers = sheetRows[headerRowIndex].map(normalizeHeader);
+  const rows = sheetRows.slice(headerRowIndex + 1).map((values) =>
+    headers.reduce((row, header, columnIndex) => {
+      if (header) row[header] = values[columnIndex] ?? "";
+      return row;
+    }, {}),
+  ).filter((row) => Object.values(row).some((value) => String(value).trim() !== ""));
+
+  return { headers: headers.filter(Boolean), headerRowIndex, rows };
+};
+
+const readCurriculumWorksheet = (workbook) => {
+  for (const sheetName of workbook.SheetNames) {
+    const parsed = parseWorksheetRows(workbook.Sheets[sheetName]);
+    if (parsed) return { sheetName, ...parsed };
+  }
+
+  throw new Error(`No worksheet found with required headers: ${REQUIRED_HEADERS.join(", ")}`);
+};
+
 const normalizeRow = (row, index) => {
-  const course = pick(row, ["course", "Course", "track", "Track"]);
-  const section = pick(row, ["section", "Section", "module", "Module", "section/module", "Section/Module", "Section / Module"]);
-  const title = pick(row, ["title", "Title", "lesson", "Lesson", "Lesson Title", "Resource Title"]);
-  const youtubeUrl = pick(row, ["youtubeUrl", "YouTube URL", "Youtube URL", "Video URL", "videoUrl"]);
-  const downloadUrl = pick(row, ["downloadUrl", "Download URL", "File URL", "Resource URL"]);
+  const course = pick(row, ["Course", "course", "track", "Track"]);
+  const section = pick(row, ["Section", "section", "module", "Module", "section/module", "Section/Module", "Section / Module"]);
+  const title = pick(row, ["Title", "title", "lesson", "Lesson", "Lesson Title", "Resource Title"]);
+  const youtubeUrl = pick(row, ["YouTube Link", "youtubeUrl", "YouTube URL", "Youtube URL", "Video URL", "videoUrl"]);
+  const downloadUrl = pick(row, ["Downloadable Resource", "downloadUrl", "Download URL", "File URL", "Resource URL"]);
   const fileName = pick(row, ["fileName", "File Name", "Filename"]);
-  const requestedType = String(pick(row, ["type", "Type", "itemType", "Item Type"]) || "").toLowerCase();
+  const requestedType = String(pick(row, ["Type", "type", "itemType", "Item Type"]) || "").toLowerCase();
   const type = requestedType || (youtubeUrl ? "video" : "resource");
-  const unlockDay = numberValue(pick(row, ["unlockDay", "Unlock Day", "day", "Day"]), 1);
-  const globalOrder = numberValue(pick(row, ["globalOrder", "Global Order", "order", "Order"]), index + 1);
-  const lessonOrder = numberValue(pick(row, ["lessonOrder", "Lesson Order"]), globalOrder);
+  const unlockDay = numberValue(pick(row, ["Unlock Day", "unlockDay", "day", "Day"]), 1);
+  const globalOrder = numberValue(pick(row, ["Global Order", "globalOrder", "order", "Order"]), index + 1);
+  const lessonOrder = numberValue(pick(row, ["Course Order", "lessonOrder", "Lesson Order"]), globalOrder);
   const normalizedSection = section || "General";
 
   if (!course || !title) return { invalid: `Row ${index + 2}: missing course or title` };
 
   if (["resource", "download", "file", "worksheet", "pdf"].includes(type)) {
-    const resourceId = pick(row, ["resourceId", "Resource ID"]) || slugify(`${course}-${normalizedSection}-${title}`);
+    const resourceId = pick(row, ["resourceId", "Resource ID", "Lesson ID"]) || slugify(`${course}-${normalizedSection}-${title}`);
     return {
       collectionName: "lmsResources",
       id: resourceId,
@@ -55,7 +88,7 @@ const normalizeRow = (row, index) => {
     };
   }
 
-  const lessonId = pick(row, ["lessonId", "Lesson ID"]) || slugify(`${course}-${normalizedSection}-${globalOrder}-${title}`);
+  const lessonId = pick(row, ["Lesson ID", "lessonId"]) || slugify(`${course}-${normalizedSection}-${globalOrder}-${title}`);
   return {
     collectionName: "curriculum",
     id: lessonId,
@@ -93,7 +126,15 @@ admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
 const workbook = XLSX.read(readFileSync(workbookPath), { type: "buffer" });
-const rows = workbook.SheetNames.flatMap((sheetName) => XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" }));
+const { sheetName, headers, rows } = readCurriculumWorksheet(workbook);
+const firstYoutubeUrl = pick(rows[0] || {}, ["YouTube Link"]);
+
+console.log(`Detected worksheet name: ${sheetName}`);
+console.log("Detected headers:", headers);
+console.log("First parsed row:");
+console.log(rows[0]);
+console.log(`First YouTube URL read: ${firstYoutubeUrl || ""}`);
+
 let created = 0;
 let updated = 0;
 let skipped = 0;
@@ -120,4 +161,5 @@ for (const [index, row] of rows.entries()) {
   existing.exists ? updated += 1 : created += 1;
 }
 
+console.log(`Documents updated: ${updated}`);
 console.log(`Seed complete from ${workbookPath}. Created: ${created}. Updated: ${updated}. Skipped: ${skipped}.`);
