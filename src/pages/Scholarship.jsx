@@ -1,7 +1,7 @@
 // src/pages/Scholarship.jsx
 import { useState } from "react";
 import "./Scholarship.css";
-import { db } from "../src/firebase";
+import { db, isFirebaseConfigured } from "../src/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import emailjs from "@emailjs/browser";
@@ -67,6 +67,14 @@ const Scholarship = () => {
   const confirmSubmit = async () => {
     try {
       setIsSubmitting(true);
+
+      if (!isFirebaseConfigured || !db) {
+        setErrorMessage(
+          "Scholarship applications are temporarily unavailable because Firebase is not configured.",
+        );
+        setShowModal(false);
+        return;
+      }
 
       await addDoc(collection(db, "scholarshipApplications"), {
         ...formData,
