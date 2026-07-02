@@ -1,0 +1,111 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isPublished() {
+      return resource.data.isPublished == true;
+    }
+
+    function eligibleStatuses() {
+      return ["enrolled", "paid", "approved", "successful", "Enrolled", "Paid", "Approved", "Successful"];
+    }
+
+    function selfPacedPackageValues() {
+      return ["pre-recorded videos", "Pre-recorded Videos", "Pre-Recorded Videos", "PRE-RECORDED VIDEOS"];
+    }
+
+    function isSelfPacedEnrollment() {
+      return (
+        resource.data.status in eligibleStatuses() ||
+        resource.data.paymentStatus in eligibleStatuses() ||
+        resource.data.enrollmentStatus in eligibleStatuses()
+      ) && (
+        resource.data.learningMethod in selfPacedPackageValues() ||
+        resource.data.package in selfPacedPackageValues() ||
+        resource.data.packageName in selfPacedPackageValues() ||
+        resource.data.mode in selfPacedPackageValues() ||
+        resource.data.enrollmentMode in selfPacedPackageValues() ||
+        resource.data.selectedPackage in selfPacedPackageValues() ||
+        resource.data.selectedMode in selfPacedPackageValues() ||
+        resource.data.plan in selfPacedPackageValues()
+      );
+    }
+
+    function isProgressOwner(progressId) {
+      return request.resource.data.studentId == progressId &&
+        request.resource.data.applicationId in [progressId, ""] &&
+        request.resource.data.enrollmentId is string;
+    }
+
+    match /curriculum/{lessonId} {
+      allow read: if isPublished();
+      allow write: if isSignedIn();
+    }
+
+    match /lmsResources/{resourceId} {
+      allow read: if isPublished();
+      allow write: if isSignedIn();
+    }
+
+    match /scholarshipApplications/{applicationId} {
+      allow create: if true;
+      allow read, update, delete: if isSignedIn();
+
+      // TEMPORARY LMS DEVELOPMENT RULE (remove after Firebase Auth/custom claims are added):
+      // Allows the unauthenticated /lms login screen to run one-record exact-match
+      // lookup queries and receive only enrolled/approved/paid Pre-recorded Videos applications.
+      // This does not grant public writes or broad list access, but matching application
+      // documents are still visible to clients that know an enrolled student's email/phone.
+      allow list: if request.auth == null && request.query.limit <= 1 && isSelfPacedEnrollment();
+    }
+
+    match /progress/{progressId} {
+      // TEMPORARY LMS DEVELOPMENT RULE (remove after Firebase Auth/custom claims are added):
+      // The current LMS stores the verified scholarship application id in localStorage and
+      // uses it as the progress document id. Until Firebase Auth exists, permit reads/writes
+      // only for that document id when the linked application remains eligible.
+      allow read: if isSignedIn() || exists(/databases/$(database)/documents/scholarshipApplications/$(progressId));
+      allow create: if isSignedIn() || (
+        exists(/databases/$(database)/documents/scholarshipApplications/$(progressId)) &&
+        isProgressOwner(progressId) &&
+        request.resource.data.keys().hasOnly([
+          "studentId",
+          "applicationId",
+          "enrollmentId",
+          "completedLessonIds",
+          "lastWatchedLessonId",
+          "progressPercentage",
+          "updatedAt"
+        ])
+      );
+      allow update: if isSignedIn() || (
+        exists(/databases/$(database)/documents/scholarshipApplications/$(progressId)) &&
+        isProgressOwner(progressId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "studentId",
+          "applicationId",
+          "enrollmentId",
+          "completedLessonIds",
+          "lastWatchedLessonId",
+          "progressPercentage",
+          "updatedAt"
+        ])
+      );
+      allow delete: if isSignedIn();
+    }
+
+    match /studentProgress/{progressId} {
+      // Legacy LMS progress collection; read-only for the current public LMS fallback.
+      allow read: if isSignedIn() || exists(/databases/$(database)/documents/scholarshipApplications/$(progressId));
+      allow write: if isSignedIn();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
