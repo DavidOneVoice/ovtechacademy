@@ -19,6 +19,7 @@ function App() {
         <Route path="/scholarship" element={<Scholarship />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/lms" element={<LmsDashboard />} />
+        <Route path="/student-lms" element={<LmsDashboard />} />
         <Route path="/admin-login" element={<AdminLogin />} />
 
         <Route
