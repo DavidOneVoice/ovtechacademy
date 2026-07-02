@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth, isFirebaseConfigured } from "../src/firebase";
+import {
+  auth,
+  isFirebaseConfigured,
+  missingFirebaseEnvKeys,
+} from "../src/firebase";
 import "./AdminLogin.css";
 
 const AdminLogin = () => {
@@ -49,8 +53,13 @@ const AdminLogin = () => {
 
         {!isFirebaseConfigured && (
           <div className="admin-login-error">
-            Firebase is not configured for this deployment. Add the required
-            VITE_FIREBASE_* environment variables to enable admin login.
+            Firebase is not configured for this deployment. Add these missing
+            variables in the hosting provider, then rebuild and redeploy:
+            <ul>
+              {missingFirebaseEnvKeys.map((envKey) => (
+                <li key={envKey}>{envKey}</li>
+              ))}
+            </ul>
           </div>
         )}
 

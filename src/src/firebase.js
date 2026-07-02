@@ -2,25 +2,53 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-const requiredConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
+export const firebaseEnvRequirements = [
+  {
+    configKey: "apiKey",
+    envKey: "VITE_FIREBASE_API_KEY",
+    value: import.meta.env.VITE_FIREBASE_API_KEY,
+  },
+  {
+    configKey: "authDomain",
+    envKey: "VITE_FIREBASE_AUTH_DOMAIN",
+    value: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  },
+  {
+    configKey: "projectId",
+    envKey: "VITE_FIREBASE_PROJECT_ID",
+    value: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  },
+  {
+    configKey: "storageBucket",
+    envKey: "VITE_FIREBASE_STORAGE_BUCKET",
+    value: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  },
+  {
+    configKey: "messagingSenderId",
+    envKey: "VITE_FIREBASE_MESSAGING_SENDER_ID",
+    value: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  },
+  {
+    configKey: "appId",
+    envKey: "VITE_FIREBASE_APP_ID",
+    value: import.meta.env.VITE_FIREBASE_APP_ID,
+  },
+];
 
-const missingConfigKeys = Object.entries(requiredConfig)
-  .filter(([, value]) => !value)
-  .map(([key]) => key);
+const requiredConfig = Object.fromEntries(
+  firebaseEnvRequirements.map(({ configKey, value }) => [configKey, value]),
+);
 
-export const isFirebaseConfigured = missingConfigKeys.length === 0;
+export const missingFirebaseEnvKeys = firebaseEnvRequirements
+  .filter(({ value }) => !value)
+  .map(({ envKey }) => envKey);
+
+export const isFirebaseConfigured = missingFirebaseEnvKeys.length === 0;
 
 if (!isFirebaseConfigured) {
   console.warn(
-    `Missing Firebase environment configuration: ${missingConfigKeys.join(", ")}. ` +
-      "Firebase-backed features are disabled until the matching VITE_FIREBASE_* values are added.",
+    `Missing Firebase environment configuration: ${missingFirebaseEnvKeys.join(", ")}. ` +
+      "Firebase-backed features are disabled until these VITE_FIREBASE_* values are added to the deployment environment and the app is rebuilt.",
   );
 }
 

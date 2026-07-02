@@ -111,3 +111,14 @@
   font-weight: 800;
   margin-bottom: 18px;
 }
+
+.admin-login-error ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+}
+
+.admin-login-error li {
+  font-family: monospace;
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
