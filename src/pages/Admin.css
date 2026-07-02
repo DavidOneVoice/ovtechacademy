@@ -910,3 +910,98 @@
     gap: 6px;
   }
 }
+
+.admin-enroll-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.admin-enrolled-card {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  border-radius: 18px;
+  color: #166534;
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  text-align: center;
+}
+
+.admin-enrolled-card strong {
+  color: #14532d;
+  font-size: 1.05rem;
+}
+
+.admin-enrolled-card span {
+  color: #166534;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .admin-table-wrap {
+    overflow-x: auto;
+  }
+
+  .admin-table-wrap table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    min-width: 1080px;
+  }
+
+  .admin-table-wrap thead,
+  .admin-table-wrap tbody,
+  .admin-table-wrap tr,
+  .admin-table-wrap th,
+  .admin-table-wrap td {
+    display: revert;
+    width: auto;
+    min-width: revert;
+  }
+
+  .admin-table-wrap thead {
+    position: static;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    border: 0;
+  }
+
+  .admin-table-wrap tr {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .admin-table-wrap th,
+  .admin-table-wrap td {
+    padding: 14px;
+    white-space: nowrap;
+  }
+
+  .admin-table-wrap td {
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .admin-table-wrap td::before {
+    content: none;
+  }
+
+  .admin-table-wrap td small {
+    white-space: nowrap;
+  }
+
+  .admin-actions {
+    display: flex;
+    width: max-content;
+  }
+
+  .admin-actions button,
+  .admin-view-btn {
+    width: auto;
+  }
+}
