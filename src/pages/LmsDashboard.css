@@ -27,3 +27,8 @@
 .lms-player-card { padding: 24px; }
 .lms-player-card iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 20px; background: #101828; margin: 16px 0; }
 @media (max-width: 900px) { .lms-layout, .lms-hero { grid-template-columns: 1fr; display: grid; } }
+.lms-alert { width: min(1180px, calc(100% - 32px)); margin: 0 auto 24px; background: #fff3f0; color: #b42318; border: 1px solid #fecdca; border-radius: 16px; padding: 14px 18px; font-weight: 800; }
+.lms-course-group { display: grid; gap: 12px; }
+.lms-course-group h3, .lms-section-group h4 { margin: 0; color: #122033; }
+.lms-section-group { display: grid; gap: 10px; padding-top: 8px; border-top: 1px solid #eef2f7; }
+.lms-list em { color: #98a2b3; font-style: normal; font-weight: 700; }

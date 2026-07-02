@@ -16,16 +16,17 @@ export const calculateProgressPercentage = (completedLessonIds = [], lessons = [
 
 export const buildProgressPayload = ({ student, completedLessonIds, lastWatchedLessonId, lessons }) => ({
   studentId: getProgressId(student),
-  enrollmentId: student?.id || student?.enrollmentId || "",
+  applicationId: student?.id || student?.applicationId || "",
+  enrollmentId: student?.enrollmentId || student?.id || "",
   completedLessonIds,
   lastWatchedLessonId: lastWatchedLessonId || "",
-  courseProgressPercentage: calculateProgressPercentage(completedLessonIds, lessons),
+  progressPercentage: calculateProgressPercentage(completedLessonIds, lessons),
   updatedAt: serverTimestamp(),
 });
 
 export const saveStudentProgress = async ({ db, student, completedLessonIds, lastWatchedLessonId, lessons }) => {
   const progressId = getProgressId(student);
   const payload = buildProgressPayload({ student, completedLessonIds, lastWatchedLessonId, lessons });
-  await setDoc(doc(db, "studentProgress", progressId), payload, { merge: true });
+  await setDoc(doc(db, "progress", progressId), payload, { merge: true });
   return payload;
 };
