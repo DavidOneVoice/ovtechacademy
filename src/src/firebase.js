@@ -35,7 +35,16 @@ export const firebaseEnvRequirements = [
   },
 ];
 
-const requiredConfig = Object.fromEntries(
+const fallbackFirebaseConfig = {
+  apiKey: "AIzaSyB5GOMutv7v4ZHgi01_cnytcif1luFvu18",
+  authDomain: "ovtechacad.firebaseapp.com",
+  projectId: "ovtechacad",
+  storageBucket: "ovtechacad.firebasestorage.app",
+  messagingSenderId: "228669791106",
+  appId: "1:228669791106:web:7151c4f6d83f1a0ce80d9b",
+};
+
+const envFirebaseConfig = Object.fromEntries(
   firebaseEnvRequirements.map(({ configKey, value }) => [configKey, value]),
 );
 
@@ -43,16 +52,21 @@ export const missingFirebaseEnvKeys = firebaseEnvRequirements
   .filter(({ value }) => !value)
   .map(({ envKey }) => envKey);
 
-export const isFirebaseConfigured = missingFirebaseEnvKeys.length === 0;
+const hasCompleteEnvConfig = missingFirebaseEnvKeys.length === 0;
+const firebaseConfig = hasCompleteEnvConfig
+  ? envFirebaseConfig
+  : fallbackFirebaseConfig;
 
-if (!isFirebaseConfigured) {
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+
+if (!hasCompleteEnvConfig) {
   console.warn(
     `Missing Firebase environment configuration: ${missingFirebaseEnvKeys.join(", ")}. ` +
-      "Firebase-backed features are disabled until these VITE_FIREBASE_* values are added to the deployment environment and the app is rebuilt.",
+      "Using the checked-in OVTech Firebase config fallback so Firebase-backed features remain available.",
   );
 }
 
-const app = isFirebaseConfigured ? initializeApp(requiredConfig) : null;
+const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
 
 export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
