@@ -14,7 +14,7 @@ const Scholarship = () => {
   const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -55,7 +55,9 @@ const Scholarship = () => {
     const phoneRegex = /^(07|08|09)\d{9}$/;
 
     if (!phoneRegex.test(formData.whatsapp)) {
-      setShowError(true);
+      setErrorMessage(
+        "Your WhatsApp number must be exactly 11 digits and should start with 07, 08, or 09.",
+      );
       return;
     }
 
@@ -81,26 +83,34 @@ const Scholarship = () => {
         createdAt: serverTimestamp(),
       });
 
-      await emailjs.send(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        {
-          email: formData.email,
-          to_name: formData.fullName,
+      try {
+        await emailjs.send(
+          import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+          {
+            email: formData.email,
+            to_name: formData.fullName,
 
-          subjectTitle: "Your OVTech Scholarship Application Has Been Received",
+            subjectTitle:
+              "Your OVTech Scholarship Application Has Been Received",
 
-          mainMessage:
-            "Thank you for applying for the OVTech Scholarship Program. Your application has been received successfully and is now under review by our admissions team.",
+            mainMessage:
+              "Thank you for applying for the OVTech Scholarship Program. Your application has been received successfully and is now under review by our admissions team.",
 
-          extraMessage:
-            "If shortlisted, our team will contact you through your email address or WhatsApp number with the next steps.",
+            extraMessage:
+              "If shortlisted, our team will contact you through your email address or WhatsApp number with the next steps.",
 
-          ctaText: "",
-          ctaLink: "",
-        },
-        import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
-      );
+            ctaText: "",
+            ctaLink: "",
+          },
+          import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+        );
+      } catch (emailError) {
+        console.warn(
+          "Scholarship application was saved, but EmailJS notification failed.",
+          emailError,
+        );
+      }
 
       setShowModal(false);
       setShowSuccess(true);
@@ -118,8 +128,10 @@ const Scholarship = () => {
         referralCode: "",
       });
     } catch (error) {
-      console.log(error);
-      setShowError(true);
+      console.error("Scholarship application submission failed.", error);
+      setErrorMessage(
+        "We could not save your application right now. Please check your connection and try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -420,23 +432,18 @@ const Scholarship = () => {
           </div>
         </div>
       )}
-      {showError && (
+      {errorMessage && (
         <div className="sch-modal-overlay">
           <div className="sch-error-modal">
             <div className="sch-error-icon">!</div>
 
             <h2>Invalid Submission</h2>
 
-            <p>Please check your form details and try again.</p>
-
-            <p>
-              Your WhatsApp number must be exactly 11 digits and should start
-              with 07, 08, or 09.
-            </p>
+            <p>{errorMessage}</p>
 
             <button
               onClick={() => {
-                setShowError(false);
+                setErrorMessage("");
                 setShowModal(false);
               }}
               className="sch-error-btn"
