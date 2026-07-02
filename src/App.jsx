@@ -10,6 +10,7 @@ import Contact from "./pages/Contact";
 import About from "./pages/About";
 import Courses from "./pages/Courses";
 import LmsDashboard from "./pages/LmsDashboard";
+import AdminLms from "./pages/AdminLms";
 
 function App() {
   return (
@@ -28,6 +29,14 @@ function App() {
           element={
             <ProtectedAdminRoute>
               <Admin />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/admin/lms"
+          element={
+            <ProtectedAdminRoute>
+              <AdminLms />
             </ProtectedAdminRoute>
           }
         />

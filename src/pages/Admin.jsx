@@ -364,6 +364,7 @@ const Admin = () => {
         <div className="admin-header-actions">
           <a href="/" className="admin-home-btn">Back to Website</a>
           <a href="/enrolled-students" className="admin-home-btn">Enrolled Students</a>
+          <a href="/admin/lms" className="admin-home-btn">LMS Management</a>
           <button onClick={handleLogout} className="admin-logout-btn">Logout</button>
         </div>
       </section>
