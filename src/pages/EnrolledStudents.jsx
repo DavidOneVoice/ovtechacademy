@@ -57,12 +57,12 @@ const EnrolledStudents = () => {
             <tbody>
               {students.map((student) => (
                 <tr key={student.id}>
-                  <td>{student.fullName}</td>
-                  <td>{student.email}</td>
-                  <td>{student.whatsapp}</td>
-                  <td>{student.track}</td>
-                  <td>{student.learningMethod}</td>
-                  <td>{student.location}</td>
+                  <td data-label="Name">{student.fullName}</td>
+                  <td data-label="Email">{student.email}</td>
+                  <td data-label="WhatsApp">{student.whatsapp}</td>
+                  <td data-label="Track">{student.track}</td>
+                  <td data-label="Method">{student.learningMethod}</td>
+                  <td data-label="Location">{student.location}</td>
                 </tr>
               ))}
             </tbody>

@@ -470,22 +470,22 @@ const Admin = () => {
             <tbody>
               {filteredApplications.map((app) => (
                 <tr key={app.id}>
-                  <td><strong>{app.fullName}</strong><small>{app.email}</small></td>
-                  <td>{app.whatsapp}</td>
-                  <td>{app.track}</td>
-                  <td>{app.learningMethod || "—"}</td>
-                  <td>{getReferralCode(app)}</td>
-                  <td>{app.location}</td>
-                  <td><span className="admin-status">{app.status}</span></td>
-                  <td>
+                  <td data-label="Name"><strong>{app.fullName}</strong><small>{app.email}</small></td>
+                  <td data-label="WhatsApp">{app.whatsapp}</td>
+                  <td data-label="Track">{app.track}</td>
+                  <td data-label="Learning Method">{app.learningMethod || "—"}</td>
+                  <td data-label="Referral Code">{getReferralCode(app)}</td>
+                  <td data-label="Location">{app.location}</td>
+                  <td data-label="Status"><span className="admin-status">{app.status}</span></td>
+                  <td data-label="Actions">
                     <div className="admin-actions">
                       <button onClick={() => updateStatus(app.id, "Approved", app)} className="admin-approve">Approve</button>
                       <button onClick={() => updateStatus(app.id, "Rejected", app)} className="admin-reject">Reject</button>
                       <button onClick={() => setDeleteTarget(app)} className="admin-delete">Delete</button>
                     </div>
                   </td>
-                  <td><button onClick={() => setSelectedApplication(app)} className="admin-view-btn">View</button></td>
-                  <td>{getDateApplied(app)}</td>
+                  <td data-label="View"><button onClick={() => setSelectedApplication(app)} className="admin-view-btn">View</button></td>
+                  <td data-label="Date Applied">{getDateApplied(app)}</td>
                 </tr>
               ))}
             </tbody>
@@ -522,8 +522,8 @@ const Admin = () => {
                 <tbody>
                   {selectedReferralSummary.students.map((app) => (
                     <tr key={app.id}>
-                      <td>{app.fullName}</td><td>{app.track}</td><td>{app.learningMethod || "—"}</td><td>{getDateApplied(app)}</td><td>{app.status}</td><td>{app.paymentStatus || "—"}</td><td>{app.location}</td><td>{app.email}</td><td>{app.whatsapp}</td>
-                      <td><button className="admin-view-btn" onClick={() => setSelectedApplication(app)}>View</button></td>
+                      <td data-label="Student Name">{app.fullName}</td><td data-label="Track">{app.track}</td><td data-label="Learning Method">{app.learningMethod || "—"}</td><td data-label="Date Applied">{getDateApplied(app)}</td><td data-label="Status">{app.status}</td><td data-label="Payment Status">{app.paymentStatus || "—"}</td><td data-label="Location">{app.location}</td><td data-label="Email">{app.email}</td><td data-label="WhatsApp">{app.whatsapp}</td>
+                      <td data-label="View"><button className="admin-view-btn" onClick={() => setSelectedApplication(app)}>View</button></td>
                     </tr>
                   ))}
                 </tbody>
