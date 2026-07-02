@@ -2,16 +2,27 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyB5GOMutv7v4ZHgi01_cnytcif1luFvu18",
-  authDomain: "ovtechacad.firebaseapp.com",
-  projectId: "ovtechacad",
-  storageBucket: "ovtechacad.firebasestorage.app",
-  messagingSenderId: "228669791106",
-  appId: "1:228669791106:web:7151c4f6d83f1a0ce80d9b",
+const requiredConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
+const missingConfigKeys = Object.entries(requiredConfig)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missingConfigKeys.length > 0) {
+  throw new Error(
+    `Missing Firebase environment configuration: ${missingConfigKeys.join(", ")}. ` +
+      "Add the matching VITE_FIREBASE_* values from the Firebase project settings before deploying.",
+  );
+}
+
+const app = initializeApp(requiredConfig);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
