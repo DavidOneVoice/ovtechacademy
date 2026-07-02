@@ -10,14 +10,33 @@ import { calculateProgressPercentage, saveStudentProgress } from "../lms/progres
 import "./LmsDashboard.css";
 
 const STORAGE_KEY = "ovtech_lms_student";
-const SELF_PACED_METHOD = "Self-Paced Pre-recorded Videos";
+const PRE_RECORDED_ACCESS_TEXT = "pre-recorded videos";
 
 const normalize = (value) => String(value || "").trim().toLowerCase();
+const normalizePhone = (value) => String(value || "").replace(/\D/g, "");
+
+const getEnrollmentPackage = (student) =>
+  [student?.learningMethod, student?.package, student?.packageName, student?.mode, student?.enrollmentMode]
+    .filter(Boolean)
+    .join(" ");
 
 const isSelfPacedStudent = (student) =>
   student &&
   (student.status === "Enrolled" || student.paymentStatus === "Paid") &&
-  normalize(student.learningMethod).includes(normalize(SELF_PACED_METHOD));
+  normalize(getEnrollmentPackage(student)).includes(PRE_RECORDED_ACCESS_TEXT);
+
+const findEligibleStudent = (docs, login) => {
+  const email = normalize(login.email);
+  const phone = normalizePhone(login.whatsapp);
+
+  return docs
+    .map((item) => ({ id: item.id, ...item.data() }))
+    .find((item) => {
+      const emailMatches = email && normalize(item.email) === email;
+      const phoneMatches = phone && normalizePhone(item.whatsapp || item.phone || item.phoneNumber) === phone;
+      return (emailMatches || phoneMatches) && isSelfPacedStudent(item);
+    });
+};
 
 const LmsDashboard = () => {
   const navigate = useNavigate();
@@ -79,14 +98,23 @@ const LmsDashboard = () => {
     setLoading(true);
 
     try {
-      const q = query(collection(db, "scholarshipApplications"), where("email", "==", login.email.trim()), limit(10));
-      const snapshot = await getDocs(q);
-      const match = snapshot.docs
-        .map((item) => ({ id: item.id, ...item.data() }))
-        .find((item) => normalize(item.whatsapp) === normalize(login.whatsapp) && isSelfPacedStudent(item));
+      const email = login.email.trim();
+      const phone = normalizePhone(login.whatsapp);
+
+      if (!email && !phone) {
+        setAuthError("Enter your enrollment email or WhatsApp/phone number to continue.");
+        return;
+      }
+
+      const lookups = [];
+      if (email) lookups.push(getDocs(query(collection(db, "scholarshipApplications"), where("email", "==", email), limit(10))));
+      if (phone) lookups.push(getDocs(query(collection(db, "scholarshipApplications"), where("whatsapp", "==", phone), limit(10))));
+
+      const snapshots = await Promise.all(lookups);
+      const match = findEligibleStudent(snapshots.flatMap((snapshot) => snapshot.docs), login);
 
       if (!match) {
-        setAuthError("No enrolled self-paced LMS student was found with that email and WhatsApp number.");
+        setAuthError("No enrolled Pre-recorded Videos LMS student was found with that email or WhatsApp/phone number.");
         return;
       }
 
@@ -109,7 +137,7 @@ const LmsDashboard = () => {
   const logout = () => {
     localStorage.removeItem(STORAGE_KEY);
     setStudent(null);
-    navigate("/lms");
+    navigate("/student-lms");
   };
 
   if (!student) {
@@ -119,10 +147,10 @@ const LmsDashboard = () => {
         <section className="lms-login-card">
           <span>OVTech LMS</span>
           <h1>Continue your self-paced learning</h1>
-          <p>Log in with the email and WhatsApp number already submitted during enrollment. No new signup is needed.</p>
+          <p>Log in with the email or WhatsApp/phone number already submitted during enrollment. No new signup is needed.</p>
           <form onSubmit={handleLogin}>
-            <label>Email address<input type="email" required value={login.email} onChange={(e) => setLogin((prev) => ({ ...prev, email: e.target.value }))} /></label>
-            <label>WhatsApp number<input type="tel" required value={login.whatsapp} onChange={(e) => setLogin((prev) => ({ ...prev, whatsapp: e.target.value.replace(/\D/g, "").slice(0, 15) }))} /></label>
+            <label>Email address<input type="email" value={login.email} onChange={(e) => setLogin((prev) => ({ ...prev, email: e.target.value }))} /></label>
+            <label>WhatsApp/phone number<input type="tel" value={login.whatsapp} onChange={(e) => setLogin((prev) => ({ ...prev, whatsapp: e.target.value.replace(/\D/g, "").slice(0, 15) }))} /></label>
             {authError && <p className="lms-error">{authError}</p>}
             <button type="submit" disabled={loading}>{loading ? "Checking..." : "Enter LMS"}</button>
           </form>
