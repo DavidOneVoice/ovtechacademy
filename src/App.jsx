@@ -9,6 +9,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import Contact from "./pages/Contact";
 import About from "./pages/About";
 import Courses from "./pages/Courses";
+import LmsDashboard from "./pages/LmsDashboard";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/scholarship" element={<Scholarship />} />
         <Route path="/courses" element={<Courses />} />
+        <Route path="/lms" element={<LmsDashboard />} />
         <Route path="/admin-login" element={<AdminLogin />} />
 
         <Route
