@@ -92,6 +92,12 @@ const groupItemsByCourseAndSection = (items) =>
 
 const getLessonId = (lesson) => lesson.lessonId || lesson.id;
 
+const getResourceAction = (resource) => {
+  if (resource.downloadUrl) return { label: "Download", href: resource.downloadUrl };
+  if (resource.storagePath) return { label: "Download URL pending", href: "" };
+  return { label: "Resource coming soon", href: "" };
+};
+
 const LmsDashboard = () => {
   const navigate = useNavigate();
   const [student, setStudent] = useState(null);
@@ -247,7 +253,10 @@ const LmsDashboard = () => {
                       <span>{item.type === "resource" ? (unlocked ? "📎 Resource" : "🔒 Locked resource") : complete ? "✅ Completed" : unlocked ? "▶ Lesson" : "🔒 Locked lesson"}</span>
                       <strong>{item.title || item.fileName}</strong>
                       <small>{item.fileType || "Video"} • Day {item.unlockDay || 1}</small>
-                      {item.type === "resource" && unlocked && (item.downloadUrl ? <a href={item.downloadUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Download</a> : <em>Resource coming soon</em>)}
+                      {item.type === "resource" && unlocked && (() => {
+                        const action = getResourceAction(item);
+                        return action.href ? <a href={action.href} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{action.label}</a> : <em>{action.label}</em>;
+                      })()}
                     </button>;
                   })}
                 </div>

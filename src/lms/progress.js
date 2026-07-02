@@ -5,7 +5,7 @@ export const getProgressId = (student) => student?.id || student?.studentId || s
 export const calculateProgressPercentage = (completedLessonIds = [], lessons = []) => {
   const publishedVideoIds = lessons
     .filter((item) => item.type === "video" && item.isPublished !== false)
-    .map((item) => item.lessonId);
+    .map((item) => item.lessonId || item.id);
 
   if (!publishedVideoIds.length) return 0;
 
