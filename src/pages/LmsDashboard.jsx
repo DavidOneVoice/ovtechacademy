@@ -224,7 +224,6 @@ const LmsDashboard = () => {
       const resourceQuery = query(
         collection(db, "lmsResources"),
         where("isPublished", "==", true),
-        orderBy("unlockDay", "asc"),
       );
       const progressId = getProgressId(student);
       const [
