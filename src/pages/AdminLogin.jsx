@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../src/firebase";
 import "./AdminLogin.css";
 
 const AdminLogin = () => {
@@ -16,23 +14,22 @@ const AdminLogin = () => {
     }));
   };
 
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
-    setError("");
 
-    try {
-      await signInWithEmailAndPassword(
-        auth,
-        loginData.email.trim(),
-        loginData.password,
-      );
+    const adminEmail = "admin@ovtechacademy.com";
+    const adminPassword = "OVTech2026!";
+
+    if (
+      loginData.email.trim().toLowerCase() === adminEmail.toLowerCase() &&
+      loginData.password === adminPassword
+    ) {
       localStorage.setItem("ovtechAdmin", "true");
       navigate("/admin");
-    } catch (error) {
-      console.log(error);
-      localStorage.removeItem("ovtechAdmin");
-      setError("Invalid admin email or password.");
+      return;
     }
+
+    setError("Invalid admin email or password.");
   };
 
   return (
