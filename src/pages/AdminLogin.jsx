@@ -28,7 +28,7 @@ const AdminLogin = () => {
       loginData.password === adminPassword
     ) {
       localStorage.setItem("ovtechAdmin", "true");
-      window.location.href = "/admin";
+      navigate("/admin", { replace: true });
       console.log("Admin login success");
       return;
     }

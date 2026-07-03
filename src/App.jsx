@@ -20,18 +20,15 @@ function App() {
         <Route path="/scholarship" element={<Scholarship />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/lms" caseSensitive element={<LmsDashboard />} />
-        <Route path="/LMS" caseSensitive element={<Navigate to="/lms" replace />} />
+        <Route
+          path="/LMS"
+          caseSensitive
+          element={<Navigate to="/lms" replace />}
+        />
         <Route path="/student-lms" element={<Navigate to="/lms" replace />} />
         <Route path="/admin-login" element={<AdminLogin />} />
 
-        <Route
-          path="/admin"
-          element={
-            <ProtectedAdminRoute>
-              <Admin />
-            </ProtectedAdminRoute>
-          }
-        />
+        <Route path="/admin" element={<Admin />} />
         <Route
           path="/admin/lms"
           element={
