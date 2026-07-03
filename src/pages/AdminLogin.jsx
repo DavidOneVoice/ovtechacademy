@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import {
-  auth,
-  isFirebaseConfigured,
-  missingFirebaseEnvKeys,
-} from "../src/firebase";
+import { auth } from "../src/firebase";
 import "./AdminLogin.css";
 
 const AdminLogin = () => {
@@ -23,11 +19,6 @@ const AdminLogin = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
-
-    if (!isFirebaseConfigured || !auth) {
-      setError("Admin login is temporarily unavailable because Firebase is not configured.");
-      return;
-    }
 
     try {
       await signInWithEmailAndPassword(
@@ -50,18 +41,6 @@ const AdminLogin = () => {
         <span>OVTech Admin</span>
         <h1>Admin Login</h1>
         <p>Sign in to manage scholarship applications.</p>
-
-        {!isFirebaseConfigured && (
-          <div className="admin-login-error">
-            Firebase is not configured for this deployment. Add these missing
-            variables in the hosting provider, then rebuild and redeploy:
-            <ul>
-              {missingFirebaseEnvKeys.map((envKey) => (
-                <li key={envKey}>{envKey}</li>
-              ))}
-            </ul>
-          </div>
-        )}
 
         {error && <div className="admin-login-error">{error}</div>}
 
@@ -89,7 +68,7 @@ const AdminLogin = () => {
           />
         </label>
 
-        <button type="submit" disabled={!isFirebaseConfigured}>Login</button>
+        <button type="submit">Login</button>
       </form>
     </main>
   );
