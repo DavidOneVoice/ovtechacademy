@@ -19,25 +19,16 @@ const AdminLogin = () => {
 
     const adminEmail = "admin@ovtechacademy.com";
     const adminPassword = "OVTech2026!";
-    console.log("Login attempt:", {
-      email: loginData.email,
-      password: loginData.password,
-    });
     if (
       loginData.email.trim().toLowerCase() === adminEmail.toLowerCase() &&
       loginData.password === adminPassword
     ) {
       localStorage.setItem("ovtechAdmin", "true");
       navigate("/admin", { replace: true });
-      console.log("Admin login success");
       return;
     }
 
     setError("Invalid admin email or password.");
-    console.log("Login attempt:", {
-      email: loginData.email,
-      password: loginData.password,
-    });
   };
 
   return (

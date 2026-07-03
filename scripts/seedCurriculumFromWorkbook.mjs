@@ -126,14 +126,7 @@ admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
 const workbook = XLSX.read(readFileSync(workbookPath), { type: "buffer" });
-const { sheetName, headers, rows } = readCurriculumWorksheet(workbook);
-const firstYoutubeUrl = pick(rows[0] || {}, ["YouTube Link"]);
-
-console.log(`Detected worksheet name: ${sheetName}`);
-console.log("Detected headers:", headers);
-console.log("First parsed row:");
-console.log(rows[0]);
-console.log(`First YouTube URL read: ${firstYoutubeUrl || ""}`);
+const { rows } = readCurriculumWorksheet(workbook);
 
 let created = 0;
 let updated = 0;
@@ -160,6 +153,3 @@ for (const [index, row] of rows.entries()) {
   );
   existing.exists ? updated += 1 : created += 1;
 }
-
-console.log(`Documents updated: ${updated}`);
-console.log(`Seed complete from ${workbookPath}. Created: ${created}. Updated: ${updated}. Skipped: ${skipped}.`);

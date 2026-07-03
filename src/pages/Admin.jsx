@@ -109,8 +109,7 @@ const Admin = () => {
         const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setApplications(data);
         setLoadError("");
-      } catch (error) {
-        console.log(error);
+      } catch {
         setLoadError("Unable to load applications. Please log out and sign in again with the Firebase admin account.");
       } finally {
         setLoading(false);
@@ -340,14 +339,12 @@ const Admin = () => {
           },
           import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
         );
-      } catch (emailError) {
-        console.log(emailError);
+      } catch {
       }
 
       setToast(`${app.fullName} has been enrolled successfully.`);
       setTimeout(() => setToast(""), 3000);
-    } catch (error) {
-      console.log(error);
+    } catch {
       setToast("Enrollment could not be completed. Please try again.");
       setTimeout(() => setToast(""), 3000);
     } finally {

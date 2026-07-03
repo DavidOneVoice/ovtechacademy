@@ -73,8 +73,7 @@ ${formData.message}`,
         whatsapp: "",
         message: "",
       });
-    } catch (err) {
-      console.log(err);
+    } catch {
       setError(true);
     } finally {
       setSending(false);
