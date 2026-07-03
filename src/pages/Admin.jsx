@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./Admin.css";
-import { db } from "../src/firebase";
+import { auth, db } from "../src/firebase";
+import { signOut } from "firebase/auth";
 import {
   collection,
   getDocs,
@@ -94,6 +95,7 @@ const Admin = () => {
   const [commissionPerStudent, setCommissionPerStudent] = useState(DEFAULT_COMMISSION);
   const [toast, setToast] = useState("");
   const [enrollingId, setEnrollingId] = useState(null);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -106,8 +108,10 @@ const Admin = () => {
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setApplications(data);
+        setLoadError("");
       } catch (error) {
         console.log(error);
+        setLoadError("Unable to load applications. Please log out and sign in again with the Firebase admin account.");
       } finally {
         setLoading(false);
       }
@@ -246,8 +250,9 @@ const Admin = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     localStorage.removeItem("ovtechAdmin");
+    await signOut(auth);
     window.location.href = "/admin-login";
   };
 
@@ -364,6 +369,7 @@ const Admin = () => {
         <div className="admin-header-actions">
           <a href="/" className="admin-home-btn">Back to Website</a>
           <a href="/enrolled-students" className="admin-home-btn">Enrolled Students</a>
+          <a href="/admin/lms" className="admin-home-btn">LMS Management</a>
           <button onClick={handleLogout} className="admin-logout-btn">Logout</button>
         </div>
       </section>
@@ -483,6 +489,7 @@ const Admin = () => {
       <section className="admin-table-card">
         <h2>Recent Applications</h2>
         {loading && <p className="admin-loading">Loading applications...</p>}
+        {loadError && <p className="admin-empty">{loadError}</p>}
         <div className="admin-table-wrap">
           <table>
             <thead>

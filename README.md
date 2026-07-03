@@ -1,16 +1,41 @@
-# React + Vite
+# OVTech Academy
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite application for the OVTech Academy website and admin dashboard.
 
-Currently, two official plugins are available:
+## Environment setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Firebase and EmailJS credentials are read from Vite environment variables. Copy the
+example file, then replace the placeholder values with the values from the active
+Firebase web app and EmailJS account:
 
-## React Compiler
+```bash
+cp .env.example .env.local
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Required Firebase variables:
 
-## Expanding the ESLint configuration
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+If Firebase Authentication returns `auth/configuration-not-found`, the deployed
+site is using a Firebase web API key/configuration that does not belong to an
+active Firebase Authentication project. Update these variables in the deployment
+environment with the current Firebase project settings, and make sure the Email/
+Password sign-in provider is enabled in Firebase Authentication.
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+```
