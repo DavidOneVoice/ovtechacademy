@@ -56,8 +56,7 @@ const AdminLms = () => {
   };
 
   useEffect(() => {
-    loadLmsContent().catch((error) => {
-      console.log(error);
+    loadLmsContent().catch(() => {
       showToast("Unable to load LMS content.");
       setLoading(false);
     });

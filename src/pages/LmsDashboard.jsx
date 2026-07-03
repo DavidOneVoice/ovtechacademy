@@ -258,9 +258,7 @@ const LmsDashboard = () => {
       );
 
       setLessons(lessonData);
-      console.log("Lessons loaded:", lessonData);
       setResources(resourceData);
-      console.log("Resources loaded:", resourceData);
       setCompletedLessonIds(progress.completedLessonIds || []);
       setSelectedLessonId(
         progress.lastWatchedLessonId ||

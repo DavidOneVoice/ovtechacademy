@@ -4,10 +4,17 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "../src/firebase";
 
 const ProtectedAdminRoute = ({ children }) => {
+  const hasStoredAdmin = () => localStorage.getItem("ovtechAdmin") === "true";
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(hasStoredAdmin);
 
   useEffect(() => {
+    if (hasStoredAdmin()) {
+      setIsAdmin(true);
+      setIsCheckingAuth(false);
+      return undefined;
+    }
+
     if (!isFirebaseConfigured || !auth) {
       setIsAdmin(false);
       setIsCheckingAuth(false);
@@ -15,7 +22,7 @@ const ProtectedAdminRoute = ({ children }) => {
     }
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAdmin(Boolean(user));
+      setIsAdmin(Boolean(user) || hasStoredAdmin());
       setIsCheckingAuth(false);
     });
 
