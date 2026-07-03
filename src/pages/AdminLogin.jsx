@@ -30,8 +30,6 @@ const AdminLogin = () => {
       localStorage.setItem("ovtechAdmin", "true");
       window.location.href = "/admin";
       console.log("Admin login success");
-      localStorage.setItem("ovtechAdmin", "true");
-      window.location.href = "/admin";
       return;
     }
 
