@@ -9,8 +9,44 @@ import {
   query,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../src/firebase";
+import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import { db, storage } from "../src/firebase";
 import "./Admin.css";
+
+const allowedResourceExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "csv"];
+const allowedResourceMimeTypes = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/csv",
+  "application/csv",
+  "text/comma-separated-values",
+];
+const resourceFileAccept = allowedResourceExtensions
+  .map((extension) => `.${extension}`)
+  .join(",");
+
+const getFileExtension = (fileName = "") =>
+  fileName.split(".").pop()?.toLowerCase() || "";
+
+const isAllowedResourceFile = (file) => {
+  if (!file) return false;
+  return (
+    allowedResourceExtensions.includes(getFileExtension(file.name)) ||
+    allowedResourceMimeTypes.includes(file.type)
+  );
+};
+
+const getSafeFileName = (fileName = "resource") => {
+  const cleaned = fileName
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return cleaned || `resource-${Date.now()}`;
+};
 
 const emptyResource = {
   title: "",
@@ -46,6 +82,10 @@ const AdminLms = () => {
   const [resourceForm, setResourceForm] = useState(emptyResource);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
+  const [uploadingId, setUploadingId] = useState("");
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [resourceFiles, setResourceFiles] = useState({});
+  const [newResourceFile, setNewResourceFile] = useState(null);
   const [toast, setToast] = useState("");
 
   const showToast = (message) => {
@@ -144,6 +184,7 @@ const AdminLms = () => {
       fileType: resource.fileType || "",
       downloadUrl: resource.downloadUrl || "",
       storagePath: resource.storagePath || "",
+      fileName: resource.fileName || "",
       isPublished: resource.isPublished !== false,
     });
     setSavingId("");
@@ -152,6 +193,11 @@ const AdminLms = () => {
 
   const addResource = async (event) => {
     event.preventDefault();
+    if (newResourceFile && !isAllowedResourceFile(newResourceFile)) {
+      showToast("Only PDF, Word, Excel, or CSV resources can be uploaded.");
+      return;
+    }
+
     const payload = {
       ...resourceForm,
       unlockDay: toNumber(resourceForm.unlockDay, 1),
@@ -159,11 +205,21 @@ const AdminLms = () => {
       createdAt: new Date(),
     };
     const created = await addDoc(collection(db, "lmsResources"), payload);
-    setResources((prev) =>
-      sortResources([...prev, { id: created.id, ...payload }]),
-    );
+    const createdResource = { id: created.id, ...payload };
+    setResources((prev) => sortResources([...prev, createdResource]));
+
+    if (newResourceFile) {
+      try {
+        await uploadResourceFile(created.id, newResourceFile);
+      } catch (error) {
+        console.error("New resource upload error:", error);
+      }
+    } else {
+      showToast("Resource added.");
+    }
+
+    setNewResourceFile(null);
     setResourceForm(emptyResource);
-    showToast("Resource added.");
   };
 
   const removeResource = async (resource) => {
@@ -176,6 +232,89 @@ const AdminLms = () => {
     await deleteDoc(doc(db, "lmsResources", resource.id));
     setResources((prev) => prev.filter((item) => item.id !== resource.id));
     showToast("Resource removed.");
+  };
+
+  const uploadResourceFile = (resourceId, file) => {
+    if (!file) {
+      showToast("Choose a PDF, Word, Excel, or CSV file first.");
+      return Promise.resolve(null);
+    }
+
+    if (!isAllowedResourceFile(file)) {
+      showToast("Only PDF, Word, Excel, or CSV resources can be uploaded.");
+      return Promise.resolve(null);
+    }
+
+    const safeFileName = getSafeFileName(file.name);
+    const storagePath = `lms-resources/${resourceId}/${safeFileName}`;
+    const resourceRef = ref(storage, storagePath);
+    const uploadTask = uploadBytesResumable(resourceRef, file, {
+      contentType: file.type || undefined,
+    });
+
+    setUploadingId(resourceId);
+    setUploadProgress((prev) => ({ ...prev, [resourceId]: 0 }));
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress = Math.round(
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100,
+          );
+          setUploadProgress((prev) => ({ ...prev, [resourceId]: progress }));
+        },
+        (error) => {
+          setUploadingId("");
+          showToast("Resource upload failed. Please try again.");
+          reject(error);
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref)
+            .then(async (downloadUrl) => {
+              const fileType = getFileExtension(file.name).toUpperCase();
+              const fileData = {
+                downloadUrl,
+                storagePath,
+                fileName: file.name,
+                fileType,
+              };
+
+              await updateDoc(doc(db, "lmsResources", resourceId), fileData);
+              setResources((prev) =>
+                sortResources(
+                  prev.map((resource) =>
+                    resource.id === resourceId
+                      ? { ...resource, ...fileData }
+                      : resource,
+                  ),
+                ),
+              );
+              setResourceFiles((prev) => {
+                const next = { ...prev };
+                delete next[resourceId];
+                return next;
+              });
+              setUploadingId("");
+              showToast("Resource uploaded successfully.");
+              resolve(fileData);
+            })
+            .catch((error) => {
+              setUploadingId("");
+              showToast("Resource upload failed. Please try again.");
+              reject(error);
+            });
+        },
+      );
+    });
+  };
+
+  const uploadExistingResource = async (resource) => {
+    try {
+      await uploadResourceFile(resource.id, resourceFiles[resource.id]);
+    } catch (error) {
+      console.error("Resource upload error:", error);
+    }
   };
 
   return (
@@ -342,6 +481,16 @@ const AdminLms = () => {
                   }))
                 }
               />
+              <label>
+                Upload file
+                <input
+                  type="file"
+                  accept={resourceFileAccept}
+                  onChange={(e) =>
+                    setNewResourceFile(e.target.files?.[0] || null)
+                  }
+                />
+              </label>
               <label className="admin-checkbox">
                 <input
                   type="checkbox"
@@ -416,6 +565,24 @@ const AdminLms = () => {
                     }
                   />
                 </label>
+                <label>
+                  Upload file
+                  <input
+                    type="file"
+                    accept={resourceFileAccept}
+                    onChange={(e) =>
+                      setResourceFiles((prev) => ({
+                        ...prev,
+                        [resource.id]: e.target.files?.[0] || null,
+                      }))
+                    }
+                  />
+                </label>
+                {uploadingId === resource.id && (
+                  <p className="admin-upload-status">
+                    Uploading... {uploadProgress[resource.id] || 0}%
+                  </p>
+                )}
                 <label className="admin-checkbox">
                   <input
                     type="checkbox"
@@ -434,9 +601,20 @@ const AdminLms = () => {
                   <button
                     className="admin-view-btn"
                     onClick={() => saveResource(resource)}
-                    disabled={savingId === resource.id}
+                    disabled={
+                      savingId === resource.id || uploadingId === resource.id
+                    }
                   >
                     {savingId === resource.id ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    className="admin-approve"
+                    onClick={() => uploadExistingResource(resource)}
+                    disabled={uploadingId === resource.id}
+                  >
+                    {uploadingId === resource.id
+                      ? "Uploading..."
+                      : "Upload File"}
                   </button>
                   <button
                     className="admin-delete"
