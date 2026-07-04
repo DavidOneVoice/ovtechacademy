@@ -15,7 +15,10 @@ const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7acfd3498376dced41b0d1386738e5e68a9c6aa3
 export const auth = null;
 export const isFirebaseConfigured = true;
 export const missingFirebaseEnvKeys = [];
