@@ -187,7 +187,6 @@ const getLessonId = (lesson) => lesson.lessonId || lesson.id;
 const getResourceAction = (resource) => {
   if (resource.downloadUrl)
     return { label: "Download", href: resource.downloadUrl };
-  if (resource.storagePath) return { label: "Download URL pending", href: "" };
   return { label: "Resource coming soon", href: "" };
 };
 
