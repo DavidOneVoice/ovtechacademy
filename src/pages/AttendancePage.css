@@ -1,0 +1,175 @@
+.attendance-page {
+  min-height: 70vh;
+  background: linear-gradient(135deg, #081426 0%, #12233f 52%, #d4af37 160%);
+  padding: 70px 24px;
+  display: grid;
+  place-items: center;
+}
+
+.attendance-card {
+  width: min(920px, 100%);
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 34px;
+  padding: clamp(28px, 5vw, 52px);
+  box-shadow: 0 35px 90px rgba(0, 0, 0, 0.25);
+}
+
+.attendance-kicker {
+  color: #d4af37;
+  font-weight: 950;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.attendance-card h1 {
+  color: #12233f;
+  font-size: clamp(2rem, 5vw, 4rem);
+  margin: 12px 0;
+}
+
+.attendance-copy,
+.attendance-alert {
+  color: #6b7280;
+  line-height: 1.7;
+  font-weight: 700;
+}
+
+.attendance-alert {
+  background: #fff7db;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.attendance-form-panel {
+  margin-top: 28px;
+  display: grid;
+  gap: 22px;
+}
+
+.attendance-form-panel label span {
+  display: block;
+  color: #12233f;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.attendance-form-panel select {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 16px;
+  font: inherit;
+  color: #12233f;
+  background: #f8f9fc;
+}
+
+.attendance-profile {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.attendance-profile div {
+  background: #f8f9fc;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 18px;
+}
+
+.attendance-profile strong,
+.attendance-profile span {
+  display: block;
+}
+
+.attendance-profile strong {
+  color: #12233f;
+  margin-bottom: 8px;
+}
+
+.attendance-profile span {
+  color: #6b7280;
+  overflow-wrap: anywhere;
+}
+
+.attendance-submit,
+.attendance-login-link {
+  border: none;
+  border-radius: 999px;
+  padding: 16px 24px;
+  font-weight: 950;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
+
+.attendance-submit {
+  background: #d4af37;
+  color: #081426;
+}
+
+.attendance-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.attendance-login-link {
+  display: inline-flex;
+  margin-top: 20px;
+  background: #12233f;
+  color: white;
+}
+
+.attendance-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 20, 38, 0.75);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.attendance-confirm-modal {
+  width: min(480px, 100%);
+  background: white;
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.25);
+}
+
+.attendance-confirm-modal h2 {
+  color: #12233f;
+  margin: 0 0 12px;
+}
+
+.attendance-confirm-modal p {
+  color: #6b7280;
+  line-height: 1.7;
+}
+
+.attendance-confirm-modal div {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.attendance-confirm-modal button {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  padding: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.attendance-confirm-modal button:first-child {
+  background: #f3f4f6;
+  color: #12233f;
+}
+
+.attendance-confirm-modal button:last-child {
+  background: #d4af37;
+  color: #081426;
+}
