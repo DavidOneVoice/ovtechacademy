@@ -38,6 +38,12 @@ const normalize = (value) =>
 const normalizePhone = (value) => String(value || "").replace(/\D/g, "");
 const hasValue = (value) => String(value || "").trim().length > 0;
 
+const slugifyTrack = (track) =>
+  String(track || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
 const STUDENT_EMAIL_FIELDS = ["email", "emailAddress", "studentEmail"];
 const STUDENT_PHONE_FIELDS = [
   "whatsapp",
@@ -207,14 +213,38 @@ const buildLoginQueries = (login) => {
   return queries;
 };
 
-const buildAttendanceSummary = (student) => {
+const buildAttendanceSummary = (student, attendanceRecords = []) => {
   const attendance = student?.attendance || {};
   const tracks = [...new Set([...getStudentTracks(student), ...Object.keys(attendance)])];
+  const recordCountsByTrack = attendanceRecords.reduce((counts, record) => {
+    const track = record.track;
+    if (!track) return counts;
+    counts[track] = (counts[track] || 0) + 1;
+    return counts;
+  }, {});
+  const markedSessions = student?.attendanceMarkedSessions || [];
 
   return tracks.map((track) => {
     const stats = attendance[track] || {};
-    const attendedDays = Number(stats.attendedDays || 0);
-    const lectureDays = Number(stats.lectureDays || 0);
+    const recordAttendedDays = recordCountsByTrack[track] || 0;
+    const storedAttendedDays = Number(stats.attendedDays || 0);
+    const storedLectureDays = Number(stats.lectureDays || 0);
+    const trackSlug = slugifyTrack(track);
+    const hasMarkedTrackAttendance =
+      recordAttendedDays > 0 ||
+      markedSessions.some((sessionId) =>
+        String(sessionId || "").startsWith(`${trackSlug}-`),
+      );
+    const attendedDays = hasMarkedTrackAttendance
+      ? Math.min(
+          storedAttendedDays || recordAttendedDays,
+          recordAttendedDays || storedAttendedDays,
+        )
+      : 0;
+    const lectureDays = hasMarkedTrackAttendance
+      ? Math.max(storedLectureDays, attendedDays)
+      : 0;
+
     return {
       track,
       attendedDays,
@@ -408,7 +438,7 @@ const LmsDashboard = () => {
   const courseName = getStudentCourse(student) || "Your Course";
   const isLiveOnlyStudent =
     isInstructorLedStudent(student) && !isSelfPacedStudent(student);
-  const attendanceSummary = buildAttendanceSummary(student);
+  const attendanceSummary = buildAttendanceSummary(student, attendanceRecords);
   const primaryAttendance = attendanceSummary[0] || {
     track: courseName,
     attendedDays: 0,
