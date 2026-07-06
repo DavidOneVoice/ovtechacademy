@@ -1,19 +1,18 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import admin from "firebase-admin";
 import XLSX from "xlsx";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(__dirname, "..");
+import {
+  getFirestore,
+  initializeFirebaseAdmin,
+  projectRoot,
+  serviceAccountPath,
+} from "./firebaseAdmin.mjs";
 
 const DEFAULT_WORKBOOK_PATH = path.join(
   projectRoot,
   "data",
   "OVTech Master Curriculum.xlsx",
 );
-
-const SERVICE_ACCOUNT_PATH = path.join(projectRoot, "serviceAccountKey.json");
 
 const REQUIRED_HEADERS = [
   "Course",
@@ -224,9 +223,9 @@ if (!existsSync(workbookPath)) {
   process.exit(1);
 }
 
-if (!existsSync(SERVICE_ACCOUNT_PATH)) {
+if (!existsSync(serviceAccountPath)) {
   console.error(
-    `Firebase Admin service account not found: ${SERVICE_ACCOUNT_PATH}`,
+    `Firebase Admin service account not found: ${serviceAccountPath}`,
   );
   console.error(
     "Add a local serviceAccountKey.json file in the project root. This file is ignored by git.",
@@ -234,13 +233,8 @@ if (!existsSync(SERVICE_ACCOUNT_PATH)) {
   process.exit(1);
 }
 
-const serviceAccount = JSON.parse(readFileSync(SERVICE_ACCOUNT_PATH, "utf8"));
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-const db = admin.firestore();
+const admin = await initializeFirebaseAdmin();
+const db = await getFirestore();
 
 const workbook = XLSX.read(readFileSync(workbookPath), { type: "buffer" });
 const { sheetName, headers, rows } = readCurriculumWorksheet(workbook);
