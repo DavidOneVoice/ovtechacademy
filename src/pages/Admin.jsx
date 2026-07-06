@@ -281,9 +281,7 @@ const Admin = () => {
 
   const handleLogout = async () => {
     localStorage.removeItem("ovtechAdmin");
-    if (auth) {
-      await signOut(auth);
-    }
+    await signOut(auth);
     window.location.href = "/admin-login";
   };
 

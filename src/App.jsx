@@ -30,14 +30,7 @@ function App() {
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/attendance/:sessionId" element={<AttendancePage />} />
 
-        <Route
-          path="/admin"
-          element={
-            <ProtectedAdminRoute>
-              <Admin />
-            </ProtectedAdminRoute>
-          }
-        />
+        <Route path="/admin" element={<Admin />} />
         <Route
           path="/admin/lms"
           element={
