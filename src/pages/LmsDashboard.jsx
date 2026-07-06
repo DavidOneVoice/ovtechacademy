@@ -28,6 +28,7 @@ import "./LmsDashboard.css";
 
 const STORAGE_KEY = "ovtech_lms_student";
 const PRE_RECORDED_ACCESS_TEXT = "pre-recorded videos";
+const LIVE_CLASS_ACCESS_TEXT = "live";
 
 const normalize = (value) =>
   String(value || "")
@@ -90,6 +91,14 @@ const isSelfPacedStudent = (student) =>
   isPaidOrEnrolled(student) &&
   normalize(getEnrollmentPackage(student)).includes(PRE_RECORDED_ACCESS_TEXT);
 
+const isLiveClassStudent = (student) =>
+  student &&
+  isPaidOrEnrolled(student) &&
+  normalize(getEnrollmentPackage(student)).includes(LIVE_CLASS_ACCESS_TEXT);
+
+const isEligibleStudent = (student) =>
+  isSelfPacedStudent(student) || isLiveClassStudent(student);
+
 const fieldMatches = (student, fields, target, normalizer = normalize) =>
   fields.some(
     (field) =>
@@ -108,7 +117,7 @@ const findEligibleStudent = (docs, login) => {
       const phoneMatches =
         phone &&
         fieldMatches(item, STUDENT_PHONE_FIELDS, phone, normalizePhone);
-      return (emailMatches || phoneMatches) && isSelfPacedStudent(item);
+      return (emailMatches || phoneMatches) && isEligibleStudent(item);
     });
 };
 
@@ -210,6 +219,15 @@ const LmsDashboard = () => {
 
   useEffect(() => {
     if (!student) return;
+    if (isLiveClassStudent(student) && !isSelfPacedStudent(student)) {
+      setLessons([]);
+      setResources([]);
+      setCompletedLessonIds([]);
+      setSelectedLessonId("");
+      setDataError("");
+      setLoading(false);
+      return;
+    }
 
     const fetchLmsData = async () => {
       setLoading(true);
@@ -297,6 +315,8 @@ const LmsDashboard = () => {
       !completedLessonIds.includes(getLessonId(lesson)),
   );
   const courseName = getStudentCourse(student) || "Your Course";
+  const isLiveOnlyStudent =
+    isLiveClassStudent(student) && !isSelfPacedStudent(student);
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -318,7 +338,7 @@ const LmsDashboard = () => {
 
       if (!match) {
         setAuthError(
-          "No enrolled Pre-recorded Videos LMS student was found with that email or WhatsApp/phone number.",
+          "No enrolled student was found with that email or WhatsApp/phone number.",
         );
         return;
       }
@@ -359,7 +379,7 @@ const LmsDashboard = () => {
         <Navbar />
         <section className="lms-login-card">
           <span>OVTech LMS</span>
-          <h1>Continue your self-paced learning</h1>
+          <h1>Continue your OVTech learning</h1>
           <p>
             Log in with the email or WhatsApp/phone number already submitted
             during enrollment. No new signup is needed.
@@ -404,12 +424,20 @@ const LmsDashboard = () => {
           <span>Welcome back, {getStudentName(student)}</span>
           <h1>{courseName}</h1>
           <p>
-            Package: {getEnrollmentPackage(student) || "Pre-recorded Videos"} •
-            Day {programDay}
+            Package: {getEnrollmentPackage(student) || "OVTech Program"}
+            {!isLiveOnlyStudent && ` • Day ${programDay}`}
           </p>
         </div>
         <button onClick={logout}>Logout</button>
       </section>
+      {isLiveOnlyStudent ? (
+        <section className="lms-progress-card">
+          <div>
+            <strong>Attendance</strong>
+            <p>Your live class attendance dashboard will appear here.</p>
+          </div>
+        </section>
+      ) : (
       <section className="lms-progress-card">
         <div>
           <strong>{progressPercentage}% complete</strong>
@@ -419,7 +447,9 @@ const LmsDashboard = () => {
           <span style={{ width: `${progressPercentage}%` }} />
         </div>
       </section>
+      )}
       {dataError && <section className="lms-alert">{dataError}</section>}
+      {!isLiveOnlyStudent && (
       <section className="lms-layout">
         <aside className="lms-list">
           <h2>Courses & sections</h2>
@@ -520,6 +550,7 @@ const LmsDashboard = () => {
           )}
         </section>
       </section>
+      )}
       <Footer />
     </main>
   );

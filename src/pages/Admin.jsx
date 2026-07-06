@@ -13,8 +13,26 @@ import {
 } from "firebase/firestore";
 import emailjs from "@emailjs/browser";
 import { pricing } from "../data/pricing";
+import courses from "../data/courses";
 
 const DEFAULT_COMMISSION = 2500;
+const LEARNING_METHOD_FILTERS = [
+  { value: "All", label: "All Learning Methods" },
+  { value: "self-paced", label: "Self-Paced Pre-recorded Videos" },
+  { value: "live", label: "Live Classes" },
+];
+
+const normalizeLearningMethod = (value) => {
+  const text = String(value || "").toLowerCase();
+  if (
+    text.includes("self") ||
+    text.includes("pre-recorded") ||
+    text.includes("prerecorded") ||
+    text.includes("recorded")
+  ) return "self-paced";
+  if (text.includes("live")) return "live";
+  return "";
+};
 
 const getReferralCode = (app) => app.referralCode?.trim() || "DIRECT";
 
@@ -86,6 +104,7 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [trackFilter, setTrackFilter] = useState("All");
+  const [learningMethodFilter, setLearningMethodFilter] = useState("All");
   const [monthFilter, setMonthFilter] = useState("All");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -118,6 +137,13 @@ const Admin = () => {
 
     fetchApplications();
   }, []);
+
+  const courseOptions = useMemo(() => [
+    ...new Set([
+      ...courses.map((course) => course.title),
+      ...applications.map((app) => app.track),
+    ].filter(Boolean)),
+  ].sort(), [applications]);
 
   const referralCodes = useMemo(
     () => [...new Set(applications.map(getReferralCode))].sort(),
@@ -191,6 +217,9 @@ const Admin = () => {
         code.toLowerCase().includes(normalizedSearch);
       const matchesStatus = statusFilter === "All" || app.status === statusFilter;
       const matchesTrack = trackFilter === "All" || app.track === trackFilter;
+      const matchesLearningMethod =
+        learningMethodFilter === "All" ||
+        normalizeLearningMethod(app.learningMethod) === learningMethodFilter;
 
       let matchesMonth = true;
       if (monthFilter !== "All" && app.createdAt?.seconds) {
@@ -213,12 +242,13 @@ const Admin = () => {
         matchesSearch &&
         matchesStatus &&
         matchesTrack &&
+        matchesLearningMethod &&
         matchesMonth &&
         matchesDateRange &&
         matchesReferral
       );
     });
-  }, [applications, endDate, monthFilter, referralFilter, searchTerm, startDate, statusFilter, trackFilter]);
+  }, [applications, endDate, learningMethodFilter, monthFilter, referralFilter, searchTerm, startDate, statusFilter, trackFilter]);
 
   const total = applications.length;
   const pending = applications.filter((app) => app.status === "Pending").length;
@@ -268,6 +298,7 @@ const Admin = () => {
     setStatusFilter("All");
     setTrackFilter("All");
     setMonthFilter("All");
+    setLearningMethodFilter("All");
     setStartDate("");
     setEndDate("");
     setReferralFilter("All");
@@ -464,7 +495,13 @@ const Admin = () => {
           <option>All</option><option>Pending</option><option>Approved</option><option>Rejected</option><option>Enrolled</option>
         </select>
         <select value={trackFilter} onChange={(e) => setTrackFilter(e.target.value)}>
-          <option>All</option><option>Data Analytics</option><option>Software Development (Frontend)</option><option>Web Development</option>
+          <option value="All">All Courses</option>
+          {courseOptions.map((course) => <option key={course} value={course}>{course}</option>)}
+        </select>
+        <select value={learningMethodFilter} onChange={(e) => setLearningMethodFilter(e.target.value)}>
+          {LEARNING_METHOD_FILTERS.map((method) => (
+            <option key={method.value} value={method.value}>{method.label}</option>
+          ))}
         </select>
         <select value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)}>
           <option value="All">All Months</option>
