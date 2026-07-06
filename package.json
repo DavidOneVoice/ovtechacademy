@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "seed:curriculum": "node scripts/seedCurriculumFromWorkbook.mjs",
-    "reset:attendance": "node scripts/resetAttendance.mjs"
+    "reset:attendance": "node scripts/resetAttendanceTestData.mjs"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
