@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../src/firebase";
 import "./AdminLogin.css";
 
 const AdminLogin = () => {
@@ -14,21 +16,27 @@ const AdminLogin = () => {
     }));
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
     const adminEmail = "admin@ovtechacademy.com";
     const adminPassword = "OVTech2026!";
-    if (
-      loginData.email.trim().toLowerCase() === adminEmail.toLowerCase() &&
-      loginData.password === adminPassword
-    ) {
-      localStorage.setItem("ovtechAdmin", "true");
-      navigate("/admin", { replace: true });
+    const email = loginData.email.trim();
+
+    if (email.toLowerCase() !== adminEmail.toLowerCase() || loginData.password !== adminPassword) {
+      setError("Invalid admin email or password.");
       return;
     }
 
-    setError("Invalid admin email or password.");
+    try {
+      await signInWithEmailAndPassword(auth, email, loginData.password);
+      localStorage.setItem("ovtechAdmin", "true");
+      navigate("/admin", { replace: true });
+    } catch (error) {
+      console.error("Firebase admin sign-in failed:", error);
+      localStorage.removeItem("ovtechAdmin");
+      setError("Admin account could not be authenticated. Please verify the Firebase admin user exists and try again.");
+    }
   };
 
   return (
