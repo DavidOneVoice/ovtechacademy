@@ -5,6 +5,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  FieldPath,
   getDocs,
   increment,
   query,
@@ -199,9 +200,11 @@ const EnrolledStudents = () => {
         await Promise.all(
           students
             .filter((student) => getStudentTracks(student).includes(confirmTrack))
-            .map((student) => updateDoc(doc(db, "scholarshipApplications", student.id), {
-              [`attendance.${confirmTrack}.lectureDays`]: increment(1),
-            })),
+            .map((student) => updateDoc(
+              doc(db, "scholarshipApplications", student.id),
+              new FieldPath("attendance", confirmTrack, "lectureDays"),
+              increment(1),
+            )),
         );
       }
 
@@ -209,7 +212,8 @@ const EnrolledStudents = () => {
       setGeneratedSession({ track: confirmTrack, dateKey, link, reused: sessionSnap.exists() });
       setConfirmTrack(null);
       showToast(sessionSnap.exists() ? "Today’s attendance link is ready." : "Lecture day confirmed and attendance link generated.");
-    } catch {
+    } catch (error) {
+      console.error("Attendance link generation failed:", error);
       showToast("Attendance link could not be generated. Please try again.");
     } finally {
       setGeneratingAttendance(false);
