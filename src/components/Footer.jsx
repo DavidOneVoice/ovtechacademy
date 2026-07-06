@@ -67,6 +67,7 @@ const Footer = () => {
           <a href="/">Home</a>
           <a href="/courses">Courses</a>
           <a href="/scholarship">Scholarship</a>
+          <a href="/lms">Student Portal</a>
           <a href="/about">About</a>
           <a href="/contact">Contact</a>
         </div>

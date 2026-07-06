@@ -28,6 +28,7 @@ const Navbar = () => {
         <a href="/">Home</a>
         <a href="/courses">Courses</a>
         <a href="/scholarship">Scholarship</a>
+        <a href="/lms">Student Portal</a>
         <a href="/about">About</a>
         <a href="/contact">Contact</a>
       </div>
@@ -65,6 +66,10 @@ const Navbar = () => {
 
             <a href="/scholarship" onClick={closeMobileMenu}>
               Scholarship
+            </a>
+
+            <a href="/lms" onClick={closeMobileMenu}>
+              Student Portal
             </a>
 
             <a href="/about" onClick={closeMobileMenu}>

@@ -96,8 +96,15 @@ const isLiveClassStudent = (student) =>
   isPaidOrEnrolled(student) &&
   normalize(getEnrollmentPackage(student)).includes(LIVE_CLASS_ACCESS_TEXT);
 
-const isEligibleStudent = (student) =>
-  isSelfPacedStudent(student) || isLiveClassStudent(student);
+const hasUnselectedLearningMethod = (student) =>
+  student &&
+  isPaidOrEnrolled(student) &&
+  !hasValue(getEnrollmentPackage(student));
+
+const isInstructorLedStudent = (student) =>
+  isLiveClassStudent(student) || hasUnselectedLearningMethod(student);
+
+const isEligibleStudent = (student) => isPaidOrEnrolled(student);
 
 const fieldMatches = (student, fields, target, normalizer = normalize) =>
   fields.some(
@@ -316,7 +323,7 @@ const LmsDashboard = () => {
   );
   const courseName = getStudentCourse(student) || "Your Course";
   const isLiveOnlyStudent =
-    isLiveClassStudent(student) && !isSelfPacedStudent(student);
+    isInstructorLedStudent(student) && !isSelfPacedStudent(student);
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -377,39 +384,63 @@ const LmsDashboard = () => {
     return (
       <main className="lms-page">
         <Navbar />
-        <section className="lms-login-card">
-          <span>OVTech LMS</span>
-          <h1>Continue your OVTech learning</h1>
-          <p>
-            Log in with the email or WhatsApp/phone number already submitted
-            during enrollment. No new signup is needed.
-          </p>
-          <form onSubmit={handleLogin}>
-            <label>
-              Email address
-              <input
-                type="email"
-                value={login.email}
-                onChange={(e) =>
-                  setLogin((prev) => ({ ...prev, email: e.target.value }))
-                }
-              />
-            </label>
-            <label>
-              WhatsApp/phone number
-              <input
-                type="tel"
-                value={login.whatsapp}
-                onChange={(e) =>
-                  setLogin((prev) => ({ ...prev, whatsapp: e.target.value }))
-                }
-              />
-            </label>
-            {authError && <p className="lms-error">{authError}</p>}
-            <button type="submit" disabled={loading}>
-              {loading ? "Checking..." : "Enter LMS"}
-            </button>
-          </form>
+        <section className="lms-login-shell">
+          <div className="lms-login-visual" aria-hidden="true">
+            <div className="lms-orb lms-orb-one" />
+            <div className="lms-orb lms-orb-two" />
+            <div className="lms-preview-card lms-preview-main">
+              <span>Learning path</span>
+              <strong>Professional tech skills</strong>
+              <p>
+                Access lessons, resources, attendance updates, and program
+                guidance in one secure portal.
+              </p>
+            </div>
+            <div className="lms-preview-card lms-preview-small">
+              <strong>92%</strong>
+              <span>Career-ready curriculum</span>
+            </div>
+          </div>
+          <div className="lms-login-card">
+            <span>Student Portal</span>
+            <h1>Welcome back to OVTech Academy</h1>
+            <p>
+              Sign in with the email address or WhatsApp/phone number used for
+              enrollment to continue your learning journey.
+            </p>
+            <form onSubmit={handleLogin}>
+              <label>
+                Email address
+                <input
+                  type="email"
+                  value={login.email}
+                  onChange={(e) =>
+                    setLogin((prev) => ({ ...prev, email: e.target.value }))
+                  }
+                />
+              </label>
+              <label>
+                WhatsApp/phone number
+                <input
+                  type="tel"
+                  value={login.whatsapp}
+                  onChange={(e) =>
+                    setLogin((prev) => ({ ...prev, whatsapp: e.target.value }))
+                  }
+                />
+              </label>
+              {authError && <p className="lms-error">{authError}</p>}
+              <button type="submit" disabled={loading}>
+                {loading ? "Checking..." : "Enter LMS"}
+              </button>
+            </form>
+            <div className="lms-login-support">
+              <strong>Need help?</strong>
+              <span>
+                Contact support if your enrollment details have changed.
+              </span>
+            </div>
+          </div>
         </section>
         <Footer />
       </main>
