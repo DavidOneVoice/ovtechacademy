@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { db } from "../src/firebase";
 import {
   collection,
@@ -9,7 +9,26 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
+import courses from "../data/courses";
 import "./Admin.css";
+
+const LEARNING_METHOD_FILTERS = [
+  { value: "All", label: "All Learning Methods" },
+  { value: "self-paced", label: "Self-Paced Pre-recorded Videos" },
+  { value: "live", label: "Live Classes" },
+];
+
+const normalizeLearningMethod = (value) => {
+  const text = String(value || "").toLowerCase();
+  if (
+    text.includes("self") ||
+    text.includes("pre-recorded") ||
+    text.includes("prerecorded") ||
+    text.includes("recorded")
+  ) return "self-paced";
+  if (text.includes("live")) return "live";
+  return "";
+};
 
 const getReferralCode = (student) => student.referralCode?.trim() || "DIRECT";
 
@@ -38,6 +57,8 @@ const EnrolledStudents = () => {
   const [editForm, setEditForm] = useState({});
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [trackFilter, setTrackFilter] = useState("All");
+  const [learningMethodFilter, setLearningMethodFilter] = useState("All");
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -59,6 +80,21 @@ const EnrolledStudents = () => {
 
     fetchStudents();
   }, []);
+
+  const courseOptions = useMemo(() => [
+    ...new Set([
+      ...courses.map((course) => course.title),
+      ...students.map((student) => student.track),
+    ].filter(Boolean)),
+  ].sort(), [students]);
+
+  const filteredStudents = useMemo(() => students.filter((student) => {
+    const matchesTrack = trackFilter === "All" || student.track === trackFilter;
+    const matchesLearningMethod =
+      learningMethodFilter === "All" ||
+      normalizeLearningMethod(student.learningMethod) === learningMethodFilter;
+    return matchesTrack && matchesLearningMethod;
+  }), [learningMethodFilter, students, trackFilter]);
 
   const showToast = (message) => {
     setToast(message);
@@ -136,6 +172,22 @@ const EnrolledStudents = () => {
 
       <section className="admin-table-card">
         <h2>Total Enrolled: {students.length}</h2>
+        <div className="admin-filters">
+          <select value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}>
+            <option value="All">All Courses</option>
+            {courseOptions.map((course) => (
+              <option key={course} value={course}>{course}</option>
+            ))}
+          </select>
+          <select
+            value={learningMethodFilter}
+            onChange={(event) => setLearningMethodFilter(event.target.value)}
+          >
+            {LEARNING_METHOD_FILTERS.map((method) => (
+              <option key={method.value} value={method.value}>{method.label}</option>
+            ))}
+          </select>
+        </div>
         {loading && <p className="admin-loading">Loading enrolled students...</p>}
 
         <div className="admin-table-wrap">
@@ -153,7 +205,7 @@ const EnrolledStudents = () => {
             </thead>
 
             <tbody>
-              {students.map((student) => (
+              {filteredStudents.map((student) => (
                 <tr key={student.id}>
                   <td data-label="Name">{student.fullName}</td>
                   <td data-label="Email">{student.email}</td>
@@ -190,8 +242,8 @@ const EnrolledStudents = () => {
               ))}
             </tbody>
           </table>
-          {!loading && students.length === 0 && (
-            <p className="admin-empty">No enrolled students yet.</p>
+          {!loading && filteredStudents.length === 0 && (
+            <p className="admin-empty">No enrolled students match your filters.</p>
           )}
         </div>
       </section>
