@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "seed:curriculum": "node scripts/seedCurriculumFromWorkbook.mjs"
+    "seed:curriculum": "node scripts/seedCurriculumFromWorkbook.mjs",
+    "reset:attendance": "node scripts/resetAttendance.mjs"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
