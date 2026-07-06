@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
+  FieldPath,
   arrayUnion,
   collection,
   doc,
@@ -112,17 +113,22 @@ const AttendancePage = () => {
           markedAt: serverTimestamp(),
         });
 
-        transaction.update(studentRef, {
-          [`attendance.${session.track}.attendedDays`]: increment(1),
-          attendanceMarkedSessions: arrayUnion(session.id),
-          lastAttendanceMarkedAt: serverTimestamp(),
-        });
+        transaction.update(
+          studentRef,
+          new FieldPath("attendance", session.track, "attendedDays"),
+          increment(1),
+          "attendanceMarkedSessions",
+          arrayUnion(session.id),
+          "lastAttendanceMarkedAt",
+          serverTimestamp(),
+        );
       });
 
       setConfirming(false);
       setMessage("Attendance submitted successfully. Redirecting you to the LMS login page...");
       setTimeout(() => navigate("/lms", { replace: true }), 2200);
     } catch (error) {
+      console.error("Attendance submission failed:", error);
       setConfirming(false);
       if (error.message === "already-marked") {
         setMessage("Attendance has already been taken for this student today.");
