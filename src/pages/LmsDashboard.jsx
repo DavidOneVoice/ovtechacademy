@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
+  collectionGroup,
   doc,
   getDoc,
   getDocs,
@@ -66,6 +67,26 @@ const getStudentCourse = (student) =>
   student?.courseName ||
   student?.program ||
   "";
+
+const getStudentTracks = (student) => [
+  getStudentCourse(student),
+  ...(Array.isArray(student?.tracks) ? student.tracks : []),
+  ...(Array.isArray(student?.courses) ? student.courses : []),
+  ...(Array.isArray(student?.enrolledCourses) ? student.enrolledCourses : []),
+].filter(Boolean);
+
+const formatAttendanceDate = (dateKey) => {
+  if (!dateKey) return "Date pending";
+  const date = new Date(`${dateKey}T00:00:00`);
+  return Number.isNaN(date.getTime())
+    ? dateKey
+    : date.toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+};
 
 const getEnrollmentPackage = (student) =>
   ENROLLMENT_PACKAGE_FIELDS.map((field) => student?.[field])
@@ -186,6 +207,23 @@ const buildLoginQueries = (login) => {
   return queries;
 };
 
+const buildAttendanceSummary = (student) => {
+  const attendance = student?.attendance || {};
+  const tracks = [...new Set([...getStudentTracks(student), ...Object.keys(attendance)])];
+
+  return tracks.map((track) => {
+    const stats = attendance[track] || {};
+    const attendedDays = Number(stats.attendedDays || 0);
+    const lectureDays = Number(stats.lectureDays || 0);
+    return {
+      track,
+      attendedDays,
+      lectureDays,
+      percentage: lectureDays ? Math.round((attendedDays / lectureDays) * 100) : 0,
+    };
+  });
+};
+
 const groupItemsByCourseAndSection = (items) =>
   items.reduce((courses, item) => {
     const courseName = item.course || "General Course";
@@ -213,6 +251,7 @@ const LmsDashboard = () => {
   const [lessons, setLessons] = useState([]);
   const [resources, setResources] = useState([]);
   const [completedLessonIds, setCompletedLessonIds] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [selectedLessonId, setSelectedLessonId] = useState("");
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState("");
@@ -223,6 +262,51 @@ const LmsDashboard = () => {
     if (saved) setStudent(JSON.parse(saved));
     setLoading(false);
   }, []);
+
+  useEffect(() => {
+    if (!student?.id) return;
+
+    const refreshStudent = async () => {
+      try {
+        const studentSnap = await getDoc(doc(db, "scholarshipApplications", student.id));
+        if (!studentSnap.exists()) return;
+        const latestStudent = { id: studentSnap.id, ...studentSnap.data() };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(latestStudent));
+        setStudent(latestStudent);
+      } catch (error) {
+        console.error("Unable to refresh student profile:", error);
+      }
+    };
+
+    refreshStudent();
+  }, [student?.id]);
+
+  useEffect(() => {
+    if (!student?.id || !isInstructorLedStudent(student)) {
+      setAttendanceRecords([]);
+      return;
+    }
+
+    const fetchAttendanceRecords = async () => {
+      try {
+        const recordsQuery = query(
+          collectionGroup(db, "records"),
+          where("studentId", "==", student.id),
+        );
+        const snapshot = await getDocs(recordsQuery);
+        setAttendanceRecords(
+          snapshot.docs
+            .map((item) => ({ id: item.id, ...item.data() }))
+            .sort((a, b) => String(b.dateKey || "").localeCompare(String(a.dateKey || ""))),
+        );
+      } catch (error) {
+        console.error("Unable to load attendance records:", error);
+        setAttendanceRecords([]);
+      }
+    };
+
+    fetchAttendanceRecords();
+  }, [student]);
 
   useEffect(() => {
     if (!student) return;
@@ -324,6 +408,13 @@ const LmsDashboard = () => {
   const courseName = getStudentCourse(student) || "Your Course";
   const isLiveOnlyStudent =
     isInstructorLedStudent(student) && !isSelfPacedStudent(student);
+  const attendanceSummary = buildAttendanceSummary(student);
+  const primaryAttendance = attendanceSummary[0] || {
+    track: courseName,
+    attendedDays: 0,
+    lectureDays: 0,
+    percentage: 0,
+  };
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -462,10 +553,46 @@ const LmsDashboard = () => {
         <button onClick={logout}>Logout</button>
       </section>
       {isLiveOnlyStudent ? (
-        <section className="lms-progress-card">
-          <div>
-            <strong>Attendance</strong>
-            <p>Your live class attendance dashboard will appear here.</p>
+        <section className="lms-progress-card lms-attendance-card">
+          <div className="lms-attendance-header">
+            <div>
+              <span>Live class attendance</span>
+              <strong>{primaryAttendance.percentage}% attendance</strong>
+              <p>
+                {primaryAttendance.attendedDays} of {primaryAttendance.lectureDays} lecture
+                {primaryAttendance.lectureDays === 1 ? "" : "s"} attended for {primaryAttendance.track}.
+              </p>
+            </div>
+            <div className="lms-attendance-score">
+              <strong>{primaryAttendance.attendedDays}</strong>
+              <span>Days Present</span>
+            </div>
+          </div>
+          <div className="lms-progress">
+            <span style={{ width: `${primaryAttendance.percentage}%` }} />
+          </div>
+          <div className="lms-attendance-grid">
+            {attendanceSummary.map((item) => (
+              <article key={item.track}>
+                <strong>{item.track}</strong>
+                <p>{item.attendedDays} / {item.lectureDays} lectures attended</p>
+                <small>{item.percentage}% attendance rate</small>
+              </article>
+            ))}
+          </div>
+          <div className="lms-attendance-history">
+            <h2>Attendance history</h2>
+            {attendanceRecords.length ? (
+              attendanceRecords.slice(0, 8).map((record) => (
+                <div key={`${record.sessionId}-${record.id}`}>
+                  <span>{formatAttendanceDate(record.dateKey)}</span>
+                  <strong>{record.track || primaryAttendance.track}</strong>
+                  <em>Present</em>
+                </div>
+              ))
+            ) : (
+              <p>Your marked class days will appear here after attendance is submitted.</p>
+            )}
           </div>
         </section>
       ) : (
