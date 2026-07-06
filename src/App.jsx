@@ -11,6 +11,7 @@ import About from "./pages/About";
 import Courses from "./pages/Courses";
 import LmsDashboard from "./pages/LmsDashboard";
 import AdminLms from "./pages/AdminLms";
+import AttendancePage from "./pages/AttendancePage";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         />
         <Route path="/student-lms" element={<Navigate to="/lms" replace />} />
         <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/attendance/:sessionId" element={<AttendancePage />} />
 
         <Route path="/admin" element={<Admin />} />
         <Route

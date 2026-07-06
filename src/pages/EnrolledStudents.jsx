@@ -4,8 +4,12 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
+  increment,
   query,
+  serverTimestamp,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 
@@ -31,6 +35,21 @@ const normalizeLearningMethod = (value) => {
 };
 
 const getReferralCode = (student) => student.referralCode?.trim() || "DIRECT";
+
+const getTodayKey = () => new Date().toISOString().slice(0, 10);
+
+const slugifyTrack = (track) =>
+  String(track || "course")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const getStudentTracks = (student) => [
+  student.track,
+  ...(Array.isArray(student.tracks) ? student.tracks : []),
+  ...(Array.isArray(student.courses) ? student.courses : []),
+  ...(Array.isArray(student.enrolledCourses) ? student.enrolledCourses : []),
+].filter(Boolean);
 
 const getDateValue = (timestamp) =>
   timestamp?.seconds ? new Date(timestamp.seconds * 1000).toLocaleDateString() : "N/A";
@@ -59,6 +78,10 @@ const EnrolledStudents = () => {
   const [saving, setSaving] = useState(false);
   const [trackFilter, setTrackFilter] = useState("All");
   const [learningMethodFilter, setLearningMethodFilter] = useState("All");
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [confirmTrack, setConfirmTrack] = useState(null);
+  const [generatedSession, setGeneratedSession] = useState(null);
+  const [generatingAttendance, setGeneratingAttendance] = useState(false);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -84,12 +107,17 @@ const EnrolledStudents = () => {
   const courseOptions = useMemo(() => [
     ...new Set([
       ...courses.map((course) => course.title),
-      ...students.map((student) => student.track),
+      ...students.flatMap((student) => getStudentTracks(student)),
     ].filter(Boolean)),
   ].sort(), [students]);
 
+  const attendanceCourses = useMemo(() => courseOptions.map((course) => ({
+    title: course,
+    studentCount: students.filter((student) => getStudentTracks(student).includes(course)).length,
+  })).filter((course) => course.studentCount > 0), [courseOptions, students]);
+
   const filteredStudents = useMemo(() => students.filter((student) => {
-    const matchesTrack = trackFilter === "All" || student.track === trackFilter;
+    const matchesTrack = trackFilter === "All" || getStudentTracks(student).includes(trackFilter);
     const matchesLearningMethod =
       learningMethodFilter === "All" ||
       normalizeLearningMethod(student.learningMethod) === learningMethodFilter;
@@ -140,6 +168,54 @@ const EnrolledStudents = () => {
     }
   };
 
+  const copyAttendanceLink = async (link) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      showToast("Attendance link copied successfully.");
+    } catch {
+      showToast("Copy failed. Please select and copy the link manually.");
+    }
+  };
+
+  const generateAttendanceSession = async () => {
+    if (!confirmTrack) return;
+
+    setGeneratingAttendance(true);
+    try {
+      const dateKey = getTodayKey();
+      const sessionId = `${slugifyTrack(confirmTrack)}-${dateKey}`;
+      const sessionRef = doc(db, "attendanceSessions", sessionId);
+      const sessionSnap = await getDoc(sessionRef);
+
+      if (!sessionSnap.exists()) {
+        await setDoc(sessionRef, {
+          track: confirmTrack,
+          trackSlug: slugifyTrack(confirmTrack),
+          dateKey,
+          createdAt: serverTimestamp(),
+          lectureCount: 1,
+        });
+
+        await Promise.all(
+          students
+            .filter((student) => getStudentTracks(student).includes(confirmTrack))
+            .map((student) => updateDoc(doc(db, "scholarshipApplications", student.id), {
+              [`attendance.${confirmTrack}.lectureDays`]: increment(1),
+            })),
+        );
+      }
+
+      const link = `${window.location.origin}/attendance/${sessionId}`;
+      setGeneratedSession({ track: confirmTrack, dateKey, link, reused: sessionSnap.exists() });
+      setConfirmTrack(null);
+      showToast(sessionSnap.exists() ? "Today’s attendance link is ready." : "Lecture day confirmed and attendance link generated.");
+    } catch {
+      showToast("Attendance link could not be generated. Please try again.");
+    } finally {
+      setGeneratingAttendance(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
 
@@ -171,7 +247,15 @@ const EnrolledStudents = () => {
       </section>
 
       <section className="admin-table-card">
-        <h2>Total Enrolled: {students.length}</h2>
+        <div className="admin-table-heading">
+          <div>
+            <h2>Total Enrolled: {students.length}</h2>
+            <p>Create course-specific attendance links only when that lecture holds.</p>
+          </div>
+          <button type="button" className="admin-attendance-main-btn" onClick={() => setAttendanceModalOpen(true)}>
+            Generate Attendance Link
+          </button>
+        </div>
         <div className="admin-filters">
           <select value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}>
             <option value="All">All Courses</option>
@@ -247,6 +331,47 @@ const EnrolledStudents = () => {
           )}
         </div>
       </section>
+
+      {attendanceModalOpen && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal admin-attendance-modal">
+            <button className="admin-modal-close" onClick={() => setAttendanceModalOpen(false)}>×</button>
+            <h2>Generate Attendance Link</h2>
+            <p className="admin-modal-email">Choose the exact course holding today. Each course gets its own daily link.</p>
+            <div className="admin-attendance-course-grid">
+              {attendanceCourses.map((course) => (
+                <button type="button" key={course.title} onClick={() => setConfirmTrack(course.title)}>
+                  <strong>{course.title}</strong>
+                  <span>{course.studentCount} enrolled student{course.studentCount === 1 ? "" : "s"}</span>
+                </button>
+              ))}
+            </div>
+            {generatedSession && (
+              <div className="admin-generated-link">
+                <span>{generatedSession.track} • {generatedSession.dateKey}</span>
+                <input readOnly value={generatedSession.link} onFocus={(event) => event.target.select()} />
+                <button type="button" onClick={() => copyAttendanceLink(generatedSession.link)}>Copy Link</button>
+                {generatedSession.reused && <p>This lecture was already confirmed today, so the existing link was reused.</p>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {confirmTrack && (
+        <div className="admin-modal-overlay">
+          <div className="admin-delete-modal">
+            <h2>Confirm Lecture Held?</h2>
+            <p>Did <strong>{confirmTrack}</strong> hold today? Clicking yes records today as one lecture day for enrolled students and creates today’s unique attendance link.</p>
+            <div className="admin-delete-actions">
+              <button onClick={() => setConfirmTrack(null)} className="admin-cancel-delete">No, Cancel</button>
+              <button onClick={generateAttendanceSession} className="admin-confirm-attendance" disabled={generatingAttendance}>
+                {generatingAttendance ? "Generating..." : "Yes, Generate Link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedStudent && (
         <div className="admin-modal-overlay">
