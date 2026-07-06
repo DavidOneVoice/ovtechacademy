@@ -24,6 +24,17 @@ const TRACK_ATTENDANCE_FIELDS_TO_DELETE = [
   "totalAttendance",
 ];
 
+const getStudentTracks = (application = {}) => [
+  application.track,
+  ...(Array.isArray(application.tracks) ? application.tracks : []),
+  ...(Array.isArray(application.courses) ? application.courses : []),
+  ...(Array.isArray(application.enrolledCourses) ? application.enrolledCourses : []),
+].filter(Boolean);
+
+const logReset = (documentPath, fieldPath, value = "deleted") => {
+  console.log(`[attendance-reset] ${documentPath}: reset ${fieldPath} -> ${value}`);
+};
+
 const createBatchQueue = (db) => {
   let batch = db.batch();
   let pendingBatchOperations = 0;
@@ -61,25 +72,30 @@ const createBatchQueue = (db) => {
   return { queueDelete, queueUpdate, flush, getCommittedOperations };
 };
 
-const resetTrackAttendance = (attendance = {}) => {
-  if (
-    !attendance ||
-    typeof attendance !== "object" ||
-    Array.isArray(attendance)
-  ) {
-    return {};
-  }
+const resetTrackAttendance = (attendance = {}, tracks = [], documentPath = "") => {
+  const existingAttendance =
+    attendance && typeof attendance === "object" && !Array.isArray(attendance)
+      ? attendance
+      : {};
+  const trackNames = [...new Set([...Object.keys(existingAttendance), ...tracks])];
 
   return Object.fromEntries(
-    Object.entries(attendance).map(([track, stats]) => {
+    trackNames.map((track) => {
+      const stats = existingAttendance[track];
       const resetStats =
         stats && typeof stats === "object" && !Array.isArray(stats)
           ? { ...stats }
           : {};
 
       for (const field of TRACK_ATTENDANCE_FIELDS_TO_DELETE) {
-        delete resetStats[field];
+        if (Object.hasOwn(resetStats, field)) {
+          delete resetStats[field];
+          logReset(documentPath, `attendance.${track}.${field}`);
+        }
       }
+
+      logReset(documentPath, `attendance.${track}.attendedDays`, 0);
+      logReset(documentPath, `attendance.${track}.lectureDays`, 0);
 
       return [
         track,
@@ -119,8 +135,11 @@ export const resetAttendanceTestData = async () => {
 
       for (const recordDoc of recordsSnapshot.docs) {
         await queue.queueDelete(recordDoc.ref);
+        console.log(`[attendance-reset] deleted ${recordDoc.ref.path}`);
         summary.attendanceRecordsDeleted += 1;
       }
+
+      await queue.flush();
     }
   };
 
@@ -137,8 +156,11 @@ export const resetAttendanceTestData = async () => {
       for (const sessionDoc of sessionsSnapshot.docs) {
         await deleteRecordsForSession(sessionDoc.ref);
         await queue.queueDelete(sessionDoc.ref);
+        console.log(`[attendance-reset] deleted ${sessionDoc.ref.path}`);
         summary.attendanceSessionsDeleted += 1;
       }
+
+      await queue.flush();
     }
   };
 
@@ -162,16 +184,26 @@ export const resetAttendanceTestData = async () => {
         const application = applicationDoc.data();
         const update = {};
 
+        const documentPath = applicationDoc.ref.path;
+        const tracks = getStudentTracks(application);
+
         if (
-          application.attendance &&
-          typeof application.attendance === "object"
+          (application.attendance &&
+            typeof application.attendance === "object" &&
+            !Array.isArray(application.attendance)) ||
+          tracks.length > 0
         ) {
-          update.attendance = resetTrackAttendance(application.attendance);
+          update.attendance = resetTrackAttendance(
+            application.attendance || {},
+            tracks,
+            documentPath,
+          );
         }
 
         for (const field of ATTENDANCE_FIELDS_TO_DELETE) {
           if (Object.hasOwn(application, field)) {
             update[field] = FieldValue.delete();
+            logReset(documentPath, field);
           }
         }
 
