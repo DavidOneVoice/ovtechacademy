@@ -272,6 +272,28 @@ const groupItemsByCourseAndSection = (items) =>
 
 const getLessonId = (lesson) => lesson.lessonId || lesson.id;
 
+
+const formatSessionDate = (dateKey) => {
+  if (!dateKey) return "Date pending";
+  const date = new Date(`${dateKey}T00:00:00`);
+  return Number.isNaN(date.getTime())
+    ? dateKey
+    : date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+};
+
+const liveSessionMatchesStudent = (session, student) => {
+  if (session.isPublished === false) return false;
+  if (session.audienceType === "all") return true;
+  const modeMatches =
+    session.learningMode === "live"
+      ? isLiveClassStudent(student) || hasUnselectedLearningMethod(student)
+      : session.learningMode === "self-paced"
+        ? isSelfPacedStudent(student)
+        : true;
+  if (!modeMatches) return false;
+  if (!session.track || session.track === "all") return true;
+  return getStudentTracks(student).some((track) => normalize(track) === normalize(session.track));
+};
 const getResourceAction = (resource) => {
   if (resource.downloadUrl)
     return { label: "Download", href: resource.downloadUrl };
@@ -286,6 +308,8 @@ const LmsDashboard = () => {
   const [resources, setResources] = useState([]);
   const [completedLessonIds, setCompletedLessonIds] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [liveSessions, setLiveSessions] = useState([]);
+  const [activePanel, setActivePanel] = useState("overview");
   const [isAttendanceHistoryOpen, setIsAttendanceHistoryOpen] = useState(false);
   const [selectedLessonId, setSelectedLessonId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -360,6 +384,30 @@ const LmsDashboard = () => {
     };
 
     fetchAttendanceRecords();
+  }, [student]);
+
+
+  useEffect(() => {
+    if (!student) return;
+
+    const fetchLiveSessions = async () => {
+      try {
+        const liveSnapshot = await getDocs(
+          query(collection(db, "liveSessions"), where("isPublished", "==", true)),
+        );
+        setLiveSessions(
+          liveSnapshot.docs
+            .map((item) => ({ id: item.id, ...item.data() }))
+            .filter((session) => liveSessionMatchesStudent(session, student))
+            .sort((a, b) => String(b.sessionDate || "").localeCompare(String(a.sessionDate || ""))),
+        );
+      } catch (error) {
+        console.error("Unable to load live sessions:", error);
+        setLiveSessions([]);
+      }
+    };
+
+    fetchLiveSessions();
   }, [student]);
 
   useEffect(() => {
@@ -595,6 +643,16 @@ const LmsDashboard = () => {
   return (
     <main className="lms-page">
       <Navbar />
+      <section className="lms-portal-shell">
+        <aside className="lms-sidebar">
+          <div className="lms-sidebar-profile"><span>Student Dashboard</span><strong>{getStudentName(student)}</strong><small>{courseName}</small></div>
+          <button className={activePanel === "overview" ? "active" : ""} onClick={() => setActivePanel("overview")}>Overview</button>
+          <button className={activePanel === "live" ? "active" : ""} onClick={() => setActivePanel("live")}>See live sessions</button>
+          {!isLiveOnlyStudent && <button className={activePanel === "lessons" ? "active" : ""} onClick={() => setActivePanel("lessons")}>Curriculum</button>}
+          <button onClick={() => setIsAttendanceHistoryOpen(true)}>Attendance history</button>
+          <button className="lms-sidebar-logout" onClick={logout}>Logout</button>
+        </aside>
+        <div className="lms-main-panel">
       <section className="lms-hero">
         <div>
           <span>Welcome back, {getStudentName(student)}</span>
@@ -606,7 +664,19 @@ const LmsDashboard = () => {
         </div>
         <button onClick={logout}>Logout</button>
       </section>
-      {isLiveOnlyStudent ? (
+      {activePanel === "live" && (
+        <section className="lms-live-sessions">
+          <div className="lms-section-title"><span>Watch live sessions</span><h2>Published sessions for you</h2></div>
+          {liveSessions.length ? liveSessions.map((session) => (
+            <article className="lms-live-card" key={session.id}>
+              <div><span>{formatSessionDate(session.sessionDate)}</span><h3>{session.title}</h3></div>
+              {getSafeYouTubeEmbedUrl(session.youtubeUrl) ? <iframe src={getSafeYouTubeEmbedUrl(session.youtubeUrl)} title={session.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /> : <a href={session.youtubeUrl} target="_blank" rel="noreferrer">Open live session</a>}
+              {session.attachmentUrl && <a className="lms-download-link" href={session.attachmentUrl} download={session.attachmentName || undefined} target="_blank" rel="noreferrer">Download attached file{session.attachmentName ? `: ${session.attachmentName}` : ""}</a>}
+            </article>
+          )) : <p className="lms-empty-state">No live sessions have been published for your program yet.</p>}
+        </section>
+      )}
+      {activePanel === "overview" && (isLiveOnlyStudent ? (
         <section className="lms-progress-card lms-attendance-card">
           <div className="lms-attendance-header">
             <div>
@@ -664,7 +734,7 @@ const LmsDashboard = () => {
             <span style={{ width: `${progressPercentage}%` }} />
           </div>
         </section>
-      )}
+      ))}
       {isAttendanceHistoryOpen && (
         <div
           className="lms-attendance-modal-overlay"
@@ -711,7 +781,7 @@ const LmsDashboard = () => {
         </div>
       )}
       {dataError && <section className="lms-alert">{dataError}</section>}
-      {!isLiveOnlyStudent && (
+      {activePanel === "lessons" && !isLiveOnlyStudent && (
         <section className="lms-layout">
           <aside className="lms-list">
             <h2>Courses & sections</h2>
@@ -817,6 +887,8 @@ const LmsDashboard = () => {
           </section>
         </section>
       )}
+        </div>
+      </section>
       <Footer />
     </main>
   );
