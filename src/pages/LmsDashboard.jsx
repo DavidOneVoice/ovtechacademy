@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
-  collectionGroup,
   doc,
   getDoc,
   getDocs,
@@ -74,12 +73,13 @@ const getStudentCourse = (student) =>
   student?.program ||
   "";
 
-const getStudentTracks = (student) => [
-  getStudentCourse(student),
-  ...(Array.isArray(student?.tracks) ? student.tracks : []),
-  ...(Array.isArray(student?.courses) ? student.courses : []),
-  ...(Array.isArray(student?.enrolledCourses) ? student.enrolledCourses : []),
-].filter(Boolean);
+const getStudentTracks = (student) =>
+  [
+    getStudentCourse(student),
+    ...(Array.isArray(student?.tracks) ? student.tracks : []),
+    ...(Array.isArray(student?.courses) ? student.courses : []),
+    ...(Array.isArray(student?.enrolledCourses) ? student.enrolledCourses : []),
+  ].filter(Boolean);
 
 const formatAttendanceDate = (dateKey) => {
   if (!dateKey) return "Date pending";
@@ -215,7 +215,9 @@ const buildLoginQueries = (login) => {
 
 const buildAttendanceSummary = (student, attendanceRecords = []) => {
   const attendance = student?.attendance || {};
-  const tracks = [...new Set([...getStudentTracks(student), ...Object.keys(attendance)])];
+  const tracks = [
+    ...new Set([...getStudentTracks(student), ...Object.keys(attendance)]),
+  ];
   const recordCountsByTrack = attendanceRecords.reduce((counts, record) => {
     const track = record.track;
     if (!track) return counts;
@@ -249,7 +251,9 @@ const buildAttendanceSummary = (student, attendanceRecords = []) => {
       track,
       attendedDays,
       lectureDays,
-      percentage: lectureDays ? Math.round((attendedDays / lectureDays) * 100) : 0,
+      percentage: lectureDays
+        ? Math.round((attendedDays / lectureDays) * 100)
+        : 0,
     };
   });
 };
@@ -298,7 +302,9 @@ const LmsDashboard = () => {
 
     const refreshStudent = async () => {
       try {
-        const studentSnap = await getDoc(doc(db, "scholarshipApplications", student.id));
+        const studentSnap = await getDoc(
+          doc(db, "scholarshipApplications", student.id),
+        );
         if (!studentSnap.exists()) return;
         const latestStudent = { id: studentSnap.id, ...studentSnap.data() };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(latestStudent));
@@ -319,15 +325,32 @@ const LmsDashboard = () => {
 
     const fetchAttendanceRecords = async () => {
       try {
-        const recordsQuery = query(
-          collectionGroup(db, "records"),
-          where("studentId", "==", student.id),
+        const sessionSnapshot = await getDocs(
+          collection(db, "attendanceSessions"),
         );
-        const snapshot = await getDocs(recordsQuery);
+        const allRecords = [];
+
+        for (const sessionDoc of sessionSnapshot.docs) {
+          const recordsSnapshot = await getDocs(
+            collection(db, "attendanceSessions", sessionDoc.id, "records"),
+          );
+
+          recordsSnapshot.docs.forEach((recordDoc) => {
+            const record = recordDoc.data();
+
+            if (record.studentId === student.id) {
+              allRecords.push({
+                id: recordDoc.id,
+                ...record,
+              });
+            }
+          });
+        }
+
         setAttendanceRecords(
-          snapshot.docs
-            .map((item) => ({ id: item.id, ...item.data() }))
-            .sort((a, b) => String(b.dateKey || "").localeCompare(String(a.dateKey || ""))),
+          allRecords.sort((a, b) =>
+            String(b.dateKey || "").localeCompare(String(a.dateKey || "")),
+          ),
         );
       } catch (error) {
         console.error("Unable to load attendance records:", error);
@@ -589,8 +612,10 @@ const LmsDashboard = () => {
               <span>Live class attendance</span>
               <strong>{primaryAttendance.percentage}% attendance</strong>
               <p>
-                {primaryAttendance.attendedDays} of {primaryAttendance.lectureDays} lecture
-                {primaryAttendance.lectureDays === 1 ? "" : "s"} attended for {primaryAttendance.track}.
+                {primaryAttendance.attendedDays} of{" "}
+                {primaryAttendance.lectureDays} lecture
+                {primaryAttendance.lectureDays === 1 ? "" : "s"} attended for{" "}
+                {primaryAttendance.track}.
               </p>
             </div>
             <div className="lms-attendance-score">
@@ -605,7 +630,9 @@ const LmsDashboard = () => {
             {attendanceSummary.map((item) => (
               <article key={item.track}>
                 <strong>{item.track}</strong>
-                <p>{item.attendedDays} / {item.lectureDays} lectures attended</p>
+                <p>
+                  {item.attendedDays} / {item.lectureDays} lectures attended
+                </p>
                 <small>{item.percentage}% attendance rate</small>
               </article>
             ))}
@@ -621,123 +648,130 @@ const LmsDashboard = () => {
                 </div>
               ))
             ) : (
-              <p>Your marked class days will appear here after attendance is submitted.</p>
+              <p>
+                Your marked class days will appear here after attendance is
+                submitted.
+              </p>
             )}
           </div>
         </section>
       ) : (
-      <section className="lms-progress-card">
-        <div>
-          <strong>{progressPercentage}% complete</strong>
-          <p>Next lesson: {nextLesson?.title || "You are caught up."}</p>
-        </div>
-        <div className="lms-progress">
-          <span style={{ width: `${progressPercentage}%` }} />
-        </div>
-      </section>
+        <section className="lms-progress-card">
+          <div>
+            <strong>{progressPercentage}% complete</strong>
+            <p>Next lesson: {nextLesson?.title || "You are caught up."}</p>
+          </div>
+          <div className="lms-progress">
+            <span style={{ width: `${progressPercentage}%` }} />
+          </div>
+        </section>
       )}
       {dataError && <section className="lms-alert">{dataError}</section>}
       {!isLiveOnlyStudent && (
-      <section className="lms-layout">
-        <aside className="lms-list">
-          <h2>Courses & sections</h2>
-          {Object.entries(groupedItems).map(([course, sections]) => (
-            <div className="lms-course-group" key={course}>
-              <h3>{course}</h3>
-              {Object.entries(sections).map(([section, sectionItems]) => (
-                <div className="lms-section-group" key={`${course}-${section}`}>
-                  <h4>{section}</h4>
-                  {sectionItems.map((item) => {
-                    const unlocked = isItemUnlocked(item, student);
-                    const lessonId = getLessonId(item);
-                    const complete =
-                      item.type === "video" &&
-                      completedLessonIds.includes(lessonId);
-                    return (
-                      <button
-                        key={item.id || lessonId || item.resourceId}
-                        className={
-                          selectedLessonId === lessonId ? "active" : ""
-                        }
-                        disabled={!unlocked}
-                        onClick={() =>
-                          item.type === "video" &&
-                          unlocked &&
-                          setSelectedLessonId(lessonId)
-                        }
-                      >
-                        <span>
-                          {item.type === "resource"
-                            ? unlocked
-                              ? "📎 Resource"
-                              : "🔒 Locked resource"
-                            : complete
-                              ? "✅ Completed"
-                              : unlocked
-                                ? "▶ Lesson"
-                                : "🔒 Locked lesson"}
-                        </span>
-                        <strong>{item.title || item.fileName}</strong>
-                        <small>
-                          {item.fileType || "Video"} • Day {item.unlockDay || 1}
-                        </small>
-                        {item.type === "resource" &&
-                          unlocked &&
-                          (() => {
-                            const action = getResourceAction(item);
-                            return action.href ? (
-                              <a
-                                href={action.href}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {action.label}
-                              </a>
-                            ) : (
-                              <em>{action.label}</em>
-                            );
-                          })()}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          ))}
-        </aside>
-        <section className="lms-player-card">
-          {selectedLesson ? (
-            <>
-              <h2>{selectedLesson.title}</h2>
-              {getSafeYouTubeEmbedUrl(selectedLesson.youtubeUrl) ? (
-                <iframe
-                  src={getSafeYouTubeEmbedUrl(selectedLesson.youtubeUrl)}
-                  title={selectedLesson.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              ) : (
-                <p className="lms-error">
-                  This lesson needs a valid YouTube URL.
-                </p>
-              )}
-              <button
-                onClick={() => handleComplete(selectedLesson)}
-                disabled={completedLessonIds.includes(
-                  getLessonId(selectedLesson),
+        <section className="lms-layout">
+          <aside className="lms-list">
+            <h2>Courses & sections</h2>
+            {Object.entries(groupedItems).map(([course, sections]) => (
+              <div className="lms-course-group" key={course}>
+                <h3>{course}</h3>
+                {Object.entries(sections).map(([section, sectionItems]) => (
+                  <div
+                    className="lms-section-group"
+                    key={`${course}-${section}`}
+                  >
+                    <h4>{section}</h4>
+                    {sectionItems.map((item) => {
+                      const unlocked = isItemUnlocked(item, student);
+                      const lessonId = getLessonId(item);
+                      const complete =
+                        item.type === "video" &&
+                        completedLessonIds.includes(lessonId);
+                      return (
+                        <button
+                          key={item.id || lessonId || item.resourceId}
+                          className={
+                            selectedLessonId === lessonId ? "active" : ""
+                          }
+                          disabled={!unlocked}
+                          onClick={() =>
+                            item.type === "video" &&
+                            unlocked &&
+                            setSelectedLessonId(lessonId)
+                          }
+                        >
+                          <span>
+                            {item.type === "resource"
+                              ? unlocked
+                                ? "📎 Resource"
+                                : "🔒 Locked resource"
+                              : complete
+                                ? "✅ Completed"
+                                : unlocked
+                                  ? "▶ Lesson"
+                                  : "🔒 Locked lesson"}
+                          </span>
+                          <strong>{item.title || item.fileName}</strong>
+                          <small>
+                            {item.fileType || "Video"} • Day{" "}
+                            {item.unlockDay || 1}
+                          </small>
+                          {item.type === "resource" &&
+                            unlocked &&
+                            (() => {
+                              const action = getResourceAction(item);
+                              return action.href ? (
+                                <a
+                                  href={action.href}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {action.label}
+                                </a>
+                              ) : (
+                                <em>{action.label}</em>
+                              );
+                            })()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </aside>
+          <section className="lms-player-card">
+            {selectedLesson ? (
+              <>
+                <h2>{selectedLesson.title}</h2>
+                {getSafeYouTubeEmbedUrl(selectedLesson.youtubeUrl) ? (
+                  <iframe
+                    src={getSafeYouTubeEmbedUrl(selectedLesson.youtubeUrl)}
+                    title={selectedLesson.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                ) : (
+                  <p className="lms-error">
+                    This lesson needs a valid YouTube URL.
+                  </p>
                 )}
-              >
-                {completedLessonIds.includes(getLessonId(selectedLesson))
-                  ? "Completed"
-                  : "Mark lesson as completed"}
-              </button>
-            </>
-          ) : (
-            <p>Select an unlocked lesson to start watching.</p>
-          )}
+                <button
+                  onClick={() => handleComplete(selectedLesson)}
+                  disabled={completedLessonIds.includes(
+                    getLessonId(selectedLesson),
+                  )}
+                >
+                  {completedLessonIds.includes(getLessonId(selectedLesson))
+                    ? "Completed"
+                    : "Mark lesson as completed"}
+                </button>
+              </>
+            ) : (
+              <p>Select an unlocked lesson to start watching.</p>
+            )}
+          </section>
         </section>
-      </section>
       )}
       <Footer />
     </main>
