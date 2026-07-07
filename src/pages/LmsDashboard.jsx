@@ -286,6 +286,7 @@ const LmsDashboard = () => {
   const [resources, setResources] = useState([]);
   const [completedLessonIds, setCompletedLessonIds] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [isAttendanceHistoryOpen, setIsAttendanceHistoryOpen] = useState(false);
   const [selectedLessonId, setSelectedLessonId] = useState("");
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState("");
@@ -637,23 +638,21 @@ const LmsDashboard = () => {
               </article>
             ))}
           </div>
-          <div className="lms-attendance-history">
-            <h2>Attendance history</h2>
-            {attendanceRecords.length ? (
-              attendanceRecords.slice(0, 8).map((record) => (
-                <div key={`${record.sessionId}-${record.id}`}>
-                  <span>{formatAttendanceDate(record.dateKey)}</span>
-                  <strong>{record.track || primaryAttendance.track}</strong>
-                  <em>Present</em>
-                </div>
-              ))
-            ) : (
-              <p>
-                Your marked class days will appear here after attendance is
-                submitted.
-              </p>
-            )}
-          </div>
+          <button
+            type="button"
+            className="lms-attendance-history-card"
+            onClick={() => setIsAttendanceHistoryOpen(true)}
+          >
+            <span>Attendance history</span>
+            <strong>View all marked class days</strong>
+            <p>
+              {attendanceRecords.length
+                ? `${attendanceRecords.length} attendance ${
+                    attendanceRecords.length === 1 ? "record" : "records"
+                  } available`
+                : "Your marked class days will appear here after attendance is submitted."}
+            </p>
+          </button>
         </section>
       ) : (
         <section className="lms-progress-card">
@@ -665,6 +664,51 @@ const LmsDashboard = () => {
             <span style={{ width: `${progressPercentage}%` }} />
           </div>
         </section>
+      )}
+      {isAttendanceHistoryOpen && (
+        <div
+          className="lms-attendance-modal-overlay"
+          role="presentation"
+          onClick={() => setIsAttendanceHistoryOpen(false)}
+        >
+          <section
+            className="lms-attendance-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="attendance-history-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="lms-attendance-modal-header">
+              <div>
+                <span>Attendance history</span>
+                <h2 id="attendance-history-title">All marked class days</h2>
+              </div>
+              <button
+                type="button"
+                aria-label="Close attendance history"
+                onClick={() => setIsAttendanceHistoryOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="lms-attendance-history-list">
+              {attendanceRecords.length ? (
+                attendanceRecords.map((record) => (
+                  <div key={`${record.sessionId}-${record.id}`}>
+                    <span>{formatAttendanceDate(record.dateKey)}</span>
+                    <strong>{record.track || primaryAttendance.track}</strong>
+                    <em>Present</em>
+                  </div>
+                ))
+              ) : (
+                <p>
+                  Your marked class days will appear here after attendance is
+                  submitted.
+                </p>
+              )}
+            </div>
+          </section>
+        </div>
       )}
       {dataError && <section className="lms-alert">{dataError}</section>}
       {!isLiveOnlyStudent && (
