@@ -11,6 +11,7 @@ import About from "./pages/About";
 import Courses from "./pages/Courses";
 import LmsDashboard from "./pages/LmsDashboard";
 import AdminLms from "./pages/AdminLms";
+import AdminLiveSessions from "./pages/AdminLiveSessions";
 import AttendancePage from "./pages/AttendancePage";
 
 function App() {
@@ -36,6 +37,14 @@ function App() {
           element={
             <ProtectedAdminRoute>
               <AdminLms />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/admin/live-sessions"
+          element={
+            <ProtectedAdminRoute>
+              <AdminLiveSessions />
             </ProtectedAdminRoute>
           }
         />
