@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getPricingByCountryCode, pricing } from "../data/pricing";
+import { getPricingByCountryCode } from "../data/pricing";
 
 const COUNTRY_STORAGE_KEY = "ovtech_country";
 const FALLBACK_COUNTRY_CODE = "NG";
@@ -85,9 +85,6 @@ const usePricing = () => {
   return {
     ...getPricingByCountryCode(countryCode),
     countryCode,
-    country:
-      pricing[normalizeCountryCode(countryCode)]?.country ||
-      pricing.DEFAULT.country,
   };
 };
 
