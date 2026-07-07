@@ -397,9 +397,18 @@ const Admin = () => {
         <div className="admin-header-actions">
           <a href="/" className="admin-home-btn">Back to Website</a>
           <a href="/enrolled-students" className="admin-home-btn">Enrolled Students</a>
-          <a href="/admin/lms" className="admin-home-btn">LMS Management</a>
+          <a href="/admin/lms" className="admin-home-btn">Publish Live Sessions</a>
           <button onClick={handleLogout} className="admin-logout-btn">Logout</button>
         </div>
+      </section>
+
+      <section className="admin-lms-shortcut admin-table-card">
+        <div>
+          <span>Student portal videos</span>
+          <h2>Upload live-session replays and resources</h2>
+          <p>Use LMS Management to publish YouTube live sessions for all enrolled students, only live-class learners, only self-paced learners, or selected course tracks.</p>
+        </div>
+        <a href="/admin/lms" className="admin-approve">Publish New Video</a>
       </section>
 
       <section className="admin-stats">

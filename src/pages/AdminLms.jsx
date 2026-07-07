@@ -10,6 +10,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../src/firebase";
+import courseCatalog from "../data/courses";
 import "./Admin.css";
 
 const emptyResource = {
@@ -42,6 +43,7 @@ const sortResources = (items) =>
 const AdminLms = () => {
   const [lessons, setLessons] = useState([]);
   const [resources, setResources] = useState([]);
+  const [studentTracks, setStudentTracks] = useState([]);
   const [resourceForm, setResourceForm] = useState(emptyResource);
   const emptyLiveSession = { title: "", sessionDate: "", youtubeUrl: "", attachmentName: "", attachmentUrl: "", isPublished: false, audienceType: "all", learningMode: "", track: "all" };
   const [liveSessions, setLiveSessions] = useState([]);
@@ -58,7 +60,7 @@ const AdminLms = () => {
 
   const loadLmsContent = async () => {
     setLoading(true);
-    const [lessonSnapshot, resourceSnapshot, liveSessionSnapshot] = await Promise.all([
+    const [lessonSnapshot, resourceSnapshot, liveSessionSnapshot, applicationSnapshot] = await Promise.all([
       getDocs(
         query(collection(db, "curriculum"), orderBy("globalOrder", "asc")),
       ),
@@ -66,6 +68,7 @@ const AdminLms = () => {
         query(collection(db, "lmsResources"), orderBy("unlockDay", "asc")),
       ),
       getDocs(query(collection(db, "liveSessions"), orderBy("sessionDate", "desc"))),
+      getDocs(collection(db, "scholarshipApplications")),
     ]);
 
     setLessons(
@@ -96,6 +99,12 @@ const AdminLms = () => {
 
     setResources(sortResources(resourceData));
     setLiveSessions(liveSessionSnapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+    const enrolledTracks = applicationSnapshot.docs
+      .map((item) => item.data())
+      .filter((student) => [student.status, student.paymentStatus, student.enrollmentStatus].join(" ").toLowerCase().match(/enrolled|paid|approved|successful/))
+      .flatMap((student) => [student.track, student.course, student.courseName, ...(Array.isArray(student.tracks) ? student.tracks : [])])
+      .filter(Boolean);
+    setStudentTracks([...new Set(enrolledTracks)].sort());
     setLoading(false);
   };
 
@@ -110,9 +119,13 @@ const AdminLms = () => {
   const courses = useMemo(
     () =>
       [
-        ...new Set(lessons.map((lesson) => lesson.course).filter(Boolean)),
+        ...new Set([
+          ...studentTracks,
+          ...lessons.map((lesson) => lesson.course).filter(Boolean),
+          ...courseCatalog.map((course) => course.title).filter(Boolean),
+        ]),
       ].sort(),
-    [lessons],
+    [lessons, studentTracks],
   );
 
 
@@ -318,7 +331,19 @@ const AdminLms = () => {
               {liveSessionForm.attachmentName && <small>Attached: {liveSessionForm.attachmentName}</small>}
               <div className="admin-actions">
                 <button type="button" className="admin-reset-btn" onClick={() => persistLiveSession(false)}>Save as Draft</button>
-                <button type="button" className="admin-approve" onClick={() => setPublishModalOpen(true)}>Upload / Publish</button>
+                <button
+                  type="button"
+                  className="admin-approve"
+                  onClick={() => {
+                    if (!liveSessionForm.title.trim() || !liveSessionForm.youtubeUrl.trim() || !liveSessionForm.sessionDate) {
+                      showToast("Add a title, date, and session URL before publishing.");
+                      return;
+                    }
+                    setPublishModalOpen(true);
+                  }}
+                >
+                  Upload / Publish
+                </button>
               </div>
             </form>
           </section>
