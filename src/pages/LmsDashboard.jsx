@@ -14,6 +14,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { db } from "../src/firebase";
 import { getSafeYouTubeEmbedUrl } from "../lms/youtube";
+import { curriculumItemMatchesStudentTrack } from "../lms/tracks";
 import {
   getStudentProgramDay,
   isItemUnlocked,
@@ -455,16 +456,22 @@ const LmsDashboard = () => {
         getDoc(doc(db, "lmsSettings", "selfPaced")),
       ]);
 
-      const lessonData = lessonSnapshot.docs.map((item) => ({
-        id: item.id,
-        ...item.data(),
-        type: "video",
-      }));
-      const resourceData = resourceSnapshot.docs.map((item) => ({
-        id: item.id,
-        ...item.data(),
-        type: "resource",
-      }));
+      const lessonData = lessonSnapshot.docs
+        .map((item) => ({
+          id: item.id,
+          ...item.data(),
+          type: "video",
+        }))
+        .filter((lesson) => curriculumItemMatchesStudentTrack(lesson, student));
+      const resourceData = resourceSnapshot.docs
+        .map((item) => ({
+          id: item.id,
+          ...item.data(),
+          type: "resource",
+        }))
+        .filter((resource) =>
+          curriculumItemMatchesStudentTrack(resource, student),
+        );
       const progress = progressSnapshot.exists()
         ? progressSnapshot.data()
         : legacyProgressSnapshot.exists()
@@ -748,7 +755,12 @@ const LmsDashboard = () => {
         <section className="lms-progress-card">
           <div>
             <strong>{progressPercentage}% complete</strong>
-            <p>Next lesson: {nextLesson?.title || "You are caught up."}</p>
+            <p>
+              Next lesson:{" "}
+              {lessons.length
+                ? nextLesson?.title || "You are caught up."
+                : "No lessons available yet."}
+            </p>
           </div>
           <div className="lms-progress">
             <span style={{ width: `${progressPercentage}%` }} />
@@ -805,8 +817,9 @@ const LmsDashboard = () => {
         <section className="lms-layout">
           <aside className="lms-list">
             <h2>Courses & sections</h2>
-            {Object.entries(groupedItems).map(([course, sections]) => (
-              <div className="lms-course-group" key={course}>
+            {items.length ? (
+              Object.entries(groupedItems).map(([course, sections]) => (
+                <div className="lms-course-group" key={course}>
                 <h3>{course}</h3>
                 {Object.entries(sections).map(([section, sectionItems]) => (
                   <div
@@ -882,8 +895,14 @@ const LmsDashboard = () => {
                     })}
                   </div>
                 ))}
-              </div>
-            ))}
+                </div>
+              ))
+            ) : (
+              <p className="lms-empty-state">
+                No curriculum has been published for your track yet. Please
+                check back later.
+              </p>
+            )}
           </aside>
           <section className="lms-player-card" ref={playerRef}>
             {selectedLesson ? (
@@ -913,7 +932,11 @@ const LmsDashboard = () => {
                 </button>
               </>
             ) : (
-              <p>Select an unlocked lesson to start watching.</p>
+              <p>
+                {lessons.length
+                  ? "Select an unlocked lesson to start watching."
+                  : "No lessons available yet."}
+              </p>
             )}
           </section>
         </section>
