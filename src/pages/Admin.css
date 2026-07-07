@@ -1325,3 +1325,74 @@
     width: 100%;
   }
 }
+
+.admin-lms-card { margin-bottom: 24px; }
+.admin-lms-form,
+.admin-live-session-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; align-items: end; }
+.admin-lms-form input,
+.admin-lms-form select,
+.admin-lms-row input { border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px 14px; font: inherit; }
+.admin-lms-row { display: grid; gap: 14px; padding: 18px 0; border-top: 1px solid #eef2f7; }
+.admin-lms-meta { display: flex; flex-wrap: wrap; gap: 10px; color: #6b7280; font-weight: 800; }
+.admin-lms-row label { display: grid; gap: 6px; color: #12233f; font-weight: 800; }
+.admin-publish-grid { display: grid; gap: 14px; }
+.admin-publish-grid button,
+.admin-publish-group button { border: 0; border-radius: 14px; padding: 13px 15px; background: #eef3ff; color: #102a7a; font-weight: 900; cursor: pointer; text-align: left; }
+.admin-publish-group { display: grid; gap: 10px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 18px; }
+.admin-publish-group strong { color: #12233f; }
+
+.admin-live-quick-card {
+  margin-bottom: 32px;
+  border: 1px solid rgba(49, 94, 251, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.admin-live-quick-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.admin-live-quick-heading span {
+  color: #315efb;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+}
+
+.admin-live-quick-heading p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.admin-live-quick-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.admin-live-quick-form input,
+.admin-live-quick-form select {
+  border: 1px solid #d7deea;
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff;
+  color: #12233f;
+  font: inherit;
+}
+
+.admin-live-quick-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+@media (max-width: 760px) {
+  .admin-live-quick-heading {
+    flex-direction: column;
+  }
+}
