@@ -26,7 +26,7 @@ const AdminLogin = () => {
       },
       {
         email: "adminassistant@ovtechacademy.com",
-        password: "admin123",
+        password: "ovtechadminassistant",
         role: ADMIN_ROLES.ASSISTANT,
       },
     ];
