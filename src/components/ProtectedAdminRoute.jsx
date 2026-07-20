@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "../src/firebase";
+import { getStoredAdminRole } from "../auth/adminRoles";
 
-const ProtectedAdminRoute = ({ children }) => {
-  const hasStoredAdmin = () => localStorage.getItem("ovtechAdmin") === "true";
+const ProtectedAdminRoute = ({ children, allowedRoles }) => {
+  const hasStoredAdmin = () => Boolean(getStoredAdminRole());
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isAdmin, setIsAdmin] = useState(hasStoredAdmin);
 
@@ -33,7 +34,7 @@ const ProtectedAdminRoute = ({ children }) => {
     return null;
   }
 
-  if (!isAdmin) {
+  if (!isAdmin || (allowedRoles && !allowedRoles.includes(getStoredAdminRole()))) {
     return <Navigate to="/admin-login" replace />;
   }
 

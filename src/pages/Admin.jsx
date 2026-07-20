@@ -14,6 +14,7 @@ import {
 import emailjs from "@emailjs/browser";
 import { pricing } from "../data/pricing";
 import courses from "../data/courses";
+import { clearStoredAdminRole } from "../auth/adminRoles";
 
 const DEFAULT_COMMISSION = 2500;
 const LEARNING_METHOD_FILTERS = [
@@ -280,8 +281,8 @@ const Admin = () => {
   };
 
   const handleLogout = async () => {
-    localStorage.removeItem("ovtechAdmin");
-    await signOut(auth);
+    clearStoredAdminRole();
+    if (auth) await signOut(auth);
     window.location.href = "/admin-login";
   };
 
