@@ -66,6 +66,31 @@
   font-weight: 700;
 }
 
+.admin-assistant-stats {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.admin-assistant-attendance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.admin-assistant-attendance h2 {
+  margin-bottom: 8px;
+}
+
+.admin-assistant-attendance p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.admin-assistant-list {
+  margin-bottom: 32px;
+}
+
 .admin-table-card {
   background: white;
   border-radius: 28px;
@@ -180,6 +205,11 @@
 
   .admin-stats {
     grid-template-columns: 1fr;
+  }
+
+  .admin-assistant-attendance {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 .admin-actions {
@@ -1341,45 +1371,58 @@
 .admin-publish-group { display: grid; gap: 10px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 18px; }
 .admin-publish-group strong { color: #12233f; }
 
-.admin-lms-shortcut {
+.admin-live-quick-card {
+  margin-bottom: 32px;
+  border: 1px solid rgba(49, 94, 251, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.admin-live-quick-heading {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 18px;
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 62%, #ecfeff 100%);
+  align-items: flex-start;
+  margin-bottom: 18px;
 }
 
-.admin-lms-shortcut span {
-  color: #2563eb;
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+.admin-live-quick-heading span {
+  color: #315efb;
+  font-weight: 950;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  font-size: 0.76rem;
 }
 
-.admin-lms-shortcut h2 {
-  margin: 6px 0;
-  color: #12233f;
-}
-
-.admin-lms-shortcut p {
+.admin-live-quick-heading p {
   margin: 0;
-  color: #526173;
-  max-width: 760px;
+  color: #6b7280;
+  line-height: 1.6;
 }
 
-.admin-lms-shortcut .admin-approve {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  white-space: nowrap;
+.admin-live-quick-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  align-items: end;
 }
 
-@media (max-width: 700px) {
-  .admin-lms-shortcut {
-    align-items: stretch;
+.admin-live-quick-form input,
+.admin-live-quick-form select {
+  border: 1px solid #d7deea;
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff;
+  color: #12233f;
+  font: inherit;
+}
+
+.admin-live-quick-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+@media (max-width: 760px) {
+  .admin-live-quick-heading {
     flex-direction: column;
   }
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ADMIN_ROLES, setStoredAdminRole } from "../auth/adminRoles";
 import "./AdminLogin.css";
 
 const AdminLogin = () => {
@@ -17,18 +18,21 @@ const AdminLogin = () => {
   const handleLogin = (e) => {
     e.preventDefault();
 
-    const adminEmail = "admin@ovtechacademy.com";
-    const adminPassword = "OVTech2026!";
-    if (
-      loginData.email.trim().toLowerCase() === adminEmail.toLowerCase() &&
-      loginData.password === adminPassword
-    ) {
-      localStorage.setItem("ovtechAdmin", "true");
+    const accounts = [
+      { email: "admin@ovtechacademy.com", password: "OVTech2026!", role: ADMIN_ROLES.ADMIN },
+      { email: "adminassistant@ovitechacademy.com", password: "Ovitech2026", role: ADMIN_ROLES.ASSISTANT },
+    ];
+    const account = accounts.find(({ email, password }) =>
+      loginData.email.trim().toLowerCase() === email && loginData.password === password,
+    );
+
+    if (account) {
+      setStoredAdminRole(account.role);
       navigate("/admin", { replace: true });
       return;
     }
 
-    setError("Invalid admin email or password.");
+    setError("Invalid email or password.");
   };
 
   return (

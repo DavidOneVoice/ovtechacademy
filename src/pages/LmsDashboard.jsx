@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
@@ -14,6 +14,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { db } from "../src/firebase";
 import { getSafeYouTubeEmbedUrl } from "../lms/youtube";
+import { curriculumItemMatchesStudentTrack } from "../lms/tracks";
 import {
   getStudentProgramDay,
   isItemUnlocked,
@@ -441,38 +442,59 @@ const LmsDashboard = () => {
         resourceSnapshot,
         progressSnapshot,
         legacyProgressSnapshot,
+        settingsSnapshot,
       ] = await Promise.all([
         getDocs(lessonQuery),
         getDocs(resourceQuery),
         getDoc(doc(db, "progress", progressId)),
         getDoc(doc(db, "studentProgress", progressId)),
+        getDoc(doc(db, "lmsSettings", "selfPaced")),
       ]);
 
-      const lessonData = lessonSnapshot.docs.map((item) => ({
-        id: item.id,
-        ...item.data(),
-        type: "video",
-      }));
-      const resourceData = resourceSnapshot.docs.map((item) => ({
-        id: item.id,
-        ...item.data(),
-        type: "resource",
-      }));
+      const lessonData = lessonSnapshot.docs
+        .map((item) => ({
+          id: item.id,
+          ...item.data(),
+          type: "video",
+        }))
+        .filter((lesson) => curriculumItemMatchesStudentTrack(lesson, student));
+      const resourceData = resourceSnapshot.docs
+        .map((item) => ({
+          id: item.id,
+          ...item.data(),
+          type: "resource",
+        }))
+        .filter((resource) =>
+          curriculumItemMatchesStudentTrack(resource, student),
+        );
       const progress = progressSnapshot.exists()
         ? progressSnapshot.data()
         : legacyProgressSnapshot.exists()
           ? legacyProgressSnapshot.data()
           : {};
-      const firstUnlockedLesson = lessonData.find((item) =>
-        isItemUnlocked(item, student),
+      const settings = settingsSnapshot.exists() ? settingsSnapshot.data() : {};
+      const sortedLessons = sortLmsItems(lessonData);
+      const firstUnlockedLesson = sortedLessons.find((item) =>
+        isItemUnlocked(item, student, new Date(), settings),
       );
 
+      setLmsSettings(settings);
       setLessons(lessonData);
       setResources(resourceData);
       setCompletedLessonIds(progress.completedLessonIds || []);
+      const savedLesson = lessonData.find(
+        (lesson) => getLessonId(lesson) === progress.lastWatchedLessonId,
+      );
+      const savedLessonIsUnlocked = savedLesson
+        ? isItemUnlocked(savedLesson, student, new Date(), settings)
+        : false;
+
       setSelectedLessonId(
-        progress.lastWatchedLessonId ||
-          (firstUnlockedLesson ? getLessonId(firstUnlockedLesson) : ""),
+        savedLessonIsUnlocked
+          ? progress.lastWatchedLessonId
+          : firstUnlockedLesson
+            ? getLessonId(firstUnlockedLesson)
+            : "",
       );
       setLoading(false);
     };
@@ -497,14 +519,14 @@ const LmsDashboard = () => {
   const selectedLesson = lessons.find(
     (lesson) => getLessonId(lesson) === selectedLessonId,
   );
-  const programDay = getStudentProgramDay(student);
+  const programDay = getStudentProgramDay(student, new Date(), lmsSettings);
   const progressPercentage = calculateProgressPercentage(
     completedLessonIds,
     lessons,
   );
   const nextLesson = lessons.find(
     (lesson) =>
-      isItemUnlocked(lesson, student) &&
+      isItemUnlocked(lesson, student, new Date(), lmsSettings) &&
       !completedLessonIds.includes(getLessonId(lesson)),
   );
   const courseName = getStudentCourse(student) || "Your Course";
@@ -728,7 +750,12 @@ const LmsDashboard = () => {
         <section className="lms-progress-card">
           <div>
             <strong>{progressPercentage}% complete</strong>
-            <p>Next lesson: {nextLesson?.title || "You are caught up."}</p>
+            <p>
+              Next lesson:{" "}
+              {lessons.length
+                ? nextLesson?.title || "You are caught up."
+                : "No lessons available yet."}
+            </p>
           </div>
           <div className="lms-progress">
             <span style={{ width: `${progressPercentage}%` }} />
@@ -785,8 +812,9 @@ const LmsDashboard = () => {
         <section className="lms-layout">
           <aside className="lms-list">
             <h2>Courses & sections</h2>
-            {Object.entries(groupedItems).map(([course, sections]) => (
-              <div className="lms-course-group" key={course}>
+            {items.length ? (
+              Object.entries(groupedItems).map(([course, sections]) => (
+                <div className="lms-course-group" key={course}>
                 <h3>{course}</h3>
                 {Object.entries(sections).map(([section, sectionItems]) => (
                   <div
@@ -795,7 +823,12 @@ const LmsDashboard = () => {
                   >
                     <h4>{section}</h4>
                     {sectionItems.map((item) => {
-                      const unlocked = isItemUnlocked(item, student);
+                      const unlocked = isItemUnlocked(
+                        item,
+                        student,
+                        new Date(),
+                        lmsSettings,
+                      );
                       const lessonId = getLessonId(item);
                       const complete =
                         item.type === "video" &&
@@ -807,11 +840,17 @@ const LmsDashboard = () => {
                             selectedLessonId === lessonId ? "active" : ""
                           }
                           disabled={!unlocked}
-                          onClick={() =>
-                            item.type === "video" &&
-                            unlocked &&
-                            setSelectedLessonId(lessonId)
-                          }
+                          onClick={() => {
+                            if (item.type === "video" && unlocked) {
+                              setSelectedLessonId(lessonId);
+                              window.setTimeout(() => {
+                                playerRef.current?.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "start",
+                                });
+                              }, 0);
+                            }
+                          }}
                         >
                           <span>
                             {item.type === "resource"
@@ -851,10 +890,16 @@ const LmsDashboard = () => {
                     })}
                   </div>
                 ))}
-              </div>
-            ))}
+                </div>
+              ))
+            ) : (
+              <p className="lms-empty-state">
+                No curriculum has been published for your track yet. Please
+                check back later.
+              </p>
+            )}
           </aside>
-          <section className="lms-player-card">
+          <section className="lms-player-card" ref={playerRef}>
             {selectedLesson ? (
               <>
                 <h2>{selectedLesson.title}</h2>
@@ -882,7 +927,11 @@ const LmsDashboard = () => {
                 </button>
               </>
             ) : (
-              <p>Select an unlocked lesson to start watching.</p>
+              <p>
+                {lessons.length
+                  ? "Select an unlocked lesson to start watching."
+                  : "No lessons available yet."}
+              </p>
             )}
           </section>
         </section>
