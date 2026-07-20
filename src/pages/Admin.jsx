@@ -3,6 +3,7 @@ import "./Admin.css";
 import { auth, db } from "../src/firebase";
 import { signOut } from "firebase/auth";
 import {
+  addDoc,
   collection,
   getDocs,
   orderBy,
@@ -99,6 +100,7 @@ const getApplicationCSVRows = (apps) => {
 };
 
 const Admin = () => {
+  const emptyQuickLiveSession = { title: "", sessionDate: "", youtubeUrl: "", audienceType: "all", learningMode: "", track: "all" };
   const [applications, setApplications] = useState([]);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [selectedReferral, setSelectedReferral] = useState(null);
@@ -114,6 +116,8 @@ const Admin = () => {
   const [referralFilter, setReferralFilter] = useState("All");
   const [commissionPerStudent, setCommissionPerStudent] = useState(DEFAULT_COMMISSION);
   const [toast, setToast] = useState("");
+  const [quickLiveSession, setQuickLiveSession] = useState(emptyQuickLiveSession);
+  const [quickLiveSaving, setQuickLiveSaving] = useState(false);
   const [enrollingId, setEnrollingId] = useState(null);
   const [loadError, setLoadError] = useState("");
 
@@ -280,6 +284,42 @@ const Admin = () => {
     }
   };
 
+
+  const publishQuickLiveSession = async (event) => {
+    event.preventDefault();
+
+    if (
+      !quickLiveSession.title.trim() ||
+      !quickLiveSession.sessionDate ||
+      !quickLiveSession.youtubeUrl.trim()
+    ) {
+      setToast("Add a live-session title, date, and URL before publishing.");
+      setTimeout(() => setToast(""), 3000);
+      return;
+    }
+
+    setQuickLiveSaving(true);
+    try {
+      await addDoc(collection(db, "liveSessions"), {
+        ...quickLiveSession,
+        isPublished: true,
+        attachmentName: "",
+        attachmentUrl: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      setQuickLiveSession(emptyQuickLiveSession);
+      setToast("Live session published successfully.");
+      setTimeout(() => setToast(""), 3000);
+    } catch (error) {
+      console.error("Unable to publish live session:", error);
+      setToast("Unable to publish live session. Please try again.");
+      setTimeout(() => setToast(""), 3000);
+    } finally {
+      setQuickLiveSaving(false);
+    }
+  };
+
   const handleLogout = async () => {
     clearStoredAdminRole();
     if (auth) await signOut(auth);
@@ -403,13 +443,53 @@ const Admin = () => {
         </div>
       </section>
 
-      <section className="admin-lms-shortcut admin-table-card">
-        <div>
-          <span>Student portal videos</span>
-          <h2>Upload live-session replays and resources</h2>
-          <p>Use the dedicated Live Sessions page to publish YouTube live sessions for all enrolled students, only live-class learners, only self-paced learners, or selected course tracks.</p>
+
+      <section className="admin-table-card admin-live-quick-card" id="live-session-upload">
+        <div className="admin-live-quick-heading">
+          <div>
+            <span>Live Session Publishing</span>
+            <h2>Upload a live video for students</h2>
+            <p>Publish a session immediately from the main admin dashboard, or open advanced LMS management for drafts, attachments, editing, and deletion.</p>
+          </div>
+          <a href="/admin/lms" className="admin-home-btn">Advanced Live Session Manager</a>
         </div>
-        <a href="/admin/live-sessions" className="admin-approve">Publish New Video</a>
+        <form className="admin-live-quick-form" onSubmit={publishQuickLiveSession}>
+          <input
+            placeholder="Session title"
+            value={quickLiveSession.title}
+            onChange={(e) => setQuickLiveSession((prev) => ({ ...prev, title: e.target.value }))}
+          />
+          <input
+            type="date"
+            value={quickLiveSession.sessionDate}
+            onChange={(e) => setQuickLiveSession((prev) => ({ ...prev, sessionDate: e.target.value }))}
+          />
+          <input
+            placeholder="YouTube or live-session URL"
+            value={quickLiveSession.youtubeUrl}
+            onChange={(e) => setQuickLiveSession((prev) => ({ ...prev, youtubeUrl: e.target.value }))}
+          />
+          <select
+            value={`${quickLiveSession.audienceType}|${quickLiveSession.learningMode}|${quickLiveSession.track}`}
+            onChange={(e) => {
+              const [audienceType, learningMode, track] = e.target.value.split("|");
+              setQuickLiveSession((prev) => ({ ...prev, audienceType, learningMode, track }));
+            }}
+          >
+            <option value="all||all">All enrolled students</option>
+            <option value="mode|live|all">All live class students</option>
+            <option value="mode|self-paced|all">All self-paced learners</option>
+            {courses.map((course) => (
+              <option key={`live-${course.id}`} value={`track|live|${course.title}`}>Live class: {course.title}</option>
+            ))}
+            {courses.map((course) => (
+              <option key={`self-${course.id}`} value={`track|self-paced|${course.title}`}>Self-paced: {course.title}</option>
+            ))}
+          </select>
+          <button type="submit" className="admin-approve" disabled={quickLiveSaving}>
+            {quickLiveSaving ? "Publishing..." : "Publish Live Session"}
+          </button>
+        </form>
       </section>
 
       <section className="admin-stats">

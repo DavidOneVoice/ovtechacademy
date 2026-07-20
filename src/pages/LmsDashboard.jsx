@@ -310,8 +310,6 @@ const LmsDashboard = () => {
   const [completedLessonIds, setCompletedLessonIds] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [liveSessions, setLiveSessions] = useState([]);
-  const [lmsSettings, setLmsSettings] = useState({});
-  const playerRef = useRef(null);
   const [activePanel, setActivePanel] = useState("overview");
   const [isAttendanceHistoryOpen, setIsAttendanceHistoryOpen] = useState(false);
   const [selectedLessonId, setSelectedLessonId] = useState("");
@@ -402,10 +400,7 @@ const LmsDashboard = () => {
           liveSnapshot.docs
             .map((item) => ({ id: item.id, ...item.data() }))
             .filter((session) => liveSessionMatchesStudent(session, student))
-            .sort((a, b) =>
-              String(b.sessionDate || "").localeCompare(String(a.sessionDate || "")) ||
-              Number(b.createdAt?.seconds || 0) - Number(a.createdAt?.seconds || 0),
-            ),
+            .sort((a, b) => String(b.sessionDate || "").localeCompare(String(a.sessionDate || ""))),
         );
       } catch (error) {
         console.error("Unable to load live sessions:", error);
