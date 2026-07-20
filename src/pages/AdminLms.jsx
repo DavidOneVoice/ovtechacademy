@@ -4,12 +4,15 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   orderBy,
   query,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../src/firebase";
+import courseCatalog from "../data/courses";
 import "./Admin.css";
 
 const emptyResource = {
@@ -92,6 +95,12 @@ const AdminLms = () => {
       ...doc.data(),
     }));
 
+    const savedSettings = settingsSnapshot.exists() ? settingsSnapshot.data() : {};
+    setSettings({
+      selfPacedStartDate:
+        savedSettings.startDate || savedSettings.selfPacedStartDate || "",
+    });
+
     console.log("RESOURCE COUNT:", resourceData.length);
 
     setResources(sortResources(resourceData));
@@ -110,7 +119,10 @@ const AdminLms = () => {
   const courses = useMemo(
     () =>
       [
-        ...new Set(lessons.map((lesson) => lesson.course).filter(Boolean)),
+        ...new Set([
+          ...lessons.map((lesson) => lesson.course).filter(Boolean),
+          ...courseCatalog.map((course) => course.title).filter(Boolean),
+        ]),
       ].sort(),
     [lessons],
   );
@@ -159,6 +171,20 @@ const AdminLms = () => {
         lesson.id === id ? { ...lesson, [field]: value } : lesson,
       ),
     );
+  };
+
+  const saveSettings = async () => {
+    setSavingId("lms-settings");
+    await setDoc(
+      doc(db, "lmsSettings", "selfPaced"),
+      {
+        startDate: settings.selfPacedStartDate || "",
+        updatedAt: new Date(),
+      },
+      { merge: true },
+    );
+    setSavingId("");
+    showToast("Self-paced start date saved.");
   };
 
   const saveLesson = async (lesson) => {
@@ -221,7 +247,6 @@ const AdminLms = () => {
     showToast("Resource removed.");
   };
 
-
   return (
     <main className="admin-page">
       {toast && <div className="admin-toast">{toast}</div>}
@@ -248,6 +273,38 @@ const AdminLms = () => {
         <p className="admin-loading">Loading LMS content...</p>
       ) : (
         <>
+          <section className="admin-table-card admin-lms-card">
+            <h2>Self-paced unlock schedule</h2>
+            <p className="admin-helper-text">
+              Choose the day that counts as Day 1 for self-paced
+              pre-recorded lessons. A future date keeps every lesson locked
+              until that date; a past date unlocks one additional day for each
+              calendar day that has passed.
+            </p>
+            <div className="admin-lms-form">
+              <label>
+                Start date
+                <input
+                  type="date"
+                  value={settings.selfPacedStartDate}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      selfPacedStartDate: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <button
+                className="admin-view-btn"
+                onClick={saveSettings}
+                disabled={savingId === "lms-settings"}
+              >
+                {savingId === "lms-settings" ? "Saving..." : "Save start date"}
+              </button>
+            </div>
+          </section>
+
           <section className="admin-table-card admin-lms-card">
             <h2>Curriculum Lessons</h2>
             <p className="admin-helper-text">

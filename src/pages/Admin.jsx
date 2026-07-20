@@ -15,6 +15,7 @@ import {
 import emailjs from "@emailjs/browser";
 import { pricing } from "../data/pricing";
 import courses from "../data/courses";
+import { clearStoredAdminRole } from "../auth/adminRoles";
 
 const DEFAULT_COMMISSION = 2500;
 const LEARNING_METHOD_FILTERS = [
@@ -320,8 +321,8 @@ const Admin = () => {
   };
 
   const handleLogout = async () => {
-    localStorage.removeItem("ovtechAdmin");
-    await signOut(auth);
+    clearStoredAdminRole();
+    if (auth) await signOut(auth);
     window.location.href = "/admin-login";
   };
 
@@ -437,7 +438,7 @@ const Admin = () => {
         <div className="admin-header-actions">
           <a href="/" className="admin-home-btn">Back to Website</a>
           <a href="/enrolled-students" className="admin-home-btn">Enrolled Students</a>
-          <a href="/admin/lms" className="admin-home-btn">LMS Management</a>
+          <a href="/admin/live-sessions" className="admin-home-btn">Publish Live Sessions</a>
           <button onClick={handleLogout} className="admin-logout-btn">Logout</button>
         </div>
       </section>
