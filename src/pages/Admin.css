@@ -91,6 +91,28 @@
   margin-bottom: 32px;
 }
 
+.admin-filter-panel {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 28px;
+  box-shadow: 0 20px 60px rgba(18, 35, 63, 0.08);
+  margin-bottom: 32px;
+  padding: 28px;
+}
+
+.admin-filter-panel .admin-section-heading {
+  margin-bottom: 20px;
+}
+
+.admin-filter-panel .admin-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-filter-panel .admin-reset-btn {
+  margin-bottom: 0;
+}
+
 .admin-table-card {
   background: white;
   border-radius: 28px;
