@@ -31,25 +31,34 @@ const toNumber = (value, fallback = 0) => {
 };
 
 const sortLessons = (items) =>
-  [...items].sort((a, b) => toNumber(a.globalOrder) - toNumber(b.globalOrder));
+  [...items].sort(
+    (firstLesson, secondLesson) =>
+      toNumber(firstLesson.globalOrder) - toNumber(secondLesson.globalOrder),
+  );
 
 const sortResources = (items) =>
   [...items].sort(
-    (a, b) =>
-      String(a.course || "").localeCompare(String(b.course || "")) ||
-      toNumber(a.unlockDay, 1) - toNumber(b.unlockDay, 1) ||
-      String(a.section || "").localeCompare(String(b.section || "")) ||
-      String(a.title || "").localeCompare(String(b.title || "")),
+    (firstResource, secondResource) =>
+      String(firstResource.course || "").localeCompare(
+        String(secondResource.course || ""),
+      ) ||
+      toNumber(firstResource.unlockDay, 1) -
+        toNumber(secondResource.unlockDay, 1) ||
+      String(firstResource.section || "").localeCompare(
+        String(secondResource.section || ""),
+      ) ||
+      String(firstResource.title || "").localeCompare(
+        String(secondResource.title || ""),
+      ),
   );
 
 const AdminLms = () => {
   const [lessons, setLessons] = useState([]);
   const [resources, setResources] = useState([]);
   const [resourceForm, setResourceForm] = useState(emptyResource);
-  const emptyLiveSession = { title: "", sessionDate: "", youtubeUrl: "", attachmentName: "", attachmentUrl: "", isPublished: false, audienceType: "all", learningMode: "", track: "all" };
-  const [liveSessions, setLiveSessions] = useState([]);
-  const [liveSessionForm, setLiveSessionForm] = useState(emptyLiveSession);
-  const [publishModalOpen, setPublishModalOpen] = useState(false);
+  const [settings, setSettings] = useState({
+    selfPacedStartDate: "",
+  });
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
   const [toast, setToast] = useState("");
@@ -61,50 +70,39 @@ const AdminLms = () => {
 
   const loadLmsContent = async () => {
     setLoading(true);
-    const [lessonSnapshot, resourceSnapshot, liveSessionSnapshot] = await Promise.all([
-      getDocs(
-        query(collection(db, "curriculum"), orderBy("globalOrder", "asc")),
-      ),
-      getDocs(
-        query(collection(db, "lmsResources"), orderBy("unlockDay", "asc")),
-      ),
-      getDocs(query(collection(db, "liveSessions"), orderBy("sessionDate", "desc"))),
-    ]);
 
-    setLessons(
-      sortLessons(
-        lessonSnapshot.docs.map((item) => ({ id: item.id, ...item.data() })),
-      ),
-    );
-    const lessonData = lessonSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
+    const [lessonSnapshot, resourceSnapshot, settingsSnapshot] =
+      await Promise.all([
+        getDocs(
+          query(collection(db, "curriculum"), orderBy("globalOrder", "asc")),
+        ),
+        getDocs(
+          query(collection(db, "lmsResources"), orderBy("unlockDay", "asc")),
+        ),
+        getDoc(doc(db, "lmsSettings", "selfPaced")),
+      ]);
+
+    const lessonData = lessonSnapshot.docs.map((lesson) => ({
+      id: lesson.id,
+      ...lesson.data(),
     }));
 
-    console.log("LESSON COUNT:", lessonData.length);
-    console.log("FIRST LESSON:", lessonData[0]);
+    const resourceData = resourceSnapshot.docs.map((resource) => ({
+      id: resource.id,
+      ...resource.data(),
+    }));
+
+    const savedSettings = settingsSnapshot.exists()
+      ? settingsSnapshot.data()
+      : {};
 
     setLessons(sortLessons(lessonData));
-    setResources(
-      sortResources(
-        resourceSnapshot.docs.map((item) => ({ id: item.id, ...item.data() })),
-      ),
-    );
-    const resourceData = resourceSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    const savedSettings = settingsSnapshot.exists() ? settingsSnapshot.data() : {};
+    setResources(sortResources(resourceData));
     setSettings({
       selfPacedStartDate:
         savedSettings.startDate || savedSettings.selfPacedStartDate || "",
     });
 
-    console.log("RESOURCE COUNT:", resourceData.length);
-
-    setResources(sortResources(resourceData));
-    setLiveSessions(liveSessionSnapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
     setLoading(false);
   };
 
@@ -127,80 +125,58 @@ const AdminLms = () => {
     [lessons],
   );
 
-
-  const saveLiveAttachment = (file) =>
-    new Promise((resolve, reject) => {
-      if (!file) return resolve({ attachmentName: "", attachmentUrl: "" });
-      const reader = new FileReader();
-      reader.onload = () => resolve({ attachmentName: file.name, attachmentUrl: reader.result });
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-  const persistLiveSession = async (isPublished, audienceOverrides = {}) => {
-    if (!liveSessionForm.title.trim() || !liveSessionForm.youtubeUrl.trim() || !liveSessionForm.sessionDate) {
-      showToast("Add a title, date, and session URL.");
-      return;
-    }
-    const payload = { ...liveSessionForm, ...audienceOverrides, isPublished, updatedAt: new Date() };
-    delete payload.id;
-    if (liveSessionForm.id) {
-      await updateDoc(doc(db, "liveSessions", liveSessionForm.id), payload);
-      setLiveSessions((prev) => prev.map((item) => item.id === liveSessionForm.id ? { ...item, ...payload } : item));
-      showToast(isPublished ? "Live session updated." : "Draft saved.");
-    } else {
-      payload.createdAt = new Date();
-      const created = await addDoc(collection(db, "liveSessions"), payload);
-      setLiveSessions((prev) => [{ id: created.id, ...payload }, ...prev]);
-      showToast(isPublished ? "Live session published." : "Draft saved.");
-    }
-    setLiveSessionForm(emptyLiveSession);
-    setPublishModalOpen(false);
-  };
-
-  const removeLiveSession = async (session) => {
-    if (!window.confirm(`Remove live session "${session.title}"?`)) return;
-    await deleteDoc(doc(db, "liveSessions", session.id));
-    setLiveSessions((prev) => prev.filter((item) => item.id !== session.id));
-    showToast("Live session removed.");
-  };
-
   const updateLessonField = (id, field, value) => {
-    setLessons((prev) =>
-      prev.map((lesson) =>
+    setLessons((previousLessons) =>
+      previousLessons.map((lesson) =>
         lesson.id === id ? { ...lesson, [field]: value } : lesson,
       ),
     );
   };
 
-  const saveSettings = async () => {
-    setSavingId("lms-settings");
-    await setDoc(
-      doc(db, "lmsSettings", "selfPaced"),
-      {
-        startDate: settings.selfPacedStartDate || "",
-        updatedAt: new Date(),
-      },
-      { merge: true },
-    );
-    setSavingId("");
-    showToast("Self-paced start date saved.");
-  };
-
   const saveLesson = async (lesson) => {
     setSavingId(lesson.id);
-    await updateDoc(doc(db, "curriculum", lesson.id), {
-      title: lesson.title || "",
-      youtubeUrl: lesson.youtubeUrl || "",
-      isPublished: lesson.isPublished !== false,
-    });
-    setSavingId("");
-    showToast("Lesson saved.");
+
+    try {
+      await updateDoc(doc(db, "curriculum", lesson.id), {
+        title: lesson.title || "",
+        youtubeUrl: lesson.youtubeUrl || "",
+        isPublished: lesson.isPublished !== false,
+      });
+
+      showToast("Lesson saved.");
+    } catch (error) {
+      console.error("Lesson save error:", error);
+      showToast("Lesson could not be saved.");
+    } finally {
+      setSavingId("");
+    }
+  };
+
+  const saveSettings = async () => {
+    setSavingId("lms-settings");
+
+    try {
+      await setDoc(
+        doc(db, "lmsSettings", "selfPaced"),
+        {
+          startDate: settings.selfPacedStartDate || "",
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      );
+
+      showToast("Self-paced start date saved.");
+    } catch (error) {
+      console.error("LMS settings save error:", error);
+      showToast("Start date could not be saved.");
+    } finally {
+      setSavingId("");
+    }
   };
 
   const updateResourceField = (id, field, value) => {
-    setResources((prev) =>
-      prev.map((resource) =>
+    setResources((previousResources) =>
+      previousResources.map((resource) =>
         resource.id === id ? { ...resource, [field]: value } : resource,
       ),
     );
@@ -208,48 +184,83 @@ const AdminLms = () => {
 
   const saveResource = async (resource) => {
     setSavingId(resource.id);
-    await updateDoc(doc(db, "lmsResources", resource.id), {
-      title: resource.title || "",
-      fileType: resource.fileType || "",
-      downloadUrl: resource.downloadUrl || "",
-      isPublished: resource.isPublished !== false,
-    });
-    setSavingId("");
-    showToast("Resource saved.");
+
+    try {
+      await updateDoc(doc(db, "lmsResources", resource.id), {
+        title: resource.title || "",
+        fileType: resource.fileType || "",
+        downloadUrl: resource.downloadUrl || "",
+        isPublished: resource.isPublished !== false,
+      });
+
+      showToast("Resource saved.");
+    } catch (error) {
+      console.error("Resource save error:", error);
+      showToast("Resource could not be saved.");
+    } finally {
+      setSavingId("");
+    }
   };
 
   const addResource = async (event) => {
     event.preventDefault();
+
     const payload = {
       ...resourceForm,
       unlockDay: toNumber(resourceForm.unlockDay, 1),
       isPublished: Boolean(resourceForm.isPublished),
       createdAt: new Date(),
     };
-    const created = await addDoc(collection(db, "lmsResources"), payload);
-    const createdResource = { id: created.id, ...payload };
-    setResources((prev) => sortResources([...prev, createdResource]));
 
-    showToast("Resource added.");
+    try {
+      const createdResource = await addDoc(
+        collection(db, "lmsResources"),
+        payload,
+      );
 
-    setResourceForm(emptyResource);
+      setResources((previousResources) =>
+        sortResources([
+          ...previousResources,
+          {
+            id: createdResource.id,
+            ...payload,
+          },
+        ]),
+      );
+
+      setResourceForm(emptyResource);
+      showToast("Resource added.");
+    } catch (error) {
+      console.error("Resource add error:", error);
+      showToast("Resource could not be added.");
+    }
   };
 
   const removeResource = async (resource) => {
-    if (
-      !window.confirm(
-        `Remove resource "${resource.title || resource.fileName || resource.id}"?`,
-      )
-    )
+    const resourceName = resource.title || resource.fileName || resource.id;
+
+    if (!window.confirm(`Remove resource "${resourceName}"?`)) {
       return;
-    await deleteDoc(doc(db, "lmsResources", resource.id));
-    setResources((prev) => prev.filter((item) => item.id !== resource.id));
-    showToast("Resource removed.");
+    }
+
+    try {
+      await deleteDoc(doc(db, "lmsResources", resource.id));
+
+      setResources((previousResources) =>
+        previousResources.filter((item) => item.id !== resource.id),
+      );
+
+      showToast("Resource removed.");
+    } catch (error) {
+      console.error("Resource deletion error:", error);
+      showToast("Resource could not be removed.");
+    }
   };
 
   return (
     <main className="admin-page">
       {toast && <div className="admin-toast">{toast}</div>}
+
       <section className="admin-header">
         <div>
           <span>OVTech Admin</span>
@@ -259,9 +270,13 @@ const AdminLms = () => {
             curriculum order fields.
           </p>
         </div>
+
         <div className="admin-header-actions">
           <a href="/admin" className="admin-home-btn">
             Scholarship Admin
+          </a>
+          <a href="/admin/live-sessions" className="admin-home-btn">
+            Live Sessions
           </a>
           <a href="/lms" className="admin-home-btn">
             Open LMS
@@ -274,33 +289,35 @@ const AdminLms = () => {
       ) : (
         <>
           <section className="admin-table-card admin-lms-card">
-            <h2>Self-paced unlock schedule</h2>
+            <h2>Self-Paced Unlock Schedule</h2>
             <p className="admin-helper-text">
-              Choose the day that counts as Day 1 for self-paced
-              pre-recorded lessons. A future date keeps every lesson locked
-              until that date; a past date unlocks one additional day for each
-              calendar day that has passed.
+              Choose the date that counts as Day 1 for self-paced, pre-recorded
+              lessons. A future date keeps every lesson locked until that date.
+              After the date begins, one lesson day unlocks per calendar day.
             </p>
+
             <div className="admin-lms-form">
               <label>
-                Start date
+                Start Date
                 <input
                   type="date"
                   value={settings.selfPacedStartDate}
-                  onChange={(e) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      selfPacedStartDate: e.target.value,
+                  onChange={(event) =>
+                    setSettings((previousSettings) => ({
+                      ...previousSettings,
+                      selfPacedStartDate: event.target.value,
                     }))
                   }
                 />
               </label>
+
               <button
+                type="button"
                 className="admin-view-btn"
                 onClick={saveSettings}
                 disabled={savingId === "lms-settings"}
               >
-                {savingId === "lms-settings" ? "Saving..." : "Save start date"}
+                {savingId === "lms-settings" ? "Saving..." : "Save Start Date"}
               </button>
             </div>
           </section>
@@ -308,9 +325,10 @@ const AdminLms = () => {
           <section className="admin-table-card admin-lms-card">
             <h2>Curriculum Lessons</h2>
             <p className="admin-helper-text">
-              Order is locked: globalOrder, course, section, and unlockDay are
-              visible but not editable.
+              Order is locked: global order, course, section, and unlock day are
+              visible but cannot be changed here.
             </p>
+
             {lessons.map((lesson) => (
               <article className="admin-lms-row" key={lesson.id}>
                 <div className="admin-lms-meta">
@@ -319,39 +337,48 @@ const AdminLms = () => {
                   <span>{lesson.section || lesson.module || "No section"}</span>
                   <span>Day {lesson.unlockDay || 1}</span>
                 </div>
+
                 <label>
-                  Lesson title
+                  Lesson Title
                   <input
                     value={lesson.title || ""}
-                    onChange={(e) =>
-                      updateLessonField(lesson.id, "title", e.target.value)
+                    onChange={(event) =>
+                      updateLessonField(lesson.id, "title", event.target.value)
                     }
                   />
                 </label>
+
                 <label>
-                  YouTube link
+                  YouTube Link
                   <input
                     value={lesson.youtubeUrl || ""}
-                    onChange={(e) =>
-                      updateLessonField(lesson.id, "youtubeUrl", e.target.value)
+                    onChange={(event) =>
+                      updateLessonField(
+                        lesson.id,
+                        "youtubeUrl",
+                        event.target.value,
+                      )
                     }
                   />
                 </label>
+
                 <label className="admin-checkbox">
                   <input
                     type="checkbox"
                     checked={lesson.isPublished !== false}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       updateLessonField(
                         lesson.id,
                         "isPublished",
-                        e.target.checked,
+                        event.target.checked,
                       )
                     }
-                  />{" "}
+                  />
                   Published
                 </label>
+
                 <button
+                  type="button"
                   className="admin-view-btn"
                   onClick={() => saveLesson(lesson)}
                   disabled={savingId === lesson.id}
@@ -360,130 +387,115 @@ const AdminLms = () => {
                 </button>
               </article>
             ))}
+
+            {lessons.length === 0 && (
+              <p className="admin-empty">No curriculum lessons found.</p>
+            )}
           </section>
 
-
-          <section className="admin-table-card admin-lms-card">
-            <h2>Upload Live Session</h2>
-            <p className="admin-helper-text">Publish a YouTube live/replay link to all students, live-class learners, self-paced learners, or a specific track.</p>
-            <form className="admin-lms-form admin-live-session-form" onSubmit={(event) => event.preventDefault()}>
-              <input placeholder="Session title" value={liveSessionForm.title} onChange={(e) => setLiveSessionForm((prev) => ({ ...prev, title: e.target.value }))} />
-              <input type="date" value={liveSessionForm.sessionDate} onChange={(e) => setLiveSessionForm((prev) => ({ ...prev, sessionDate: e.target.value }))} />
-              <input placeholder="YouTube or live-session URL" value={liveSessionForm.youtubeUrl} onChange={(e) => setLiveSessionForm((prev) => ({ ...prev, youtubeUrl: e.target.value }))} />
-              <input placeholder="Optional attachment URL" value={liveSessionForm.attachmentUrl && !String(liveSessionForm.attachmentUrl).startsWith("data:") ? liveSessionForm.attachmentUrl : ""} onChange={(e) => setLiveSessionForm((prev) => ({ ...prev, attachmentUrl: e.target.value, attachmentName: e.target.value ? prev.attachmentName : "" }))} />
-              <input type="file" onChange={async (e) => setLiveSessionForm((prev) => ({ ...prev, ...(await saveLiveAttachment(e.target.files?.[0])) }))} />
-              {liveSessionForm.attachmentName && <small>Attached: {liveSessionForm.attachmentName}</small>}
-              <div className="admin-actions">
-                <button type="button" className="admin-reset-btn" onClick={() => persistLiveSession(false)}>Save as Draft</button>
-                <button type="button" className="admin-approve" onClick={() => setPublishModalOpen(true)}>Upload / Publish</button>
-              </div>
-            </form>
-          </section>
-
-          <section className="admin-table-card admin-lms-card">
-            <h2>Live Sessions</h2>
-            {liveSessions.map((session) => (
-              <article className="admin-lms-row" key={session.id}>
-                <div className="admin-lms-meta"><span>{session.isPublished ? "Published" : "Draft"}</span><span>{session.sessionDate || "No date"}</span><span>{session.audienceType === "all" ? "All students" : `${session.learningMode} • ${session.track || "all"}`}</span></div>
-                <label>Title<input value={session.title || ""} onChange={(e) => setLiveSessions((prev) => prev.map((item) => item.id === session.id ? { ...item, title: e.target.value } : item))} /></label>
-                <label>Date<input type="date" value={session.sessionDate || ""} onChange={(e) => setLiveSessions((prev) => prev.map((item) => item.id === session.id ? { ...item, sessionDate: e.target.value } : item))} /></label>
-                <label>Session URL<input value={session.youtubeUrl || ""} onChange={(e) => setLiveSessions((prev) => prev.map((item) => item.id === session.id ? { ...item, youtubeUrl: e.target.value } : item))} /></label>
-                <label>Attachment URL<input value={session.attachmentUrl && !String(session.attachmentUrl).startsWith("data:") ? session.attachmentUrl : ""} onChange={(e) => setLiveSessions((prev) => prev.map((item) => item.id === session.id ? { ...item, attachmentUrl: e.target.value } : item))} /></label>
-                <label className="admin-checkbox"><input type="checkbox" checked={session.isPublished !== false} onChange={(e) => setLiveSessions((prev) => prev.map((item) => item.id === session.id ? { ...item, isPublished: e.target.checked } : item))} /> Published</label>
-                <div className="admin-actions"><button className="admin-view-btn" onClick={async () => { setSavingId(session.id); await updateDoc(doc(db, "liveSessions", session.id), { title: session.title || "", sessionDate: session.sessionDate || "", youtubeUrl: session.youtubeUrl || "", attachmentUrl: session.attachmentUrl || "", attachmentName: session.attachmentName || "", isPublished: session.isPublished !== false, audienceType: session.audienceType || "all", learningMode: session.learningMode || "", track: session.track || "all", updatedAt: new Date() }); setSavingId(""); showToast("Live session saved."); }}>{savingId === session.id ? "Saving..." : "Save"}</button><button className="admin-delete" onClick={() => removeLiveSession(session)}>Remove</button></div>
-              </article>
-            ))}
-          </section>
           <section className="admin-table-card admin-lms-card">
             <h2>Add Resource</h2>
+
             <form className="admin-lms-form" onSubmit={addResource}>
               <input
                 placeholder="Resource title"
                 value={resourceForm.title}
-                onChange={(e) =>
-                  setResourceForm((prev) => ({
-                    ...prev,
-                    title: e.target.value,
+                onChange={(event) =>
+                  setResourceForm((previousForm) => ({
+                    ...previousForm,
+                    title: event.target.value,
                   }))
                 }
                 required
               />
+
               <select
                 value={resourceForm.course}
-                onChange={(e) =>
-                  setResourceForm((prev) => ({
-                    ...prev,
-                    course: e.target.value,
+                onChange={(event) =>
+                  setResourceForm((previousForm) => ({
+                    ...previousForm,
+                    course: event.target.value,
                   }))
                 }
                 required
               >
                 <option value="">Select course</option>
                 {courses.map((course) => (
-                  <option key={course}>{course}</option>
+                  <option key={course} value={course}>
+                    {course}
+                  </option>
                 ))}
               </select>
+
               <input
                 placeholder="Section"
                 value={resourceForm.section}
-                onChange={(e) =>
-                  setResourceForm((prev) => ({
-                    ...prev,
-                    section: e.target.value,
+                onChange={(event) =>
+                  setResourceForm((previousForm) => ({
+                    ...previousForm,
+                    section: event.target.value,
                   }))
                 }
               />
+
               <input
                 type="number"
                 min="1"
                 placeholder="Unlock day"
                 value={resourceForm.unlockDay}
-                onChange={(e) =>
-                  setResourceForm((prev) => ({
-                    ...prev,
-                    unlockDay: e.target.value,
+                onChange={(event) =>
+                  setResourceForm((previousForm) => ({
+                    ...previousForm,
+                    unlockDay: event.target.value,
                   }))
                 }
               />
+
               <input
                 placeholder="File type"
                 value={resourceForm.fileType}
-                onChange={(e) =>
-                  setResourceForm((prev) => ({
-                    ...prev,
-                    fileType: e.target.value,
+                onChange={(event) =>
+                  setResourceForm((previousForm) => ({
+                    ...previousForm,
+                    fileType: event.target.value,
                   }))
                 }
               />
+
               <input
                 placeholder="Download URL"
                 value={resourceForm.downloadUrl}
-                onChange={(e) =>
-                  setResourceForm((prev) => ({
-                    ...prev,
-                    downloadUrl: e.target.value,
+                onChange={(event) =>
+                  setResourceForm((previousForm) => ({
+                    ...previousForm,
+                    downloadUrl: event.target.value,
                   }))
                 }
               />
+
               <label className="admin-checkbox">
                 <input
                   type="checkbox"
                   checked={resourceForm.isPublished}
-                  onChange={(e) =>
-                    setResourceForm((prev) => ({
-                      ...prev,
-                      isPublished: e.target.checked,
+                  onChange={(event) =>
+                    setResourceForm((previousForm) => ({
+                      ...previousForm,
+                      isPublished: event.target.checked,
                     }))
                   }
-                />{" "}
+                />
                 Published
               </label>
-              <button className="admin-approve">Add Resource</button>
+
+              <button type="submit" className="admin-approve">
+                Add Resource
+              </button>
             </form>
           </section>
 
           <section className="admin-table-card admin-lms-card">
             <h2>Resources</h2>
+
             {resources.map((resource) => (
               <article className="admin-lms-row" key={resource.id}>
                 <div className="admin-lms-meta">
@@ -491,64 +503,76 @@ const AdminLms = () => {
                   <span>{resource.section || "No section"}</span>
                   <span>Day {resource.unlockDay || 1}</span>
                 </div>
+
                 <label>
-                  Resource title
+                  Resource Title
                   <input
                     value={resource.title || resource.fileName || ""}
-                    onChange={(e) =>
-                      updateResourceField(resource.id, "title", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  File type
-                  <input
-                    value={resource.fileType || ""}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       updateResourceField(
                         resource.id,
-                        "fileType",
-                        e.target.value,
+                        "title",
+                        event.target.value,
                       )
                     }
                   />
                 </label>
+
+                <label>
+                  File Type
+                  <input
+                    value={resource.fileType || ""}
+                    onChange={(event) =>
+                      updateResourceField(
+                        resource.id,
+                        "fileType",
+                        event.target.value,
+                      )
+                    }
+                  />
+                </label>
+
                 <label>
                   Download URL
                   <input
                     value={resource.downloadUrl || ""}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       updateResourceField(
                         resource.id,
                         "downloadUrl",
-                        e.target.value,
+                        event.target.value,
                       )
                     }
                   />
                 </label>
+
                 <label className="admin-checkbox">
                   <input
                     type="checkbox"
                     checked={resource.isPublished !== false}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       updateResourceField(
                         resource.id,
                         "isPublished",
-                        e.target.checked,
+                        event.target.checked,
                       )
                     }
-                  />{" "}
+                  />
                   Published
                 </label>
+
                 <div className="admin-actions">
                   <button
+                    type="button"
                     className="admin-view-btn"
                     onClick={() => saveResource(resource)}
                     disabled={savingId === resource.id}
                   >
                     {savingId === resource.id ? "Saving..." : "Save"}
                   </button>
+
                   <button
+                    type="button"
                     className="admin-delete"
                     onClick={() => removeResource(resource)}
                   >
@@ -557,30 +581,12 @@ const AdminLms = () => {
                 </div>
               </article>
             ))}
+
+            {resources.length === 0 && (
+              <p className="admin-empty">No resources found.</p>
+            )}
           </section>
         </>
-      )}
-
-      {publishModalOpen && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal admin-publish-modal">
-            <button className="admin-modal-close" onClick={() => setPublishModalOpen(false)}>×</button>
-            <h2>Who should see this live session?</h2>
-            <p className="admin-modal-email">Choose the audience before publishing.</p>
-            <div className="admin-publish-grid">
-              <button onClick={() => persistLiveSession(true, { audienceType: "all", learningMode: "", track: "all" })}>All enrolled students</button>
-              {[{ key: "live", label: "Live class students" }, { key: "self-paced", label: "Self-paced learners" }].map((mode) => (
-                <div key={mode.key} className="admin-publish-group">
-                  <strong>{mode.label}</strong>
-                  <button onClick={() => persistLiveSession(true, { audienceType: "mode", learningMode: mode.key, track: "all" })}>All {mode.label}</button>
-                  {courses.map((course) => (
-                    <button key={`${mode.key}-${course}`} onClick={() => persistLiveSession(true, { audienceType: "track", learningMode: mode.key, track: course })}>{course}</button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       )}
     </main>
   );

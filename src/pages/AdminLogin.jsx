@@ -19,11 +19,21 @@ const AdminLogin = () => {
     e.preventDefault();
 
     const accounts = [
-      { email: "admin@ovtechacademy.com", password: "OVTech2026!", role: ADMIN_ROLES.ADMIN },
-      { email: "adminassistant@ovitechacademy.com", password: "Ovitech2026", role: ADMIN_ROLES.ASSISTANT },
+      {
+        email: "admin@ovtechacademy.com",
+        password: "OVTech2026!",
+        role: ADMIN_ROLES.ADMIN,
+      },
+      {
+        email: "adminassistant@ovtechacademy.com",
+        password: "admin123",
+        role: ADMIN_ROLES.ASSISTANT,
+      },
     ];
-    const account = accounts.find(({ email, password }) =>
-      loginData.email.trim().toLowerCase() === email && loginData.password === password,
+    const account = accounts.find(
+      ({ email, password }) =>
+        loginData.email.trim().toLowerCase() === email &&
+        loginData.password === password,
     );
 
     if (account) {
