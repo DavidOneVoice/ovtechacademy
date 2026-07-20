@@ -66,6 +66,31 @@
   font-weight: 700;
 }
 
+.admin-assistant-stats {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.admin-assistant-attendance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.admin-assistant-attendance h2 {
+  margin-bottom: 8px;
+}
+
+.admin-assistant-attendance p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.admin-assistant-list {
+  margin-bottom: 32px;
+}
+
 .admin-table-card {
   background: white;
   border-radius: 28px;
@@ -180,6 +205,11 @@
 
   .admin-stats {
     grid-template-columns: 1fr;
+  }
+
+  .admin-assistant-attendance {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 .admin-actions {

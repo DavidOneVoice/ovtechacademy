@@ -13,6 +13,14 @@ import LmsDashboard from "./pages/LmsDashboard";
 import AdminLms from "./pages/AdminLms";
 import AdminLiveSessions from "./pages/AdminLiveSessions";
 import AttendancePage from "./pages/AttendancePage";
+import AdminAssistant from "./pages/AdminAssistant";
+import { ADMIN_ROLES, getStoredAdminRole } from "./auth/adminRoles";
+
+const AdminDashboardRoute = () => (
+  getStoredAdminRole() === ADMIN_ROLES.ASSISTANT
+    ? <Navigate to="/admin/assistant" replace />
+    : <Admin />
+);
 
 function App() {
   return (
@@ -31,11 +39,18 @@ function App() {
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/attendance/:sessionId" element={<AttendancePage />} />
 
-        <Route path="/admin" element={<Admin />} />
+        <Route
+          path="/admin"
+          element={<ProtectedAdminRoute><AdminDashboardRoute /></ProtectedAdminRoute>}
+        />
+        <Route
+          path="/admin/assistant"
+          element={<ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ASSISTANT]}><AdminAssistant /></ProtectedAdminRoute>}
+        />
         <Route
           path="/admin/lms"
           element={
-            <ProtectedAdminRoute>
+            <ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ADMIN]}>
               <AdminLms />
             </ProtectedAdminRoute>
           }
@@ -43,7 +58,7 @@ function App() {
         <Route
           path="/admin/live-sessions"
           element={
-            <ProtectedAdminRoute>
+            <ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ADMIN]}>
               <AdminLiveSessions />
             </ProtectedAdminRoute>
           }
@@ -51,7 +66,7 @@ function App() {
         <Route
           path="/enrolled-students"
           element={
-            <ProtectedAdminRoute>
+            <ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ADMIN]}>
               <EnrolledStudents />
             </ProtectedAdminRoute>
           }
