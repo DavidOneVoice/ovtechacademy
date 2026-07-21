@@ -303,6 +303,7 @@ const getResourceAction = (resource) => {
 
 const LmsDashboard = () => {
   const navigate = useNavigate();
+  const playerRef = useRef(null);
   const [student, setStudent] = useState(null);
   const [login, setLogin] = useState({ email: "", whatsapp: "" });
   const [lessons, setLessons] = useState([]);
