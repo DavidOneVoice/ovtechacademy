@@ -307,6 +307,7 @@ const LmsDashboard = () => {
   const [login, setLogin] = useState({ email: "", whatsapp: "" });
   const [lessons, setLessons] = useState([]);
   const [resources, setResources] = useState([]);
+  const [lmsSettings, setLmsSettings] = useState({});
   const [completedLessonIds, setCompletedLessonIds] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [liveSessions, setLiveSessions] = useState([]);
