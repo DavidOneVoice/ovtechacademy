@@ -1,29 +1,102 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function isAdmin() { return signedIn() && request.auth.token.admin == true; }
-    function ownsProfile(studentId) { return signedIn() && request.auth.uid == studentId; }
     function protectedCertificateFields() {
       return ['approvedAt', 'approvedBy', 'certificateId', 'completionDate'];
     }
 
-    match /certificateProfile/{studentId} {
-      allow read: if ownsProfile(studentId) || isAdmin();
-      allow create: if ownsProfile(studentId)
+    function studentProfileFields() {
+      return [
+        'studentId', 'course', 'track', 'photoUrl', 'displayName', 'email',
+        'linkedin', 'facebook', 'instagram', 'twitter', 'tiktok', 'status',
+        'updatedAt', 'submittedAt', 'adminMessage'
+      ];
+    }
+
+    function isStudentCreate(studentId) {
+      return request.resource.data.keys().hasOnly(studentProfileFields())
         && request.resource.data.studentId == studentId
         && request.resource.data.status == 'Pending'
+        && request.resource.data.adminMessage == null
+        && request.resource.data.submittedAt == request.time
+        && request.resource.data.updatedAt == request.time
         && !request.resource.data.keys().hasAny(protectedCertificateFields());
-      allow update: if isAdmin() || (ownsProfile(studentId)
-        && request.resource.data.studentId == resource.data.studentId
+    }
+
+    function isStudentUpdate(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status in ['Pending', 'Changes Requested']
         && request.resource.data.status == 'Pending'
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(protectedCertificateFields())
-        && request.resource.data.submittedAt == resource.data.submittedAt);
+        && request.resource.data.adminMessage == null
+        && request.resource.data.submittedAt == resource.data.submittedAt
+        && request.resource.data.updatedAt == request.time
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(protectedCertificateFields());
+    }
+
+    function isChangesRequest(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status == 'Pending'
+        && request.resource.data.status == 'Changes Requested'
+        && request.resource.data.adminMessage is string
+        && request.resource.data.adminMessage.size() > 0
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'adminMessage', 'updatedAt']);
+    }
+
+    function isApproval(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status == 'Pending'
+        && request.resource.data.status == 'Approved'
+        && request.resource.data.approvedAt == request.time
+        && request.resource.data.completionDate == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.approvedBy in ['admin', 'assistant']
+        && request.resource.data.certificateId is string
+        && request.resource.data.certificateId.matches('^OVT-[A-Z]{1,4}-[0-9]{4}-[0-9]{6}$')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'approvedAt', 'approvedBy', 'completionDate',
+          'certificateId', 'updatedAt'
+        ]);
+    }
+
+    match /certificateProfile/{studentId} {
+      // This project deliberately has no Firebase Auth: both student identity
+      // and admin role are held in localStorage, which Firestore rules cannot
+      // inspect or trust. Consequently rules cannot cryptographically distinguish
+      // a student from an admin. Restrict access to a direct document get (never
+      // collection listing) and to the exact state transitions used by the UI.
+      // Migrating both logins to Firebase Auth/custom claims is required before
+      // true per-user ownership and admin-only approval can be enforced here.
+      allow get: if true;
+      allow list: if false;
+      allow create: if isStudentCreate(studentId);
+      allow update: if isStudentUpdate(studentId)
+        || isChangesRequest(studentId)
+        || isApproval(studentId);
       allow delete: if false;
     }
 
     match /certificateCounters/{counterId} {
-      allow read, write: if isAdmin();
+      // Needed by the existing browser-side admin transaction. This cannot be
+      // made admin-only until the localStorage admin login is replaced by an
+      // identity visible to Firestore.
+      allow get: if true;
+      allow list, delete: if false;
+      allow create: if request.resource.data.value == 1
+        && request.resource.data.year is int
+        && request.resource.data.courseCode is string
+        && request.resource.data.updatedAt == request.time;
+      allow update: if request.resource.data.value == resource.data.value + 1
+        && request.resource.data.year == resource.data.year
+        && request.resource.data.courseCode == resource.data.courseCode
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['value', 'updatedAt']);
     }
   }
 }
