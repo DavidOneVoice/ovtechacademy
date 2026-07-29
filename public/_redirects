@@ -1,3 +1,4 @@
+https://ovtechacademy.netlify.app/* https://ovtechacademy.com/:splat 301!
 /LMS /lms 301
 /student-lms /lms 301
 /* /index.html 200
