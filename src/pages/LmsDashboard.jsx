@@ -335,6 +335,7 @@ const LmsDashboard = () => {
   const [certificateLoading, setCertificateLoading] = useState(false);
   const [certificateUploading, setCertificateUploading] = useState(false);
   const [certificateError, setCertificateError] = useState("");
+  const [editingCertificate, setEditingCertificate] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -671,6 +672,7 @@ const LmsDashboard = () => {
 
     setCertificateLoading(true);
     setCertificateError("");
+    const isResubmission = certificateProfile?.status === "Changes Requested";
     const profile = {
       studentId: student.id,
       course: student.course || student.courseName || student.program || courseName,
@@ -684,21 +686,38 @@ const LmsDashboard = () => {
       twitter: certificateForm.twitter.trim(),
       tiktok: certificateForm.tiktok.trim(),
       status: "Pending",
-      submittedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      approvedAt: null,
-      certificateId: null,
+      adminMessage: null,
     };
 
     try {
-      await setDoc(doc(db, "certificateProfile", student.id), profile);
-      setCertificateProfile(profile);
+      const profileRef = doc(db, "certificateProfile", student.id);
+      if (isResubmission) {
+        await setDoc(profileRef, profile, { merge: true });
+        setCertificateProfile((current) => ({ ...current, ...profile }));
+      } else {
+        const newProfile = { ...profile, submittedAt: serverTimestamp() };
+        await setDoc(profileRef, newProfile);
+        setCertificateProfile(newProfile);
+      }
+      setEditingCertificate(false);
     } catch (error) {
       console.error("Unable to submit certificate application:", error);
       setCertificateError("Unable to submit your application. Please try again.");
     } finally {
       setCertificateLoading(false);
     }
+  };
+
+  const editCertificateProfile = () => {
+    setCertificateForm({
+      displayName: certificateProfile.displayName || "", email: certificateProfile.email || "",
+      linkedin: certificateProfile.linkedin || "", facebook: certificateProfile.facebook || "",
+      instagram: certificateProfile.instagram || "", twitter: certificateProfile.twitter || "",
+      tiktok: certificateProfile.tiktok || "", photoUrl: certificateProfile.photoUrl || "",
+    });
+    setCertificateError("");
+    setEditingCertificate(true);
   };
 
   if (!student) {
@@ -795,14 +814,29 @@ const LmsDashboard = () => {
       </section>
       {activePanel === "certificate" && (
         <section className="certificate-page">
-          {certificateProfile ? (
+          {certificateProfile && !editingCertificate ? (
             <div className="certificate-status-card">
               <div className="certificate-status-icon" aria-hidden="true">✓</div>
               <span>Certificate Status</span>
-              <h2>Pending Review</h2>
-              <p className="certificate-status-lead">Your certificate application has been received.</p>
-              <p>Your instructor/admin will review your course completion, attendance and project status before approving your certificate.</p>
-              <strong>Please check back later.</strong>
+              {certificateProfile.status === "Approved" ? <>
+                <h2>Certificate Approved</h2>
+                <p className="certificate-status-lead">Congratulations. Your certificate has been approved and is being prepared.</p>
+                <div className="certificate-approved-details">
+                  <div><span>Certificate ID</span><strong>{certificateProfile.certificateId}</strong></div>
+                  <div><span>Completion date</span><strong>{certificateProfile.completionDate?.toDate ? certificateProfile.completionDate.toDate().toLocaleDateString() : certificateProfile.completionDate?.seconds ? new Date(certificateProfile.completionDate.seconds * 1000).toLocaleDateString() : "Processing"}</strong></div>
+                  <div><span>Course / track</span><strong>{certificateProfile.course || certificateProfile.track || courseName}</strong></div>
+                </div>
+              </> : certificateProfile.status === "Changes Requested" ? <>
+                <h2>Changes Required</h2>
+                <p className="certificate-status-lead">Your administrator needs you to update your certificate profile.</p>
+                <div className="certificate-admin-message"><span>Message from admin</span><p>{certificateProfile.adminMessage}</p></div>
+                <button className="certificate-update-button" type="button" onClick={editCertificateProfile}>Update Certificate Profile</button>
+              </> : <>
+                <h2>Pending Review</h2>
+                <p className="certificate-status-lead">Your certificate application has been received.</p>
+                <p>Your instructor/admin will review your course completion, attendance and project status before approving your certificate.</p>
+                <strong>Please check back later.</strong>
+              </>}
             </div>
           ) : (
             <>
@@ -838,7 +872,7 @@ const LmsDashboard = () => {
                 })}
                 {certificateError && <p className="certificate-error certificate-field-wide" role="alert">{certificateError}</p>}
                 <div className="certificate-actions certificate-field-wide">
-                  <button type="submit" disabled={!certificateForm.displayName.trim() || !certificateForm.photoUrl || certificateUploading || certificateLoading}>{certificateLoading ? "Submitting..." : "Submit application"}</button>
+                  <button type="submit" disabled={!certificateForm.displayName.trim() || !certificateForm.photoUrl || certificateUploading || certificateLoading}>{certificateLoading ? "Submitting..." : editingCertificate ? "Resubmit for review" : "Submit application"}</button>
                   <small>Only your photo and full name are required.</small>
                 </div>
               </form>

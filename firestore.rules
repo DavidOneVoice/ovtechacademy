@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && request.auth.token.admin == true; }
+    function ownsProfile(studentId) { return signedIn() && request.auth.uid == studentId; }
+    function protectedCertificateFields() {
+      return ['approvedAt', 'approvedBy', 'certificateId', 'completionDate'];
+    }
+
+    match /certificateProfile/{studentId} {
+      allow read: if ownsProfile(studentId) || isAdmin();
+      allow create: if ownsProfile(studentId)
+        && request.resource.data.studentId == studentId
+        && request.resource.data.status == 'Pending'
+        && !request.resource.data.keys().hasAny(protectedCertificateFields());
+      allow update: if isAdmin() || (ownsProfile(studentId)
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.status == 'Pending'
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(protectedCertificateFields())
+        && request.resource.data.submittedAt == resource.data.submittedAt);
+      allow delete: if false;
+    }
+
+    match /certificateCounters/{counterId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
