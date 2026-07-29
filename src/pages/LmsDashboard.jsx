@@ -31,6 +31,7 @@ import {
 import "./LmsDashboard.css";
 
 const STORAGE_KEY = "ovtech_lms_student";
+const CERTIFICATE_PROFILE_COLLECTION = "certificateProfile";
 const PRE_RECORDED_ACCESS_TEXT = "pre-recorded videos";
 const LIVE_CLASS_ACCESS_TEXT = "live";
 
@@ -367,10 +368,20 @@ const LmsDashboard = () => {
     if (!student?.id) return;
 
     const loadCertificateProfile = async () => {
+      const profileRef = doc(
+        db,
+        CERTIFICATE_PROFILE_COLLECTION,
+        student.id,
+      );
+      // The LMS session is localStorage-based, so this ID must remain the
+      // scholarshipApplications document ID saved by the student login flow.
+      console.info("Certificate profile request", {
+        collectionPath: CERTIFICATE_PROFILE_COLLECTION,
+        currentStudentId: student.id,
+        documentId: profileRef.id,
+      });
       try {
-        const profileSnapshot = await getDoc(
-          doc(db, "certificateProfile", student.id),
-        );
+        const profileSnapshot = await getDoc(profileRef);
         if (profileSnapshot.exists()) {
           setCertificateProfile({
             id: profileSnapshot.id,
@@ -691,7 +702,16 @@ const LmsDashboard = () => {
     };
 
     try {
-      const profileRef = doc(db, "certificateProfile", student.id);
+      const profileRef = doc(
+        db,
+        CERTIFICATE_PROFILE_COLLECTION,
+        student.id,
+      );
+      console.info("Certificate profile write", {
+        collectionPath: CERTIFICATE_PROFILE_COLLECTION,
+        currentStudentId: student.id,
+        documentId: profileRef.id,
+      });
       if (isResubmission) {
         await setDoc(profileRef, profile, { merge: true });
         setCertificateProfile((current) => ({ ...current, ...profile }));
