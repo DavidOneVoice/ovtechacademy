@@ -612,6 +612,13 @@
 .certificate-status-card p { max-width: 680px; margin: 5px 0; color: #667085; line-height: 1.7; }
 .certificate-status-card .certificate-status-lead { color: #122033; font-size: 1.15rem; font-weight: 800; }
 .certificate-status-card strong { margin-top: 20px; color: #102a7a; }
+.certificate-approved-details { width: min(680px, 100%); display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 26px; }
+.certificate-approved-details div { display: grid; gap: 8px; padding: 18px; border: 1px solid #dce5f5; border-radius: 18px; background: #f8fafc; text-align: left; }
+.certificate-approved-details span, .certificate-admin-message span { color: #667085; font-size: .75rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.certificate-approved-details strong { margin: 0; overflow-wrap: anywhere; }
+.certificate-admin-message { width: min(620px, 100%); box-sizing: border-box; margin: 22px 0; padding: 20px; border: 1px solid #f5d777; border-radius: 18px; background: #fffbeb; text-align: left; }
+.certificate-admin-message p { margin: 10px 0 0; color: #624b00; white-space: pre-wrap; }
+.certificate-update-button { border: 0; border-radius: 999px; padding: 15px 24px; background: linear-gradient(135deg,#315efb,#102a7a); color: white; cursor: pointer; font-weight: 900; }
 
 @media (max-width: 980px) {
   .lms-portal-shell { grid-template-columns: 1fr; }
@@ -623,4 +630,5 @@
   .certificate-photo-field { align-items: flex-start; flex-direction: column; }
   .certificate-actions { align-items: stretch; flex-direction: column; }
   .certificate-actions button { width: 100%; }
+  .certificate-approved-details { grid-template-columns: 1fr; }
 }

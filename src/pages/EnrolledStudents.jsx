@@ -9,10 +9,13 @@ import {
   getDocs,
   increment,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
+import { getStoredAdminRole } from "../auth/adminRoles";
+import { getProgressId } from "../lms/progress";
 
 import courses from "../data/courses";
 import "./Admin.css";
@@ -53,7 +56,31 @@ const getStudentTracks = (student) => [
 ].filter(Boolean);
 
 const getDateValue = (timestamp) =>
-  timestamp?.seconds ? new Date(timestamp.seconds * 1000).toLocaleDateString() : "N/A";
+  timestamp?.toDate ? timestamp.toDate().toLocaleDateString() :
+    timestamp?.seconds ? new Date(timestamp.seconds * 1000).toLocaleDateString() : "N/A";
+
+const COURSE_CODES = {
+  "data analytics": "DA", "software development": "SD", "web development": "WD",
+  cybersecurity: "CS", "virtual assistant": "VA", "artificial intelligence": "AI",
+  "product design": "PD", "ui/ux design": "UX", "digital marketing": "DM",
+  "project management": "PM", "cloud computing": "CC", "data science": "DS",
+};
+
+const getCourseCode = (course) => COURSE_CODES[String(course || "").trim().toLowerCase()] ||
+  String(course || "GEN").split(/\s+/).map((word) => word[0]).join("").replace(/[^A-Z]/gi, "").toUpperCase().slice(0, 4) || "GEN";
+
+const getAttendanceDisplay = (student) => {
+  const stats = student.attendance?.[student.track] || {};
+  const attended = Number(stats.attendedDays || 0);
+  const held = Number(stats.lectureDays || 0);
+  return `${attended} of ${held} classes${held ? ` (${Math.round((attended / held) * 100)}%)` : ""}`;
+};
+
+const getProgressDisplay = (progress) => {
+  if (!progress) return "No progress recorded";
+  if (Number.isFinite(progress.progressPercentage)) return `${Math.round(progress.progressPercentage)}%`;
+  return `${progress.completedLessonIds?.length || 0} lessons completed`;
+};
 
 const EDITABLE_FIELDS = [
   { key: "fullName", label: "Full Name", type: "text" },
@@ -83,6 +110,12 @@ const EnrolledStudents = () => {
   const [confirmTrack, setConfirmTrack] = useState(null);
   const [generatedSession, setGeneratedSession] = useState(null);
   const [generatingAttendance, setGeneratingAttendance] = useState(false);
+  const [certificateProfile, setCertificateProfile] = useState(null);
+  const [studentProgress, setStudentProgress] = useState(null);
+  const [certificateLoading, setCertificateLoading] = useState(false);
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const [changesOpen, setChangesOpen] = useState(false);
+  const [changeMessage, setChangeMessage] = useState("");
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -128,6 +161,77 @@ const EnrolledStudents = () => {
   const showToast = (message) => {
     setToast(message);
     setTimeout(() => setToast(""), 2600);
+  };
+
+  const openStudentDetails = async (student) => {
+    setSelectedStudent(student);
+    setCertificateProfile(null);
+    setStudentProgress(null);
+    setCertificateLoading(true);
+    try {
+      const progressId = getProgressId(student);
+      const [profileSnap, progressSnap, legacyProgressSnap] = await Promise.all([
+        getDoc(doc(db, "certificateProfile", student.id)),
+        getDoc(doc(db, "progress", progressId)),
+        getDoc(doc(db, "studentProgress", progressId)),
+      ]);
+      if (profileSnap.exists()) setCertificateProfile({ id: profileSnap.id, ...profileSnap.data() });
+      if (progressSnap.exists()) setStudentProgress(progressSnap.data());
+      else if (legacyProgressSnap.exists()) setStudentProgress(legacyProgressSnap.data());
+    } catch (error) {
+      console.error("Unable to load certificate application:", error);
+      showToast("Certificate details could not be loaded.");
+    } finally { setCertificateLoading(false); }
+  };
+
+  const approveCertificate = async () => {
+    if (!selectedStudent || certificateProfile?.status !== "Pending") return;
+    setSaving(true);
+    try {
+      const course = certificateProfile.course || certificateProfile.track || selectedStudent.track;
+      const code = getCourseCode(course);
+      const year = new Date().getFullYear();
+      const profileRef = doc(db, "certificateProfile", selectedStudent.id);
+      const counterRef = doc(db, "certificateCounters", `${code}-${year}`);
+      const certificateId = await runTransaction(db, async (transaction) => {
+        const [profileSnap, counterSnap] = await Promise.all([
+          transaction.get(profileRef), transaction.get(counterRef),
+        ]);
+        if (!profileSnap.exists() || profileSnap.data().status !== "Pending") {
+          throw new Error("This application is no longer pending.");
+        }
+        const next = Number(counterSnap.data()?.value || 0) + 1;
+        const id = `OVT-${code}-${year}-${String(next).padStart(6, "0")}`;
+        transaction.set(counterRef, { value: next, courseCode: code, year, updatedAt: serverTimestamp() }, { merge: true });
+        transaction.update(profileRef, {
+          status: "Approved", approvedAt: serverTimestamp(), completionDate: serverTimestamp(),
+          certificateId: id, approvedBy: getStoredAdminRole() || "admin", updatedAt: serverTimestamp(),
+        });
+        return id;
+      });
+      setCertificateProfile((profile) => ({ ...profile, status: "Approved", certificateId }));
+      setApprovalOpen(false);
+      showToast(`Certificate approved successfully: ${certificateId}`);
+    } catch (error) {
+      console.error("Certificate approval failed:", error);
+      showToast(error.message || "Certificate approval failed.");
+    } finally { setSaving(false); }
+  };
+
+  const requestCertificateChanges = async (event) => {
+    event.preventDefault();
+    const message = changeMessage.trim();
+    if (!selectedStudent || !message) return;
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, "certificateProfile", selectedStudent.id), {
+        status: "Changes Requested", adminMessage: message, updatedAt: serverTimestamp(),
+      });
+      setCertificateProfile((profile) => ({ ...profile, status: "Changes Requested", adminMessage: message }));
+      setChangesOpen(false); setChangeMessage("");
+      showToast("Changes requested from the student.");
+    } catch (error) { console.error(error); showToast("The request could not be sent."); }
+    finally { setSaving(false); }
   };
 
   const openEditModal = (student) => {
@@ -305,7 +409,7 @@ const EnrolledStudents = () => {
                     <div className="admin-actions">
                       <button
                         type="button"
-                        onClick={() => setSelectedStudent(student)}
+                        onClick={() => openStudentDetails(student)}
                         className="admin-view-btn"
                       >
                         View
@@ -397,9 +501,53 @@ const EnrolledStudents = () => {
               <div><strong>Date Enrolled</strong><span>{getDateValue(selectedStudent.enrolledAt)}</span></div>
             </div>
             <div className="admin-reason-box"><strong>Reason for Applying</strong><p>{selectedStudent.reason || "—"}</p></div>
+            {certificateLoading && <p className="admin-loading">Loading certificate application...</p>}
+            {!certificateLoading && certificateProfile && (
+              <section className="admin-certificate-application">
+                <h3>Certificate Application</h3>
+                <div className="admin-certificate-profile">
+                  <img src={certificateProfile.photoUrl} alt={`${certificateProfile.displayName} professional profile`} />
+                  <div><strong>{certificateProfile.displayName}</strong><span>{certificateProfile.email || "No professional email"}</span></div>
+                </div>
+                <div className="admin-details-grid">
+                  <div><strong>Course / Track</strong><span>{certificateProfile.course || certificateProfile.track || selectedStudent.track || "—"}</span></div>
+                  <div><strong>Status</strong><span className="admin-certificate-status">{certificateProfile.status}</span></div>
+                  <div><strong>Submitted</strong><span>{getDateValue(certificateProfile.submittedAt)}</span></div>
+                  <div><strong>Attendance</strong><span>{getAttendanceDisplay(selectedStudent)}</span></div>
+                  <div><strong>Progress</strong><span>{getProgressDisplay(studentProgress)}</span></div>
+                  {[["LinkedIn", "linkedin"], ["Facebook", "facebook"], ["Instagram", "instagram"], ["X / Twitter", "twitter"], ["TikTok", "tiktok"]].map(([label, key]) => certificateProfile[key] && (
+                    <div key={key}><strong>{label}</strong><a href={certificateProfile[key]} target="_blank" rel="noreferrer">View profile</a></div>
+                  ))}
+                </div>
+                {certificateProfile.status === "Pending" && <div className="admin-certificate-actions">
+                  <button type="button" onClick={() => setApprovalOpen(true)}>Approve Certificate</button>
+                  <button type="button" className="secondary" onClick={() => setChangesOpen(true)}>Request Changes</button>
+                </div>}
+              </section>
+            )}
           </div>
         </div>
       )}
+
+      {approvalOpen && selectedStudent && <div className="admin-modal-overlay"><div className="admin-delete-modal admin-certificate-dialog">
+        <h2>Approve Certificate</h2>
+        <p>Confirm that this student has completed the required coursework, attendance, assessments and final project requirements.</p>
+        <div className="admin-details-grid">
+          <div><strong>Student name</strong><span>{certificateProfile?.displayName || selectedStudent.fullName}</span></div>
+          <div><strong>Course / Track</strong><span>{certificateProfile?.course || certificateProfile?.track || selectedStudent.track}</span></div>
+          <div><strong>Current attendance</strong><span>{getAttendanceDisplay(selectedStudent)}</span></div>
+          <div><strong>Current progress</strong><span>{getProgressDisplay(studentProgress)}</span></div>
+        </div>
+        <div className="admin-delete-actions"><button className="admin-cancel-delete" onClick={() => setApprovalOpen(false)}>Cancel</button><button className="admin-confirm-attendance" disabled={saving} onClick={approveCertificate}>{saving ? "Approving..." : "Confirm Approval"}</button></div>
+      </div></div>}
+
+      {changesOpen && <div className="admin-modal-overlay"><div className="admin-delete-modal admin-certificate-dialog">
+        <h2>Request Certificate Profile Changes</h2>
+        <form onSubmit={requestCertificateChanges} className="admin-change-form">
+          <label>Message to Student<textarea required value={changeMessage} onChange={(event) => setChangeMessage(event.target.value)} placeholder="Explain what the student needs to correct or update." /></label>
+          <div className="admin-delete-actions"><button type="button" className="admin-cancel-delete" onClick={() => setChangesOpen(false)}>Cancel</button><button type="submit" className="admin-confirm-attendance" disabled={saving || !changeMessage.trim()}>{saving ? "Sending..." : "Request Changes"}</button></div>
+        </form>
+      </div></div>}
 
       {editingStudent && (
         <div className="admin-modal-overlay">

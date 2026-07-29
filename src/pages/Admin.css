@@ -341,10 +341,28 @@
   margin-top: 16px;
 }
 
+.admin-certificate-application { margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+.admin-certificate-application h3 { margin: 0 0 18px; color: #12233f; font-size: 1.35rem; }
+.admin-certificate-profile { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; padding: 16px; border-radius: 18px; background: #eef3ff; }
+.admin-certificate-profile img { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; background: white; }
+.admin-certificate-profile div { display: grid; gap: 5px; }
+.admin-certificate-profile strong { color: #12233f; font-size: 1.1rem; }
+.admin-certificate-profile span { color: #667085; }
+.admin-certificate-application a { color: #315efb; font-weight: 800; }
+.admin-certificate-status { color: #102a7a !important; font-weight: 900; }
+.admin-certificate-actions { display: flex; gap: 12px; margin-top: 20px; }
+.admin-certificate-actions button { border: 0; border-radius: 999px; padding: 13px 20px; background: #102a7a; color: white; cursor: pointer; font-weight: 900; }
+.admin-certificate-actions button.secondary { border: 1px solid #102a7a; background: white; color: #102a7a; }
+.admin-certificate-dialog { width: min(620px, 100%); }
+.admin-certificate-dialog .admin-details-grid { margin: 22px 0; }
+.admin-change-form label { display: grid; gap: 10px; margin-top: 22px; color: #12233f; font-weight: 900; }
+.admin-change-form textarea { min-height: 140px; resize: vertical; padding: 14px; border: 1px solid #d0d5dd; border-radius: 14px; font: inherit; }
+
 @media (max-width: 700px) {
   .admin-details-grid {
     grid-template-columns: 1fr;
   }
+  .admin-certificate-actions { flex-direction: column; }
 }
 .admin-logout-btn {
   border: none;
