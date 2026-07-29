@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import Certificate from "../components/certificate/Certificate";
 import { db } from "../src/firebase";
 import { uploadImageToCloudinary } from "../utils/cloudinary";
 import { getSafeYouTubeEmbedUrl } from "../lms/youtube";
@@ -834,19 +835,17 @@ const LmsDashboard = () => {
       </section>
       {activePanel === "certificate" && (
         <section className="certificate-page">
-          {certificateProfile && !editingCertificate ? (
+          {certificateProfile?.status === "Approved" && !editingCertificate ? (
+            <Certificate
+              profile={certificateProfile}
+              studentName={getStudentName(student)}
+              courseName={courseName}
+            />
+          ) : certificateProfile && !editingCertificate ? (
             <div className="certificate-status-card">
               <div className="certificate-status-icon" aria-hidden="true">✓</div>
               <span>Certificate Status</span>
-              {certificateProfile.status === "Approved" ? <>
-                <h2>Certificate Approved</h2>
-                <p className="certificate-status-lead">Congratulations. Your certificate has been approved and is being prepared.</p>
-                <div className="certificate-approved-details">
-                  <div><span>Certificate ID</span><strong>{certificateProfile.certificateId}</strong></div>
-                  <div><span>Completion date</span><strong>{certificateProfile.completionDate?.toDate ? certificateProfile.completionDate.toDate().toLocaleDateString() : certificateProfile.completionDate?.seconds ? new Date(certificateProfile.completionDate.seconds * 1000).toLocaleDateString() : "Processing"}</strong></div>
-                  <div><span>Course / track</span><strong>{certificateProfile.course || certificateProfile.track || courseName}</strong></div>
-                </div>
-              </> : certificateProfile.status === "Changes Requested" ? <>
+              {certificateProfile.status === "Changes Requested" ? <>
                 <h2>Changes Required</h2>
                 <p className="certificate-status-lead">Your administrator needs you to update your certificate profile.</p>
                 <div className="certificate-admin-message"><span>Message from admin</span><p>{certificateProfile.adminMessage}</p></div>
