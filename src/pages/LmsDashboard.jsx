@@ -8,11 +8,14 @@ import {
   limit,
   orderBy,
   query,
+  serverTimestamp,
+  setDoc,
   where,
 } from "firebase/firestore";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { db } from "../src/firebase";
+import { uploadImageToCloudinary } from "../utils/cloudinary";
 import { getSafeYouTubeEmbedUrl } from "../lms/youtube";
 import { curriculumItemMatchesStudentTrack } from "../lms/tracks";
 import {
@@ -318,6 +321,20 @@ const LmsDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState("");
   const [dataError, setDataError] = useState("");
+  const [certificateProfile, setCertificateProfile] = useState(null);
+  const [certificateForm, setCertificateForm] = useState({
+    displayName: "",
+    email: "",
+    linkedin: "",
+    facebook: "",
+    instagram: "",
+    twitter: "",
+    tiktok: "",
+    photoUrl: "",
+  });
+  const [certificateLoading, setCertificateLoading] = useState(false);
+  const [certificateUploading, setCertificateUploading] = useState(false);
+  const [certificateError, setCertificateError] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -343,6 +360,28 @@ const LmsDashboard = () => {
     };
 
     refreshStudent();
+  }, [student?.id]);
+
+  useEffect(() => {
+    if (!student?.id) return;
+
+    const loadCertificateProfile = async () => {
+      try {
+        const profileSnapshot = await getDoc(
+          doc(db, "certificateProfile", student.id),
+        );
+        if (profileSnapshot.exists()) {
+          setCertificateProfile({
+            id: profileSnapshot.id,
+            ...profileSnapshot.data(),
+          });
+        }
+      } catch (error) {
+        console.error("Unable to load certificate profile:", error);
+      }
+    };
+
+    loadCertificateProfile();
   }, [student?.id]);
 
   useEffect(() => {
@@ -593,8 +632,73 @@ const LmsDashboard = () => {
 
   const logout = () => {
     localStorage.removeItem(STORAGE_KEY);
+    setCertificateProfile(null);
     setStudent(null);
     navigate("/lms", { replace: true });
+  };
+
+  const handleCertificateField = (event) => {
+    const { name, value } = event.target;
+    setCertificateForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleCertificatePhoto = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setCertificateError("Please choose a JPG, JPEG, PNG, or WEBP image.");
+      event.target.value = "";
+      return;
+    }
+
+    setCertificateUploading(true);
+    setCertificateError("");
+    try {
+      const photoUrl = await uploadImageToCloudinary(file);
+      setCertificateForm((current) => ({ ...current, photoUrl }));
+    } catch (error) {
+      setCertificateError(error.message || "Unable to upload this photo.");
+    } finally {
+      setCertificateUploading(false);
+    }
+  };
+
+  const handleCertificateSubmit = async (event) => {
+    event.preventDefault();
+    if (!certificateForm.displayName.trim() || !certificateForm.photoUrl) return;
+
+    setCertificateLoading(true);
+    setCertificateError("");
+    const profile = {
+      studentId: student.id,
+      course: student.course || student.courseName || student.program || courseName,
+      track: student.track || courseName,
+      photoUrl: certificateForm.photoUrl,
+      displayName: certificateForm.displayName.trim(),
+      email: certificateForm.email.trim(),
+      linkedin: certificateForm.linkedin.trim(),
+      facebook: certificateForm.facebook.trim(),
+      instagram: certificateForm.instagram.trim(),
+      twitter: certificateForm.twitter.trim(),
+      tiktok: certificateForm.tiktok.trim(),
+      status: "Pending",
+      submittedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      approvedAt: null,
+      certificateId: null,
+    };
+
+    try {
+      await setDoc(doc(db, "certificateProfile", student.id), profile);
+      setCertificateProfile(profile);
+    } catch (error) {
+      console.error("Unable to submit certificate application:", error);
+      setCertificateError("Unable to submit your application. Please try again.");
+    } finally {
+      setCertificateLoading(false);
+    }
   };
 
   if (!student) {
@@ -674,6 +778,7 @@ const LmsDashboard = () => {
           <button className={activePanel === "live" ? "active" : ""} onClick={() => setActivePanel("live")}>See live sessions</button>
           {!isLiveOnlyStudent && <button className={activePanel === "lessons" ? "active" : ""} onClick={() => setActivePanel("lessons")}>Curriculum</button>}
           <button onClick={() => setIsAttendanceHistoryOpen(true)}>Attendance history</button>
+          <button className={activePanel === "certificate" ? "active" : ""} onClick={() => setActivePanel("certificate")}>Certificate</button>
           <button className="lms-sidebar-logout" onClick={logout}>Logout</button>
         </aside>
         <div className="lms-main-panel">
@@ -688,6 +793,59 @@ const LmsDashboard = () => {
         </div>
         <button onClick={logout}>Logout</button>
       </section>
+      {activePanel === "certificate" && (
+        <section className="certificate-page">
+          {certificateProfile ? (
+            <div className="certificate-status-card">
+              <div className="certificate-status-icon" aria-hidden="true">✓</div>
+              <span>Certificate Status</span>
+              <h2>Pending Review</h2>
+              <p className="certificate-status-lead">Your certificate application has been received.</p>
+              <p>Your instructor/admin will review your course completion, attendance and project status before approving your certificate.</p>
+              <strong>Please check back later.</strong>
+            </div>
+          ) : (
+            <>
+              <header className="certificate-heading">
+                <span>Student credentials</span>
+                <h1>Certificate Application</h1>
+                <p>Complete your certificate profile. Your information will be reviewed before a certificate can be issued.</p>
+              </header>
+              <form className="certificate-form" onSubmit={handleCertificateSubmit}>
+                <div className="certificate-photo-field">
+                  <div className="certificate-photo-preview">
+                    {certificateForm.photoUrl ? <img src={certificateForm.photoUrl} alt="Your professional profile" /> : <span aria-hidden="true">+</span>}
+                  </div>
+                  <div>
+                    <label htmlFor="certificate-photo">Professional Photo <em>Required</em></label>
+                    <p>Upload a clear, professional headshot in JPG, JPEG, PNG, or WEBP format.</p>
+                    <label className="certificate-upload-button" htmlFor="certificate-photo">{certificateUploading ? "Uploading..." : certificateForm.photoUrl ? "Change photo" : "Upload photo"}</label>
+                    <input id="certificate-photo" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={handleCertificatePhoto} disabled={certificateUploading} />
+                  </div>
+                </div>
+                <div className="certificate-field certificate-field-wide">
+                  <label htmlFor="certificate-name">Full Name <em>Required</em></label>
+                  <input id="certificate-name" name="displayName" value={certificateForm.displayName} onChange={handleCertificateField} placeholder="Enter your full name exactly as you want it to appear on your certificate." required />
+                </div>
+                <div className="certificate-field certificate-field-wide">
+                  <label htmlFor="certificate-email">Professional Email</label>
+                  <input id="certificate-email" name="email" type="email" value={certificateForm.email} onChange={handleCertificateField} placeholder="Enter the email you would like displayed publicly." />
+                  <small>We recommend using a professional email address if you intend to share your certificate with employers.</small>
+                </div>
+                {["LinkedIn", "Facebook", "Instagram", "X (Twitter)", "TikTok"].map((label) => {
+                  const name = label === "X (Twitter)" ? "twitter" : label.toLowerCase();
+                  return <div className="certificate-field" key={name}><label htmlFor={`certificate-${name}`}>{label}</label><input id={`certificate-${name}`} name={name} type="url" value={certificateForm[name]} onChange={handleCertificateField} placeholder={`https://${name === "twitter" ? "x.com" : `${name}.com`}/yourprofile`} /></div>;
+                })}
+                {certificateError && <p className="certificate-error certificate-field-wide" role="alert">{certificateError}</p>}
+                <div className="certificate-actions certificate-field-wide">
+                  <button type="submit" disabled={!certificateForm.displayName.trim() || !certificateForm.photoUrl || certificateUploading || certificateLoading}>{certificateLoading ? "Submitting..." : "Submit application"}</button>
+                  <small>Only your photo and full name are required.</small>
+                </div>
+              </form>
+            </>
+          )}
+        </section>
+      )}
       {activePanel === "live" && (
         <section className="lms-live-sessions">
           <div className="lms-section-title"><span>Watch live sessions</span><h2>Published sessions for you</h2></div>
