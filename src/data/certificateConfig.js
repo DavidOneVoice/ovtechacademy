@@ -4,6 +4,8 @@ export const COURSE_DURATIONS = {
 };
 
 export const DEFAULT_COURSE_DURATION = "3 Months";
+export const CERTIFICATE_WIDTH = 1120;
+export const CERTIFICATE_HEIGHT = 790;
 
 export const COURSE_SKILLS = {
   "Data Analytics": ["Microsoft Excel", "SQL", "Power BI", "Power Query", "Python", "Data Visualization"],
@@ -19,5 +21,15 @@ export const CERTIFICATE_FOOTER = {
   website: "www.ovtechacademy.com",
 };
 
-export const getCourseDuration = (course) => COURSE_DURATIONS[course] || DEFAULT_COURSE_DURATION;
-export const getCourseSkills = (course) => COURSE_SKILLS[course] || [];
+export const normalizeCourseName = (course = "") => {
+  const normalized = course.trim().toLowerCase();
+  if (normalized.includes("software development")) return "Software Development";
+  if (normalized.includes("data analytics")) return "Data Analytics";
+  if (normalized.includes("cybersecurity") || normalized.includes("cyber security")) return "Cybersecurity";
+  if (normalized.includes("virtual assistant")) return "Virtual Assistant";
+  if (normalized.includes("artificial intelligence")) return "Artificial Intelligence";
+  return course.trim();
+};
+
+export const getCourseDuration = (course) => COURSE_DURATIONS[normalizeCourseName(course)] || DEFAULT_COURSE_DURATION;
+export const getCourseSkills = (course) => COURSE_SKILLS[normalizeCourseName(course)] || [];
