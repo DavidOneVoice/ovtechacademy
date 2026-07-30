@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 import logo from "../../assets/certificate/OV logo 2.png";
 import signature from "../../assets/certificate/my signature.png";
 import { CERTIFICATE_FOOTER, getCourseDuration } from "../../data/certificateConfig";
+import CertificateQrCode from "./CertificateQrCode";
 
 const formatCompletionDate = (value) => {
   const date = value?.toDate ? value.toDate() : value?.seconds ? new Date(value.seconds * 1000) : value ? new Date(value) : null;
@@ -12,7 +13,7 @@ const formatCompletionDate = (value) => {
 
 const nameClass = (name) => name.length > 52 ? "certificate-name certificate-name-long" : name.length > 34 ? "certificate-name certificate-name-medium" : "certificate-name";
 
-const CertificateCanvas = forwardRef(function CertificateCanvas({ name, course, certificateId, completionDate, qrCodeUrl, skills }, ref) {
+const CertificateCanvas = forwardRef(function CertificateCanvas({ name, course, certificateId, completionDate, verificationUrl, skills }, ref) {
   return (
     <article className="digital-certificate" ref={ref} aria-label={`Certificate of completion for ${name}`}>
       <div className="certificate-corner certificate-corner-top" aria-hidden="true" />
@@ -35,7 +36,7 @@ const CertificateCanvas = forwardRef(function CertificateCanvas({ name, course, 
       <section className="certificate-validation">
         <div className="certificate-signature"><img src={signature} alt="Signature of Badru Olumide David" /><strong>Badru Olumide David</strong><span>Founder &amp; Academic Director</span></div>
         <div className="certificate-verified-badge"><span aria-hidden="true">✓</span><div><small>OVTech</small><strong>Verified Graduate</strong></div></div>
-        <div className="certificate-qr"><img src={qrCodeUrl} alt={`QR code to verify certificate ${certificateId}`} crossOrigin="anonymous" /><span>Scan to verify</span></div>
+        <div className="certificate-qr"><CertificateQrCode value={verificationUrl} label={`QR code to verify certificate ${certificateId}`} /><span>Scan to verify</span></div>
       </section>
       <footer className="digital-certificate-footer"><strong>{CERTIFICATE_FOOTER.division}</strong><span>{CERTIFICATE_FOOTER.registration}</span><span>{CERTIFICATE_FOOTER.website}</span></footer>
     </article>

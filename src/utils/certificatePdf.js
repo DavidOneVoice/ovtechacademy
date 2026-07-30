@@ -1,14 +1,18 @@
 import { CERTIFICATE_HEIGHT, CERTIFICATE_WIDTH } from "../data/certificateConfig";
 
-const waitForAssets = async (element) => {
+export const waitForCertificateImages = async (element) => {
   await document.fonts?.ready;
   const images = [...element.querySelectorAll("img")];
-  await Promise.all(images.map((image) => image.complete && image.naturalWidth
-    ? Promise.resolve()
-    : new Promise((resolve, reject) => {
-      image.addEventListener("load", resolve, { once: true });
-      image.addEventListener("error", reject, { once: true });
-    })));
+  await Promise.all(images.map((image) => {
+    if (!image.currentSrc && !image.src) return Promise.reject(new Error("A certificate image has no source."));
+    if (image.complete) return image.naturalWidth > 0
+      ? Promise.resolve()
+      : Promise.reject(new Error("A certificate image could not be loaded."));
+    return new Promise((resolve, reject) => {
+      image.addEventListener("load", () => image.naturalWidth > 0 ? resolve() : reject(new Error("A certificate image could not be loaded.")), { once: true });
+      image.addEventListener("error", () => reject(new Error("A certificate image could not be loaded.")), { once: true });
+    });
+  }));
 };
 
 const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
@@ -40,7 +44,7 @@ const copyComputedStyles = (source, clone) => {
 };
 
 const renderCertificate = async (element) => {
-  await waitForAssets(element);
+  await waitForCertificateImages(element);
   const clone = element.cloneNode(true);
   copyComputedStyles(element, clone);
   await inlineImages(element, clone);

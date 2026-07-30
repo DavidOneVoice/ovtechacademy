@@ -42,7 +42,7 @@
 .certificate-verified-badge > span { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 50%; color: #fff; background: #bc8c27; font-weight: 900; }
 .certificate-verified-badge div { display: grid; } .certificate-verified-badge small { color: #9a721e; font-size: 8px; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; } .certificate-verified-badge strong { font-size: 11px; }
 .certificate-qr { justify-self: end; display: grid; justify-items: center; gap: 3px; }
-.certificate-qr img { box-sizing: content-box; width: 80px; height: 80px; padding: 4px; border: 1px solid #ccd5e2; background: #fff; image-rendering: crisp-edges; }
+.certificate-qr svg { box-sizing: content-box; width: 80px; height: 80px; padding: 4px; border: 1px solid #ccd5e2; background: #fff; image-rendering: crisp-edges; }
 .certificate-qr span { color: #66758b; font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .digital-certificate-footer { position: absolute; right: 58px; bottom: 23px; left: 58px; display: flex; align-items: center; justify-content: space-around; gap: 24px; padding-top: 9px; border-top: 1px solid #dfe4eb; color: #667387; font-size: 9px; letter-spacing: .03em; white-space: nowrap; }
 .digital-certificate-footer strong { color: #183764; }
