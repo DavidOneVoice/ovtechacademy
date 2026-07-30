@@ -13,11 +13,11 @@ account at `serviceAccountKey.json`, then explicitly run:
 npm run backfill:certificates -- --confirm
 ```
 
-The script looks up the approved `certificateProfile` for
-`OVT-SD-2026-000001` and upserts that certificate's minimal public record (with
-merge). It does not allocate an ID, update a counter, alter the profile, or copy
-private profile fields. It fails clearly if the profile is absent, ambiguous,
-not approved, or missing a required public value.
+The admin-only script scans every approved `certificateProfile`, checks the
+corresponding `publicCertificates/{certificateId}` document, and creates only
+records that are missing. It never allocates an ID, updates a counter, alters a
+profile, overwrites an existing public record, or copies private profile fields.
+It fails clearly if an approved profile is missing a required public value.
 
 ## Security limitation
 
