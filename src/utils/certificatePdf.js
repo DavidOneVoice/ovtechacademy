@@ -54,22 +54,22 @@ const renderCertificate = async (element) => {
   clone.style.boxShadow = "none";
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${CERTIFICATE_WIDTH}" height="${CERTIFICATE_HEIGHT}" viewBox="0 0 ${CERTIFICATE_WIDTH} ${CERTIFICATE_HEIGHT}"><foreignObject width="100%" height="100%">${new XMLSerializer().serializeToString(clone)}</foreignObject></svg>`;
-  const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
-  try {
-    const rendered = new Image();
-    rendered.decoding = "async";
-    rendered.src = svgUrl;
-    await rendered.decode();
-    const canvas = document.createElement("canvas");
-    canvas.width = CERTIFICATE_WIDTH * 2;
-    canvas.height = CERTIFICATE_HEIGHT * 2;
-    const context = canvas.getContext("2d");
-    context.scale(2, 2);
-    context.drawImage(rendered, 0, 0, CERTIFICATE_WIDTH, CERTIFICATE_HEIGHT);
-    return canvas;
-  } finally {
-    URL.revokeObjectURL(svgUrl);
-  }
+  // A blob URL has an opaque origin in some browsers. Drawing an SVG loaded
+  // from one can therefore taint the destination canvas even when every image
+  // inside the certificate has already been inlined. A data URL keeps this
+  // self-contained SVG origin-clean so that the canvas can be exported.
+  const svgUrl = await blobToDataUrl(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+  const rendered = new Image();
+  rendered.decoding = "async";
+  rendered.src = svgUrl;
+  await rendered.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = CERTIFICATE_WIDTH * 2;
+  canvas.height = CERTIFICATE_HEIGHT * 2;
+  const context = canvas.getContext("2d");
+  context.scale(2, 2);
+  context.drawImage(rendered, 0, 0, CERTIFICATE_WIDTH, CERTIFICATE_HEIGHT);
+  return canvas;
 };
 
 const dataUrlBytes = (dataUrl) => {
