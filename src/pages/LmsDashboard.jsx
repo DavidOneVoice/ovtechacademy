@@ -18,7 +18,7 @@ import Footer from "../components/Footer";
 import Certificate from "../components/certificate/Certificate";
 import { db } from "../src/firebase";
 import { uploadImageToCloudinary } from "../utils/cloudinary";
-import { createPublicAlumniRecord, publicAlumniRef } from "../services/publicAlumni";
+import { createPublicAlumniRecord, logPublicAlumniRecord, publicAlumniRef } from "../services/publicAlumni";
 import { getSafeYouTubeEmbedUrl } from "../lms/youtube";
 import { curriculumItemMatchesStudentTrack } from "../lms/tracks";
 import {
@@ -751,8 +751,10 @@ const LmsDashboard = () => {
   const updateAlumniVisibility = async (event) => {
     const consent = event.target.checked;
     if (certificateProfile?.status !== "Approved" || !certificateProfile.certificateId) return;
+    const previousConsent = certificateProfile.showInAlumniDirectory === true;
     setAlumniVisibilitySaving(true);
-    setAlumniVisibilityMessage("");
+    setCertificateProfile((current) => ({ ...current, showInAlumniDirectory: consent }));
+    setAlumniVisibilityMessage(consent ? "Adding you to the alumni directory..." : "Removing you from the alumni directory...");
     const profileRef = doc(db, CERTIFICATE_PROFILE_COLLECTION, student.id);
     const alumniRef = publicAlumniRef(certificateProfile.certificateId);
     try {
@@ -761,11 +763,12 @@ const LmsDashboard = () => {
       if (consent) batch.set(alumniRef, createPublicAlumniRecord({ profile: certificateProfile, certificateId: certificateProfile.certificateId }));
       else batch.delete(alumniRef);
       await batch.commit();
-      setCertificateProfile((current) => ({ ...current, showInAlumniDirectory: consent }));
-      setAlumniVisibilityMessage(consent ? "Your graduate profile is now listed publicly." : "Your graduate profile has been removed from the directory.");
+      if (consent) await logPublicAlumniRecord(certificateProfile.certificateId);
+      setAlumniVisibilityMessage("Your alumni directory visibility has been updated.");
     } catch (error) {
       console.error("Unable to update alumni directory visibility:", error);
-      setAlumniVisibilityMessage("We could not update your directory visibility. Please try again.");
+      setCertificateProfile((current) => ({ ...current, showInAlumniDirectory: previousConsent }));
+      setAlumniVisibilityMessage("We could not update your alumni directory visibility. Please try again.");
     } finally { setAlumniVisibilitySaving(false); }
   };
 
@@ -873,7 +876,7 @@ const LmsDashboard = () => {
               <div><span>Public graduate profile</span><h2 id="alumni-visibility-title">Alumni Directory Visibility</h2><strong>{certificateProfile.showInAlumniDirectory === true ? "Listed publicly" : "Not listed publicly"}</strong></div>
               <label><input type="checkbox" checked={certificateProfile.showInAlumniDirectory === true} onChange={updateAlumniVisibility} disabled={alumniVisibilitySaving} /> Show my profile in the OVTech Academy Alumni Directory.</label>
               <p>Your name, professional photo, course, completion date and selected professional links may be displayed publicly. You can withdraw this permission later.</p>
-              {alumniVisibilityMessage && <p role="status">{alumniVisibilityMessage}</p>}
+              {alumniVisibilityMessage && <p className={alumniVisibilitySaving ? "alumni-saving" : ""} role="status">{alumniVisibilitySaving && <span className="alumni-spinner" aria-hidden="true" />}{alumniVisibilityMessage}</p>}
             </section>
           </>
           ) : certificateProfile && !editingCertificate ? (

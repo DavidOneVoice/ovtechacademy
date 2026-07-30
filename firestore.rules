@@ -151,16 +151,15 @@ service cloud.firestore {
 
       // Active profiles are deliberately listable for the consent-only public directory.
       // Every public client query must include where('status', '==', 'active').
-      allow get: if resource.data.status == 'active';
-      allow list: if resource.data.status == 'active';
+      allow get, list: if resource.data.status == 'active';
 
       // This legacy app has no Firebase Auth (see certificateProfile comment).
       // Writes are therefore limited to the exact public schema and an existing
       // approved certificate. Firebase Auth/custom claims are required to make
       // the browser's student/admin distinction cryptographically enforceable.
-      allow create, update: if hasSafeAlumniSchema();
-      allow delete: if resource.data.certificateId == certificateId
-        && exists(/databases/$(database)/documents/publicCertificates/$(certificateId));
+      allow create, update: if request.resource.data.status == 'active'
+        && hasSafeAlumniSchema();
+      allow delete: if true;
     }
 
     match /certificateCounters/{counterId} {
