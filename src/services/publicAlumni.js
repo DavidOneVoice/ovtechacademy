@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -13,6 +14,11 @@ import { db } from "../src/firebase";
 
 export const PUBLIC_ALUMNI_COLLECTION = "publicAlumni";
 export const ALUMNI_PAGE_SIZE = 12;
+export const ALUMNI_QUERY_CONSTRAINTS = [
+  'where("status", "==", "active")',
+  'orderBy("completionDate", "desc")',
+  "limit(12)",
+];
 const SOCIAL_FIELDS = ["linkedin", "facebook", "instagram", "twitter", "tiktok"];
 
 export const toDate = (value) => {
@@ -48,12 +54,49 @@ export const getAlumniPage = async (cursor = null) => {
     limit(ALUMNI_PAGE_SIZE),
   ];
   if (cursor) constraints.push(startAfter(cursor));
-  const snapshot = await getDocs(query(collection(db, PUBLIC_ALUMNI_COLLECTION), ...constraints));
-  return {
-    records: snapshot.docs.map((item) => ({ id: item.id, ...item.data() })),
-    cursor: snapshot.docs.at(-1) || null,
-    hasMore: snapshot.size === ALUMNI_PAGE_SIZE,
-  };
+  try {
+    const snapshot = await getDocs(query(collection(db, PUBLIC_ALUMNI_COLLECTION), ...constraints));
+    return {
+      records: snapshot.docs.map((item) => ({ id: item.id, ...item.data() })),
+      cursor: snapshot.docs.at(-1) || null,
+      hasMore: snapshot.size === ALUMNI_PAGE_SIZE,
+    };
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      const message = String(error?.message || "");
+      console.error("[public alumni query]", {
+        collectionPath: PUBLIC_ALUMNI_COLLECTION,
+        queryConstraints: [...ALUMNI_QUERY_CONSTRAINTS, ...(cursor ? ["startAfter(cursor)"] : [])],
+        firebaseErrorCode: error?.code || "unknown",
+        firebaseErrorMessage: message,
+        includesMissingIndexUrl: /https:\/\/console\.firebase\.google\.com\/\S+/i.test(message),
+      });
+    }
+    throw error;
+  }
 };
 
 export const publicAlumniRef = (certificateId) => doc(db, PUBLIC_ALUMNI_COLLECTION, certificateId);
+
+export const logPublicAlumniRecord = async (certificateId) => {
+  if (!import.meta.env.DEV) return;
+  try {
+    const reference = publicAlumniRef(certificateId);
+    const snapshot = await getDoc(reference);
+    const data = snapshot.data();
+    console.info("[public alumni consent write]", {
+      documentPath: reference.path,
+      exists: snapshot.exists(),
+      publicFields: data && {
+        certificateId: data.certificateId,
+        studentName: data.studentName,
+        courseOrTrack: data.courseOrTrack,
+        completionDate: data.completionDate,
+        status: data.status,
+        verificationPath: data.verificationPath,
+      },
+    });
+  } catch (error) {
+    console.warn("[public alumni consent write] Could not verify the saved public record.", error);
+  }
+};
