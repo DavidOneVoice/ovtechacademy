@@ -16,6 +16,7 @@ import AttendancePage from "./pages/AttendancePage";
 import AdminAssistant from "./pages/AdminAssistant";
 import VerifySearch from "./pages/VerifySearch";
 import VerifyCertificate from "./pages/VerifyCertificate";
+import Alumni from "./pages/Alumni";
 import { ADMIN_ROLES, getStoredAdminRole } from "./auth/adminRoles";
 
 const AdminDashboardRoute = () => (
@@ -31,6 +32,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/verify" element={<VerifySearch />} />
         <Route path="/verify/:certificateId" element={<VerifyCertificate />} />
+        <Route path="/alumni" element={<Alumni />} />
         <Route path="/scholarship" element={<Scholarship />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/lms" caseSensitive element={<LmsDashboard />} />

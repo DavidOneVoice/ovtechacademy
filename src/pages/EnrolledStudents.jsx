@@ -13,10 +13,12 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { getStoredAdminRole } from "../auth/adminRoles";
 import { getProgressId } from "../lms/progress";
 import { createPublicCertificateRecord } from "../services/publicCertificates";
+import { createPublicAlumniRecord, publicAlumniRef } from "../services/publicAlumni";
 
 import courses from "../data/courses";
 import "./Admin.css";
@@ -235,11 +237,12 @@ const EnrolledStudents = () => {
       });
       debugApproval("4. Public document path", publicDocumentRef.path);
       debugApproval("5. setDoc called", publicData);
-      await setDoc(
-        doc(db, "publicCertificates", certificateId),
-        publicData,
-        { merge: true },
-      );
+      const publicBatch = writeBatch(db);
+      publicBatch.set(doc(db, "publicCertificates", certificateId), publicData, { merge: true });
+      if (approvedProfile.showInAlumniDirectory === true) {
+        publicBatch.set(publicAlumniRef(certificateId), createPublicAlumniRecord({ profile: approvedProfile, certificateId }));
+      }
+      await publicBatch.commit();
       debugApproval("6. setDoc success", publicDocumentRef.path);
       setCertificateProfile((profile) => ({ ...profile, status: "Approved", certificateId }));
       setApprovalOpen(false);

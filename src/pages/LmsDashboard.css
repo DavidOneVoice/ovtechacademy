@@ -605,6 +605,13 @@
 .certificate-actions { display: flex; align-items: center; gap: 18px; padding-top: 4px; }
 .certificate-actions button { padding: 15px 24px; border: 0; border-radius: 999px; background: linear-gradient(135deg,#315efb,#102a7a); color: #fff; cursor: pointer; font-weight: 900; box-shadow: 0 14px 30px rgba(49,94,251,.22); }
 .certificate-actions button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+.certificate-consent { padding: 18px; border: 1px solid #d8dfeb; border-radius: 16px; background: #f8fafc; }
+.certificate-consent label, .alumni-visibility label { display: flex; align-items: flex-start; gap: 12px; color: #122033; font-weight: 800; }
+.certificate-consent input, .alumni-visibility input { width: 20px; height: 20px; flex: 0 0 auto; accent-color: #193f7c; }
+.certificate-consent p, .alumni-visibility p { margin: 9px 0 0 32px; color: #667085; line-height: 1.55; }
+.alumni-visibility { margin-top: 24px; padding: clamp(22px, 4vw, 36px); border: 1px solid #d8dfeb; border-radius: 24px; background: #fff; box-shadow: 0 20px 50px rgba(16,24,40,.08); }
+.alumni-visibility span { color: #997713; font-size: .76rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.alumni-visibility h2 { margin: 8px 0; }.alumni-visibility strong { display: block; margin-bottom: 22px; color: #193f7c; }
 .certificate-error { margin: 0; color: #b42318; font-weight: 800; }
 .certificate-status-card { min-height: 480px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: clamp(32px,7vw,72px); border: 1px solid #e8edf7; border-radius: 28px; background: #fff; text-align: center; box-shadow: 0 20px 50px rgba(16,24,40,.08); }
 .certificate-status-icon { width: 82px; height: 82px; display: grid; place-items: center; margin-bottom: 24px; border-radius: 50%; background: #fff8df; color: #a87900; font-size: 2.2rem; box-shadow: 0 0 0 12px #fffbeb; }

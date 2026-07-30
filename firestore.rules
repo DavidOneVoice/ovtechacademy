@@ -9,7 +9,7 @@ service cloud.firestore {
       return [
         'studentId', 'course', 'track', 'photoUrl', 'displayName', 'email',
         'linkedin', 'facebook', 'instagram', 'twitter', 'tiktok', 'status',
-        'updatedAt', 'submittedAt', 'adminMessage'
+        'updatedAt', 'submittedAt', 'adminMessage', 'showInAlumniDirectory'
       ];
     }
 
@@ -64,6 +64,17 @@ service cloud.firestore {
         ]);
     }
 
+    function isApprovedConsentChange(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status == 'Approved'
+        && request.resource.data.status == 'Approved'
+        && request.resource.data.showInAlumniDirectory is bool
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['showInAlumniDirectory', 'updatedAt']);
+    }
+
     match /certificateProfile/{studentId} {
       // This project deliberately has no Firebase Auth: both student identity
       // and admin role are held in localStorage, which Firestore rules cannot
@@ -77,7 +88,8 @@ service cloud.firestore {
       allow create: if isStudentCreate(studentId);
       allow update: if isStudentUpdate(studentId)
         || isChangesRequest(studentId)
-        || isApproval(studentId);
+        || isApproval(studentId)
+        || isApprovedConsentChange(studentId);
       allow delete: if false;
     }
 
@@ -111,6 +123,44 @@ service cloud.firestore {
         && request.resource.data.courseOrTrack.size() > 0
         && request.resource.data.completionDate is timestamp
         && request.resource.data.issuedAt is timestamp;
+    }
+
+    match /publicAlumni/{certificateId} {
+      function hasSafeAlumniSchema() {
+        return request.resource.data.keys().hasOnly([
+            'certificateId', 'studentName', 'courseOrTrack', 'completionDate',
+            'photoUrl', 'linkedin', 'facebook', 'instagram', 'twitter',
+            'tiktok', 'verificationPath', 'profileCreatedAt', 'status'
+          ])
+          && request.resource.data.keys().hasAll([
+            'certificateId', 'studentName', 'courseOrTrack', 'completionDate',
+            'photoUrl', 'verificationPath', 'profileCreatedAt', 'status'
+          ])
+          && request.resource.data.certificateId == certificateId
+          && request.resource.data.status == 'active'
+          && request.resource.data.verificationPath == '/verify/' + certificateId
+          && request.resource.data.studentName is string
+          && request.resource.data.studentName.size() > 0
+          && request.resource.data.courseOrTrack is string
+          && request.resource.data.courseOrTrack.size() > 0
+          && request.resource.data.photoUrl is string
+          && request.resource.data.completionDate is timestamp
+          && request.resource.data.profileCreatedAt is timestamp
+          && existsAfter(/databases/$(database)/documents/publicCertificates/$(certificateId));
+      }
+
+      // Active profiles are deliberately listable for the consent-only public directory.
+      // Every public client query must include where('status', '==', 'active').
+      allow get: if resource.data.status == 'active';
+      allow list: if resource.data.status == 'active';
+
+      // This legacy app has no Firebase Auth (see certificateProfile comment).
+      // Writes are therefore limited to the exact public schema and an existing
+      // approved certificate. Firebase Auth/custom claims are required to make
+      // the browser's student/admin distinction cryptographically enforceable.
+      allow create, update: if hasSafeAlumniSchema();
+      allow delete: if resource.data.certificateId == certificateId
+        && exists(/databases/$(database)/documents/publicCertificates/$(certificateId));
     }
 
     match /certificateCounters/{counterId} {
