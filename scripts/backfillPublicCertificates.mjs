@@ -1,21 +1,50 @@
 import { getFirestore, requireConfirmation } from "./firebaseAdmin.mjs";
 
 requireConfirmation("backfillPublicCertificates.mjs");
+const certificateId = "OVT-SD-2026-000001";
 const db = await getFirestore();
-const profiles = await db.collection("certificateProfile").get();
-let written = 0; let skipped = 0;
-const writer = db.bulkWriter();
-for (const snapshot of profiles.docs) {
-  const profile = snapshot.data();
-  if (String(profile.status || "").trim().toLowerCase() !== "approved" || !profile.certificateId) { skipped += 1; continue; }
-  const certificateId = String(profile.certificateId).trim().toUpperCase();
-  const courseOrTrack = String(profile.course || profile.track || "").trim();
-  const studentName = String(profile.displayName || "").trim();
-  if (!/^OVT-[A-Z0-9]+-[0-9]{4}-[0-9]{6}$/.test(certificateId) || !courseOrTrack || !studentName || !(profile.completionDate || profile.approvedAt)) { skipped += 1; continue; }
-  const record = { certificateId, studentName, courseOrTrack, completionDate: profile.completionDate || profile.approvedAt, issuedAt: profile.approvedAt || profile.completionDate, status: "Approved", issuerName: "OVTech Academy", issuerBusinessName: "ONE VOICE TECH SOLUTIONS", registrationNumber: "9664153", verificationPath: `/verify/${certificateId}` };
-  if (profile.publicPhotoConsent === true && profile.photoUrl) record.photoUrl = profile.photoUrl;
-  if (profile.publicSocialLinksConsent === true) { const links = {}; for (const key of ["linkedin", "facebook", "instagram", "twitter", "tiktok"]) if (profile[key]) links[key] = profile[key]; if (Object.keys(links).length) record.socialLinks = links; }
-  writer.set(db.collection("publicCertificates").doc(certificateId), record, { merge: true }); written += 1;
+const profiles = await db.collection("certificateProfile")
+  .where("certificateId", "==", certificateId)
+  .get();
+
+if (profiles.empty) {
+  throw new Error(`Approved certificateProfile not found for ${certificateId}.`);
 }
-await writer.close();
-console.log(`Backfill complete: ${written} public certificate(s) upserted; ${skipped} profile(s) skipped.`);
+if (profiles.size !== 1) {
+  throw new Error(`Expected one certificateProfile for ${certificateId}, found ${profiles.size}.`);
+}
+
+const snapshot = profiles.docs[0];
+const profile = snapshot.data();
+if (String(profile.status || "").trim().toLowerCase() !== "approved") {
+  throw new Error(`certificateProfile/${snapshot.id} is not approved (status: ${profile.status ?? "missing"}).`);
+}
+
+const studentName = String(profile.displayName || "").trim();
+const courseOrTrack = String(profile.course || profile.track || "").trim();
+const completionDate = profile.completionDate || profile.approvedAt;
+const issuedAt = profile.approvedAt || profile.completionDate;
+if (!studentName || !courseOrTrack || !completionDate || !issuedAt) {
+  throw new Error(
+    `certificateProfile/${snapshot.id} is missing required public data. ` +
+    `Available fields: ${Object.keys(profile).sort().join(", ")}`,
+  );
+}
+
+const record = {
+  certificateId,
+  studentName,
+  courseOrTrack,
+  completionDate,
+  issuedAt,
+  status: "approved",
+  issuerName: "OVTech Academy",
+  issuerBusinessName: "ONE VOICE TECH SOLUTIONS",
+  registrationNumber: "9664153",
+  verificationPath: `/verify/${certificateId}`,
+};
+
+await db.collection("publicCertificates").doc(certificateId).set(record, { merge: true });
+console.log(`Source: certificateProfile/${snapshot.id}`);
+console.log(`Created: publicCertificates/${certificateId}`);
+console.log("Mapping: displayName -> studentName; course || track -> courseOrTrack; completionDate || approvedAt -> completionDate; approvedAt || completionDate -> issuedAt");

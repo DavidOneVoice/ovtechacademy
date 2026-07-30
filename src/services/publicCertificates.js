@@ -21,26 +21,21 @@ export const getPublicCertificate = async (certificateId) => {
   return { kind: "verified", certificate };
 };
 
-export const createPublicCertificateRecord = ({ certificateId, profile, courseOrTrack }) => {
-  const record = {
-    certificateId,
-    studentName: String(profile.displayName || "").trim(),
-    courseOrTrack: String(courseOrTrack || "").trim(),
-    completionDate: serverTimestamp(),
-    issuedAt: serverTimestamp(),
-    status: "Approved",
-    issuerName: "OVTech Academy",
-    issuerBusinessName: "ONE VOICE TECH SOLUTIONS",
-    registrationNumber: "9664153",
-    verificationPath: `/verify/${certificateId}`,
-  };
-
-  // Optional profile data is public only after explicit, field-specific consent.
-  if (profile.publicPhotoConsent === true && profile.photoUrl) record.photoUrl = profile.photoUrl;
-  if (profile.publicSocialLinksConsent === true) {
-    const socialLinks = ["linkedin", "facebook", "instagram", "twitter", "tiktok"]
-      .reduce((links, key) => profile[key] ? { ...links, [key]: profile[key] } : links, {});
-    if (Object.keys(socialLinks).length) record.socialLinks = socialLinks;
-  }
-  return record;
-};
+export const createPublicCertificateRecord = ({
+  certificateId,
+  profile,
+  courseOrTrack,
+  completionDate = serverTimestamp(),
+  issuedAt = serverTimestamp(),
+}) => ({
+  certificateId,
+  studentName: String(profile.displayName || "").trim(),
+  courseOrTrack: String(courseOrTrack || "").trim(),
+  completionDate,
+  issuedAt,
+  status: "approved",
+  issuerName: "OVTech Academy",
+  issuerBusinessName: "ONE VOICE TECH SOLUTIONS",
+  registrationNumber: "9664153",
+  verificationPath: `/verify/${certificateId}`,
+});

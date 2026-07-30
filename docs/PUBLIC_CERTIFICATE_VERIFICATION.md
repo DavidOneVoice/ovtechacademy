@@ -13,18 +13,18 @@ account at `serviceAccountKey.json`, then explicitly run:
 npm run backfill:certificates -- --confirm
 ```
 
-The script reads approved `certificateProfile` documents and upserts (with merge)
-their existing certificate IDs. It does not allocate IDs, update counters, or
-alter profiles. Records without a valid ID, public name, course, or issue date are
-reported as skipped. This includes `OVT-SD-2026-000001` when its approved profile
-is present and complete.
+The script looks up the approved `certificateProfile` for
+`OVT-SD-2026-000001` and upserts that certificate's minimal public record (with
+merge). It does not allocate an ID, update a counter, alter the profile, or copy
+private profile fields. It fails clearly if the profile is absent, ambiguous,
+not approved, or missing a required public value.
 
 ## Security limitation
 
 The current application does not use Firebase Authentication for administrators;
 its role is stored in browser local storage and cannot be trusted by Firestore
-rules. New approval uses one Firestore transaction for the profile, counter, and
-public record, and public writes are restricted to a fixed verification schema,
+rules. New approval updates the profile and counter transactionally, then merges
+the public record before reporting success. Public writes are restricted to a fixed verification schema,
 but those writes cannot be cryptographically admin-only in the current design.
 The backfill uses the Admin SDK. Production hardening should move approval to a
 trusted server/Cloud Function or adopt Firebase Auth admin custom claims, then
