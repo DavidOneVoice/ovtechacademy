@@ -13,7 +13,6 @@ export default function Certificate({ profile, studentName, courseName }) {
   const course = profile.course || profile.track || courseName;
   const certificateId = profile.certificateId || "Pending";
   const verificationUrl = `https://ovtechacademy.com/verify/${encodeURIComponent(certificateId)}`;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&format=png&margin=0&data=${encodeURIComponent(verificationUrl)}`;
 
   const handleDownload = async () => {
     if (downloadState === "preparing") return;
@@ -46,7 +45,7 @@ export default function Certificate({ profile, studentName, courseName }) {
           course={course}
           certificateId={certificateId}
           completionDate={profile.completionDate}
-          qrCodeUrl={qrCodeUrl}
+          verificationUrl={verificationUrl}
           skills={getCourseSkills(course)}
         />
       </CertificateViewer>
