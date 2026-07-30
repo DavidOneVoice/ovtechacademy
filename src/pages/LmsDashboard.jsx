@@ -10,6 +10,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  writeBatch,
   where,
 } from "firebase/firestore";
 import Navbar from "../components/Navbar";
@@ -17,6 +18,7 @@ import Footer from "../components/Footer";
 import Certificate from "../components/certificate/Certificate";
 import { db } from "../src/firebase";
 import { uploadImageToCloudinary } from "../utils/cloudinary";
+import { createPublicAlumniRecord, publicAlumniRef } from "../services/publicAlumni";
 import { getSafeYouTubeEmbedUrl } from "../lms/youtube";
 import { curriculumItemMatchesStudentTrack } from "../lms/tracks";
 import {
@@ -333,11 +335,14 @@ const LmsDashboard = () => {
     twitter: "",
     tiktok: "",
     photoUrl: "",
+    showInAlumniDirectory: false,
   });
   const [certificateLoading, setCertificateLoading] = useState(false);
   const [certificateUploading, setCertificateUploading] = useState(false);
   const [certificateError, setCertificateError] = useState("");
   const [editingCertificate, setEditingCertificate] = useState(false);
+  const [alumniVisibilitySaving, setAlumniVisibilitySaving] = useState(false);
+  const [alumniVisibilityMessage, setAlumniVisibilityMessage] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -651,8 +656,8 @@ const LmsDashboard = () => {
   };
 
   const handleCertificateField = (event) => {
-    const { name, value } = event.target;
-    setCertificateForm((current) => ({ ...current, [name]: value }));
+    const { checked, name, type, value } = event.target;
+    setCertificateForm((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }));
   };
 
   const handleCertificatePhoto = async (event) => {
@@ -697,6 +702,7 @@ const LmsDashboard = () => {
       instagram: certificateForm.instagram.trim(),
       twitter: certificateForm.twitter.trim(),
       tiktok: certificateForm.tiktok.trim(),
+      showInAlumniDirectory: certificateForm.showInAlumniDirectory === true,
       status: "Pending",
       updatedAt: serverTimestamp(),
       adminMessage: null,
@@ -736,9 +742,31 @@ const LmsDashboard = () => {
       linkedin: certificateProfile.linkedin || "", facebook: certificateProfile.facebook || "",
       instagram: certificateProfile.instagram || "", twitter: certificateProfile.twitter || "",
       tiktok: certificateProfile.tiktok || "", photoUrl: certificateProfile.photoUrl || "",
+      showInAlumniDirectory: certificateProfile.showInAlumniDirectory === true,
     });
     setCertificateError("");
     setEditingCertificate(true);
+  };
+
+  const updateAlumniVisibility = async (event) => {
+    const consent = event.target.checked;
+    if (certificateProfile?.status !== "Approved" || !certificateProfile.certificateId) return;
+    setAlumniVisibilitySaving(true);
+    setAlumniVisibilityMessage("");
+    const profileRef = doc(db, CERTIFICATE_PROFILE_COLLECTION, student.id);
+    const alumniRef = publicAlumniRef(certificateProfile.certificateId);
+    try {
+      const batch = writeBatch(db);
+      batch.update(profileRef, { showInAlumniDirectory: consent, updatedAt: serverTimestamp() });
+      if (consent) batch.set(alumniRef, createPublicAlumniRecord({ profile: certificateProfile, certificateId: certificateProfile.certificateId }));
+      else batch.delete(alumniRef);
+      await batch.commit();
+      setCertificateProfile((current) => ({ ...current, showInAlumniDirectory: consent }));
+      setAlumniVisibilityMessage(consent ? "Your graduate profile is now listed publicly." : "Your graduate profile has been removed from the directory.");
+    } catch (error) {
+      console.error("Unable to update alumni directory visibility:", error);
+      setAlumniVisibilityMessage("We could not update your directory visibility. Please try again.");
+    } finally { setAlumniVisibilitySaving(false); }
   };
 
   if (!student) {
@@ -835,12 +863,19 @@ const LmsDashboard = () => {
       </section>
       {activePanel === "certificate" && (
         <section className="certificate-page">
-          {certificateProfile?.status === "Approved" && !editingCertificate ? (
+          {certificateProfile?.status === "Approved" && !editingCertificate ? (<>
             <Certificate
               profile={certificateProfile}
               studentName={getStudentName(student)}
               courseName={courseName}
             />
+            <section className="alumni-visibility" aria-labelledby="alumni-visibility-title">
+              <div><span>Public graduate profile</span><h2 id="alumni-visibility-title">Alumni Directory Visibility</h2><strong>{certificateProfile.showInAlumniDirectory === true ? "Listed publicly" : "Not listed publicly"}</strong></div>
+              <label><input type="checkbox" checked={certificateProfile.showInAlumniDirectory === true} onChange={updateAlumniVisibility} disabled={alumniVisibilitySaving} /> Show my profile in the OVTech Academy Alumni Directory.</label>
+              <p>Your name, professional photo, course, completion date and selected professional links may be displayed publicly. You can withdraw this permission later.</p>
+              {alumniVisibilityMessage && <p role="status">{alumniVisibilityMessage}</p>}
+            </section>
+          </>
           ) : certificateProfile && !editingCertificate ? (
             <div className="certificate-status-card">
               <div className="certificate-status-icon" aria-hidden="true">✓</div>
@@ -889,6 +924,10 @@ const LmsDashboard = () => {
                   const name = label === "X (Twitter)" ? "twitter" : label.toLowerCase();
                   return <div className="certificate-field" key={name}><label htmlFor={`certificate-${name}`}>{label}</label><input id={`certificate-${name}`} name={name} type="url" value={certificateForm[name]} onChange={handleCertificateField} placeholder={`https://${name === "twitter" ? "x.com" : `${name}.com`}/yourprofile`} /></div>;
                 })}
+                <div className="certificate-consent certificate-field-wide">
+                  <label><input type="checkbox" name="showInAlumniDirectory" checked={certificateForm.showInAlumniDirectory} onChange={handleCertificateField} /> Display my graduate profile in the OVTech Academy Alumni Directory.</label>
+                  <p>Your name, professional photo, course, completion date and selected professional links may be displayed publicly. You can withdraw this permission later.</p>
+                </div>
                 {certificateError && <p className="certificate-error certificate-field-wide" role="alert">{certificateError}</p>}
                 <div className="certificate-actions certificate-field-wide">
                   <button type="submit" disabled={!certificateForm.displayName.trim() || !certificateForm.photoUrl || certificateUploading || certificateLoading}>{certificateLoading ? "Submitting..." : editingCertificate ? "Resubmit for review" : "Submit application"}</button>
