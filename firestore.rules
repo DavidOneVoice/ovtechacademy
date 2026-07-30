@@ -81,6 +81,38 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /publicCertificates/{certificateId} {
+      // Public verification permits a direct document lookup, never collection
+      // enumeration. Browser writes are schema-constrained because this legacy
+      // application has no Firebase Auth identity; move approval to a trusted
+      // backend before treating browser-side admin authorization as secure.
+      allow get: if true;
+      allow list, delete: if false;
+      allow create, update: if request.resource.data.keys().hasOnly([
+          'certificateId', 'studentName', 'courseOrTrack', 'completionDate',
+          'issuedAt', 'status', 'issuerName', 'issuerBusinessName',
+          'registrationNumber', 'verificationPath', 'photoUrl', 'socialLinks'
+        ])
+        && request.resource.data.keys().hasAll([
+          'certificateId', 'studentName', 'courseOrTrack', 'completionDate',
+          'issuedAt', 'status', 'issuerName', 'issuerBusinessName',
+          'registrationNumber', 'verificationPath'
+        ])
+        && request.resource.data.certificateId == certificateId
+        && certificateId.matches('^OVT-[A-Z0-9]+-[0-9]{4}-[0-9]{6}$')
+        && request.resource.data.status == 'Approved'
+        && request.resource.data.issuerName == 'OVTech Academy'
+        && request.resource.data.issuerBusinessName == 'ONE VOICE TECH SOLUTIONS'
+        && request.resource.data.registrationNumber == '9664153'
+        && request.resource.data.verificationPath == '/verify/' + certificateId
+        && request.resource.data.studentName is string
+        && request.resource.data.studentName.size() > 0
+        && request.resource.data.courseOrTrack is string
+        && request.resource.data.courseOrTrack.size() > 0
+        && request.resource.data.completionDate == request.time
+        && request.resource.data.issuedAt == request.time;
+    }
+
     match /certificateCounters/{counterId} {
       // Needed by the existing browser-side admin transaction. This cannot be
       // made admin-only until the localStorage admin login is replaced by an

@@ -11,7 +11,8 @@
     "seed:curriculum": "node scripts/seedCurriculumFromWorkbook.mjs",
     "reset:attendance": "node scripts/resetAttendanceTestData.mjs",
     "reset:lms": "node scripts/resetLmsProgress.mjs",
-    "reset:demo": "node scripts/resetDemoData.mjs"
+    "reset:demo": "node scripts/resetDemoData.mjs",
+    "backfill:certificates": "node scripts/backfillPublicCertificates.mjs"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",

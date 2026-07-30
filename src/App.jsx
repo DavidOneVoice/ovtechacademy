@@ -14,6 +14,8 @@ import AdminLms from "./pages/AdminLms";
 import AdminLiveSessions from "./pages/AdminLiveSessions";
 import AttendancePage from "./pages/AttendancePage";
 import AdminAssistant from "./pages/AdminAssistant";
+import VerifySearch from "./pages/VerifySearch";
+import VerifyCertificate from "./pages/VerifyCertificate";
 import { ADMIN_ROLES, getStoredAdminRole } from "./auth/adminRoles";
 
 const AdminDashboardRoute = () => (
@@ -27,6 +29,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/verify" element={<VerifySearch />} />
+        <Route path="/verify/:certificateId" element={<VerifyCertificate />} />
         <Route path="/scholarship" element={<Scholarship />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/lms" caseSensitive element={<LmsDashboard />} />

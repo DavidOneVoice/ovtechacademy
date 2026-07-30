@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { getStoredAdminRole } from "../auth/adminRoles";
 import { getProgressId } from "../lms/progress";
+import { createPublicCertificateRecord, PUBLIC_CERTIFICATE_COLLECTION } from "../services/publicCertificates";
 
 import courses from "../data/courses";
 import "./Admin.css";
@@ -207,6 +208,11 @@ const EnrolledStudents = () => {
           status: "Approved", approvedAt: serverTimestamp(), completionDate: serverTimestamp(),
           certificateId: id, approvedBy: getStoredAdminRole() || "admin", updatedAt: serverTimestamp(),
         });
+        transaction.set(
+          doc(db, PUBLIC_CERTIFICATE_COLLECTION, id),
+          createPublicCertificateRecord({ certificateId: id, profile: profileSnap.data(), courseOrTrack: course }),
+          { merge: true },
+        );
         return id;
       });
       setCertificateProfile((profile) => ({ ...profile, status: "Approved", certificateId }));
