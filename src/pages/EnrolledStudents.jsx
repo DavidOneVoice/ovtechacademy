@@ -194,6 +194,8 @@ const EnrolledStudents = () => {
       const year = new Date().getFullYear();
       const profileRef = doc(db, "certificateProfile", selectedStudent.id);
       const counterRef = doc(db, "certificateCounters", `${code}-${year}`);
+      const approvedAt = serverTimestamp();
+      const completionDate = serverTimestamp();
       const certificateId = await runTransaction(db, async (transaction) => {
         const [profileSnap, counterSnap] = await Promise.all([
           transaction.get(profileRef), transaction.get(counterRef),
@@ -205,16 +207,22 @@ const EnrolledStudents = () => {
         const id = `OVT-${code}-${year}-${String(next).padStart(6, "0")}`;
         transaction.set(counterRef, { value: next, courseCode: code, year, updatedAt: serverTimestamp() }, { merge: true });
         transaction.update(profileRef, {
-          status: "Approved", approvedAt: serverTimestamp(), completionDate: serverTimestamp(),
+          status: "Approved", approvedAt, completionDate,
           certificateId: id, approvedBy: getStoredAdminRole() || "admin", updatedAt: serverTimestamp(),
         });
-        transaction.set(
-          doc(db, PUBLIC_CERTIFICATE_COLLECTION, id),
-          createPublicCertificateRecord({ certificateId: id, profile: profileSnap.data(), courseOrTrack: course }),
-          { merge: true },
-        );
         return id;
       });
+      await setDoc(
+        doc(db, PUBLIC_CERTIFICATE_COLLECTION, certificateId),
+        createPublicCertificateRecord({
+          certificateId,
+          profile: certificateProfile,
+          courseOrTrack: course,
+          completionDate,
+          issuedAt: approvedAt,
+        }),
+        { merge: true },
+      );
       setCertificateProfile((profile) => ({ ...profile, status: "Approved", certificateId }));
       setApprovalOpen(false);
       showToast(`Certificate approved successfully: ${certificateId}`);
