@@ -16,7 +16,7 @@ import {
 } from "firebase/firestore";
 import { getStoredAdminRole } from "../auth/adminRoles";
 import { getProgressId } from "../lms/progress";
-import { createPublicCertificateRecord, PUBLIC_CERTIFICATE_COLLECTION } from "../services/publicCertificates";
+import { createPublicCertificateRecord } from "../services/publicCertificates";
 
 import courses from "../data/courses";
 import "./Admin.css";
@@ -187,6 +187,11 @@ const EnrolledStudents = () => {
 
   const approveCertificate = async () => {
     if (!selectedStudent || certificateProfile?.status !== "Pending") return;
+    const debugApproval = (...details) => {
+      if (import.meta.env.DEV) console.debug("[certificate approval]", ...details);
+    };
+
+    debugApproval("1. Approval started", { studentId: selectedStudent.id });
     setSaving(true);
     try {
       const course = certificateProfile.course || certificateProfile.track || selectedStudent.track;
@@ -203,6 +208,7 @@ const EnrolledStudents = () => {
         if (!profileSnap.exists() || profileSnap.data().status !== "Pending") {
           throw new Error("This application is no longer pending.");
         }
+        debugApproval("2. certificateProfile loaded", { path: profileRef.path });
         const next = Number(counterSnap.data()?.value || 0) + 1;
         const id = `OVT-${code}-${year}-${String(next).padStart(6, "0")}`;
         transaction.set(counterRef, { value: next, courseCode: code, year, updatedAt: serverTimestamp() }, { merge: true });
@@ -212,23 +218,36 @@ const EnrolledStudents = () => {
         });
         return id;
       });
+
+      debugApproval("3. certificateId found", certificateId);
+      const approvedProfileSnap = await getDoc(profileRef);
+      if (!approvedProfileSnap.exists()) {
+        throw new Error(`Approved certificateProfile disappeared: ${profileRef.path}`);
+      }
+      const approvedProfile = approvedProfileSnap.data();
+      const publicDocumentRef = doc(db, "publicCertificates", certificateId);
+      const publicData = createPublicCertificateRecord({
+        certificateId,
+        profile: approvedProfile,
+        courseOrTrack: approvedProfile.course ?? approvedProfile.track,
+        completionDate: approvedProfile.completionDate,
+        issuedAt: approvedProfile.approvedAt,
+      });
+      debugApproval("4. Public document path", publicDocumentRef.path);
+      debugApproval("5. setDoc called", publicData);
       await setDoc(
-        doc(db, PUBLIC_CERTIFICATE_COLLECTION, certificateId),
-        createPublicCertificateRecord({
-          certificateId,
-          profile: certificateProfile,
-          courseOrTrack: course,
-          completionDate,
-          issuedAt: approvedAt,
-        }),
+        doc(db, "publicCertificates", certificateId),
+        publicData,
         { merge: true },
       );
+      debugApproval("6. setDoc success", publicDocumentRef.path);
       setCertificateProfile((profile) => ({ ...profile, status: "Approved", certificateId }));
       setApprovalOpen(false);
       showToast(`Certificate approved successfully: ${certificateId}`);
     } catch (error) {
-      console.error("Certificate approval failed:", error);
+      console.error("[certificate approval] 7. Caught exception", error);
       showToast(error.message || "Certificate approval failed.");
+      throw error;
     } finally { setSaving(false); }
   };
 

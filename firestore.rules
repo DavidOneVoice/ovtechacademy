@@ -100,7 +100,7 @@ service cloud.firestore {
         ])
         && request.resource.data.certificateId == certificateId
         && certificateId.matches('^OVT-[A-Z0-9]+-[0-9]{4}-[0-9]{6}$')
-        && request.resource.data.status == 'Approved'
+        && request.resource.data.status == 'approved'
         && request.resource.data.issuerName == 'OVTech Academy'
         && request.resource.data.issuerBusinessName == 'ONE VOICE TECH SOLUTIONS'
         && request.resource.data.registrationNumber == '9664153'
@@ -109,8 +109,8 @@ service cloud.firestore {
         && request.resource.data.studentName.size() > 0
         && request.resource.data.courseOrTrack is string
         && request.resource.data.courseOrTrack.size() > 0
-        && request.resource.data.completionDate == request.time
-        && request.resource.data.issuedAt == request.time;
+        && request.resource.data.completionDate is timestamp
+        && request.resource.data.issuedAt is timestamp;
     }
 
     match /certificateCounters/{counterId} {
