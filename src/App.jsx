@@ -17,8 +17,6 @@ import AdminAssistant from "./pages/AdminAssistant";
 import VerifySearch from "./pages/VerifySearch";
 import VerifyCertificate from "./pages/VerifyCertificate";
 import Alumni from "./pages/Alumni";
-import Blog from "./pages/Blog";
-import AdminBlogs from "./pages/AdminBlogs";
 import { ADMIN_ROLES, getStoredAdminRole } from "./auth/adminRoles";
 
 const AdminDashboardRoute = () => (
@@ -35,8 +33,6 @@ function App() {
         <Route path="/verify" element={<VerifySearch />} />
         <Route path="/verify/:certificateId" element={<VerifyCertificate />} />
         <Route path="/alumni" element={<Alumni />} />
-        <Route path="/blog" element={<Blog />} />
-        <Route path="/blog/:slug" element={<Blog />} />
         <Route path="/scholarship" element={<Scholarship />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/lms" caseSensitive element={<LmsDashboard />} />
@@ -56,10 +52,6 @@ function App() {
         <Route
           path="/admin/assistant"
           element={<ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ASSISTANT]}><AdminAssistant /></ProtectedAdminRoute>}
-        />
-        <Route
-          path="/admin/blog"
-          element={<ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ADMIN]}><AdminBlogs /></ProtectedAdminRoute>}
         />
         <Route
           path="/admin/lms"
