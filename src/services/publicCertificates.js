@@ -18,7 +18,12 @@ export const getPublicCertificate = async (certificateId) => {
   const certificate = snapshot.data();
   if (normalizeCertificateId(certificate.certificateId) !== normalizedId) return { kind: "not-valid" };
   if (!isValidPublicStatus(certificate.status)) return { kind: "not-valid" };
-  return { kind: "verified", certificate };
+  const studentName = String(
+    certificate.studentName || certificate.displayName || certificate.certificateProfile?.displayName || "",
+  ).trim();
+  // A certificate is never presented as verified without identifying its holder.
+  if (!studentName) return { kind: "not-valid" };
+  return { kind: "verified", certificate: { ...certificate, studentName } };
 };
 
 export const createPublicCertificateRecord = ({

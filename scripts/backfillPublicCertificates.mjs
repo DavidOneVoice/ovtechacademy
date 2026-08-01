@@ -43,20 +43,23 @@ const candidates = profiles.docs.map((snapshot) => {
 const existingSnapshots = candidates.length
   ? await db.getAll(...candidates.map(({ ref }) => ref))
   : [];
-const missing = candidates.filter((_, index) => !existingSnapshots[index].exists);
+const repairs = candidates.filter((_, index) => {
+  const existing = existingSnapshots[index];
+  return !existing.exists || !String(existing.data()?.studentName || "").trim();
+});
 
-for (let offset = 0; offset < missing.length; offset += 500) {
+for (let offset = 0; offset < repairs.length; offset += 500) {
   const batch = db.batch();
-  for (const { ref, record } of missing.slice(offset, offset + 500)) {
-    batch.create(ref, record);
+  for (const { ref, record } of repairs.slice(offset, offset + 500)) {
+    batch.set(ref, record, { merge: true });
   }
   await batch.commit();
 }
 
-for (const { profilePath, ref } of missing) {
-  console.log(`Created ${ref.path} from ${profilePath}`);
+for (const { profilePath, ref } of repairs) {
+  console.log(`Created or repaired ${ref.path} from ${profilePath}`);
 }
 console.log(
   `Backfill complete: scanned ${profiles.size} approved profiles, ` +
-  `created ${missing.length}, skipped ${candidates.length - missing.length} existing records.`,
+  `created or repaired ${repairs.length}, skipped ${candidates.length - repairs.length} complete existing records.`,
 );

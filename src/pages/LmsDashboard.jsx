@@ -328,18 +328,20 @@ const LmsDashboard = () => {
   const [certificateProfile, setCertificateProfile] = useState(null);
   const [certificateForm, setCertificateForm] = useState({
     displayName: "",
-    email: "",
+    professionalEmail: "",
+    phone: "",
     linkedin: "",
     facebook: "",
     instagram: "",
     twitter: "",
     tiktok: "",
     photoUrl: "",
-    showInAlumniDirectory: false,
+    showInAlumniDirectory: true,
   });
   const [certificateLoading, setCertificateLoading] = useState(false);
   const [certificateUploading, setCertificateUploading] = useState(false);
   const [certificateError, setCertificateError] = useState("");
+  const [certificateSaveMessage, setCertificateSaveMessage] = useState("");
   const [editingCertificate, setEditingCertificate] = useState(false);
   const [alumniVisibilitySaving, setAlumniVisibilitySaving] = useState(false);
   const [alumniVisibilityMessage, setAlumniVisibilityMessage] = useState("");
@@ -393,6 +395,13 @@ const LmsDashboard = () => {
             id: profileSnapshot.id,
             ...profileSnapshot.data(),
           });
+        } else {
+          setCertificateForm((current) => ({
+            ...current,
+            professionalEmail: current.professionalEmail || STUDENT_EMAIL_FIELDS.map((key) => student[key]).find(hasValue) || "",
+            phone: current.phone || STUDENT_PHONE_FIELDS.map((key) => student[key]).find(hasValue) || "",
+            showInAlumniDirectory: true,
+          }));
         }
       } catch (error) {
         console.error("Unable to load certificate profile:", error);
@@ -689,6 +698,7 @@ const LmsDashboard = () => {
 
     setCertificateLoading(true);
     setCertificateError("");
+    setCertificateSaveMessage("Saving alumni profile...");
     const isResubmission = certificateProfile?.status === "Changes Requested";
     const profile = {
       studentId: student.id,
@@ -696,7 +706,8 @@ const LmsDashboard = () => {
       track: student.track || courseName,
       photoUrl: certificateForm.photoUrl,
       displayName: certificateForm.displayName.trim(),
-      email: certificateForm.email.trim(),
+      professionalEmail: certificateForm.professionalEmail.trim(),
+      phone: certificateForm.phone.trim(),
       linkedin: certificateForm.linkedin.trim(),
       facebook: certificateForm.facebook.trim(),
       instagram: certificateForm.instagram.trim(),
@@ -728,9 +739,11 @@ const LmsDashboard = () => {
         setCertificateProfile(newProfile);
       }
       setEditingCertificate(false);
+      setCertificateSaveMessage("Your certificate application and alumni profile preferences were saved.");
     } catch (error) {
       console.error("Unable to submit certificate application:", error);
       setCertificateError("Unable to submit your application. Please try again.");
+      setCertificateSaveMessage("");
     } finally {
       setCertificateLoading(false);
     }
@@ -738,11 +751,13 @@ const LmsDashboard = () => {
 
   const editCertificateProfile = () => {
     setCertificateForm({
-      displayName: certificateProfile.displayName || "", email: certificateProfile.email || "",
+      displayName: certificateProfile.displayName || "",
+      professionalEmail: certificateProfile.professionalEmail || certificateProfile.email || "",
+      phone: certificateProfile.phone || certificateProfile.whatsapp || "",
       linkedin: certificateProfile.linkedin || "", facebook: certificateProfile.facebook || "",
       instagram: certificateProfile.instagram || "", twitter: certificateProfile.twitter || "",
       tiktok: certificateProfile.tiktok || "", photoUrl: certificateProfile.photoUrl || "",
-      showInAlumniDirectory: certificateProfile.showInAlumniDirectory === true,
+      showInAlumniDirectory: certificateProfile.showInAlumniDirectory !== false,
     });
     setCertificateError("");
     setEditingCertificate(true);
@@ -754,7 +769,7 @@ const LmsDashboard = () => {
     const previousConsent = certificateProfile.showInAlumniDirectory === true;
     setAlumniVisibilitySaving(true);
     setCertificateProfile((current) => ({ ...current, showInAlumniDirectory: consent }));
-    setAlumniVisibilityMessage(consent ? "Adding you to the alumni directory..." : "Removing you from the alumni directory...");
+    setAlumniVisibilityMessage("Saving alumni profile...");
     const profileRef = doc(db, CERTIFICATE_PROFILE_COLLECTION, student.id);
     const alumniRef = publicAlumniRef(certificateProfile.certificateId);
     try {
@@ -919,21 +934,27 @@ const LmsDashboard = () => {
                   <input id="certificate-name" name="displayName" value={certificateForm.displayName} onChange={handleCertificateField} placeholder="Enter your full name exactly as you want it to appear on your certificate." required />
                 </div>
                 <div className="certificate-field certificate-field-wide">
+                  <p><strong>Only the contact details you provide here may appear on your public alumni profile.</strong></p>
                   <label htmlFor="certificate-email">Professional Email</label>
-                  <input id="certificate-email" name="email" type="email" value={certificateForm.email} onChange={handleCertificateField} placeholder="Enter the email you would like displayed publicly." />
+                  <input id="certificate-email" name="professionalEmail" type="email" value={certificateForm.professionalEmail} onChange={handleCertificateField} placeholder="Enter the email you would like displayed publicly." />
                   <small>We recommend using a professional email address if you intend to share your certificate with employers.</small>
+                </div>
+                <div className="certificate-field certificate-field-wide">
+                  <label htmlFor="certificate-phone">Professional Phone</label>
+                  <input id="certificate-phone" name="phone" type="tel" value={certificateForm.phone} onChange={handleCertificateField} placeholder="Enter the phone number you would like displayed publicly." />
                 </div>
                 {["LinkedIn", "Facebook", "Instagram", "X (Twitter)", "TikTok"].map((label) => {
                   const name = label === "X (Twitter)" ? "twitter" : label.toLowerCase();
                   return <div className="certificate-field" key={name}><label htmlFor={`certificate-${name}`}>{label}</label><input id={`certificate-${name}`} name={name} type="url" value={certificateForm[name]} onChange={handleCertificateField} placeholder={`https://${name === "twitter" ? "x.com" : `${name}.com`}/yourprofile`} /></div>;
                 })}
                 <div className="certificate-consent certificate-field-wide">
-                  <label><input type="checkbox" name="showInAlumniDirectory" checked={certificateForm.showInAlumniDirectory} onChange={handleCertificateField} /> Display my graduate profile in the OVTech Academy Alumni Directory.</label>
+                  <label><input type="checkbox" name="showInAlumniDirectory" checked={certificateForm.showInAlumniDirectory} onChange={handleCertificateField} disabled={certificateLoading} /> Display my graduate profile in the OVTech Academy Alumni Directory.</label>
                   <p>Your name, professional photo, course, completion date and selected professional links may be displayed publicly. You can withdraw this permission later.</p>
                 </div>
                 {certificateError && <p className="certificate-error certificate-field-wide" role="alert">{certificateError}</p>}
+                {certificateSaveMessage && <p className="certificate-field-wide" role="status">{certificateSaveMessage}</p>}
                 <div className="certificate-actions certificate-field-wide">
-                  <button type="submit" disabled={!certificateForm.displayName.trim() || !certificateForm.photoUrl || certificateUploading || certificateLoading}>{certificateLoading ? "Submitting..." : editingCertificate ? "Resubmit for review" : "Submit application"}</button>
+                  <button type="submit" disabled={!certificateForm.displayName.trim() || !certificateForm.photoUrl || certificateUploading || certificateLoading}>{certificateLoading ? "Saving alumni profile..." : editingCertificate ? "Resubmit for review" : "Submit application"}</button>
                   <small>Only your photo and full name are required.</small>
                 </div>
               </form>

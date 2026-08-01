@@ -8,6 +8,7 @@ service cloud.firestore {
     function studentProfileFields() {
       return [
         'studentId', 'course', 'track', 'photoUrl', 'displayName', 'email',
+        'professionalEmail', 'phone', 'whatsapp',
         'linkedin', 'facebook', 'instagram', 'twitter', 'tiktok', 'status',
         'updatedAt', 'submittedAt', 'adminMessage', 'showInAlumniDirectory'
       ];
@@ -129,7 +130,7 @@ service cloud.firestore {
       function hasSafeAlumniSchema() {
         return request.resource.data.keys().hasOnly([
             'certificateId', 'studentName', 'courseOrTrack', 'completionDate',
-            'photoUrl', 'linkedin', 'facebook', 'instagram', 'twitter',
+            'photoUrl', 'professionalEmail', 'phone', 'linkedin', 'facebook', 'instagram', 'twitter',
             'tiktok', 'verificationPath', 'profileCreatedAt', 'status'
           ])
           && request.resource.data.keys().hasAll([

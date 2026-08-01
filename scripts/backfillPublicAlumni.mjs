@@ -28,6 +28,10 @@ for (let offset = 0; offset < consentedProfiles.length; offset += 500) {
       profileCreatedAt: profile.approvedAt || profile.completionDate,
       status: "active",
     };
+    const professionalEmail = String(profile.professionalEmail || profile.email || "").trim();
+    const phone = String(profile.phone || profile.whatsapp || "").trim();
+    if (professionalEmail) record.professionalEmail = professionalEmail;
+    if (phone) record.phone = phone;
     socialFields.forEach((field) => { if (String(profile[field] || "").trim()) record[field] = String(profile[field]).trim(); });
     batch.set(db.collection("publicAlumni").doc(certificateId), record);
     written += 1;

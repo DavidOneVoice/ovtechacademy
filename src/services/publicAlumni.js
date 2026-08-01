@@ -40,6 +40,10 @@ export const createPublicAlumniRecord = ({ profile, certificateId }) => {
     profileCreatedAt: profile.approvedAt || serverTimestamp(),
     status: "active",
   };
+  const professionalEmail = String(profile.professionalEmail || profile.email || "").trim();
+  const phone = String(profile.phone || profile.whatsapp || "").trim();
+  if (professionalEmail) record.professionalEmail = professionalEmail;
+  if (phone) record.phone = phone;
   SOCIAL_FIELDS.forEach((field) => {
     const value = String(profile[field] || "").trim();
     if (value) record[field] = value;

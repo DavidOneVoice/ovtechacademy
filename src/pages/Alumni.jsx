@@ -6,6 +6,7 @@ import { getAlumniPage, toDate } from "../services/publicAlumni";
 import "./Alumni.css";
 
 const SOCIAL_LABELS = { linkedin: "LinkedIn", facebook: "Facebook", instagram: "Instagram", twitter: "X", tiktok: "TikTok" };
+const SOCIAL_ICONS = { linkedin: "in", facebook: "f", instagram: "◎", twitter: "𝕏", tiktok: "♪" };
 const PLACEHOLDER = "/ovlogo2.png";
 
 const formatDate = (value) => {
@@ -79,7 +80,14 @@ export default function Alumni() {
         {loading ? <p className="alumni-state" role="status">Loading Alumni</p> : failed ? <div className="alumni-state" role="alert"><h2>Unable to Load Alumni</h2><p>We could not load the alumni directory. Please try again later.</p><button className="load-more" type="button" onClick={loadAlumni}>Retry</button></div> : !alumni.length ? <p className="alumni-state">Our alumni directory is being updated. Please check back soon.</p> : !visible.length ? <p className="alumni-state">No graduates match your search or selected programme.</p> : <div className="alumni-grid">{visible.map((person) => <article className="alumni-card" key={person.certificateId}>
           <img className="alumni-photo" src={person.photoUrl || PLACEHOLDER} onError={(event) => { event.currentTarget.src = PLACEHOLDER; }} alt={`Professional portrait of ${person.studentName}`} />
           <div className="alumni-card-body"><span className="verified-badge">✓ OVTech Verified Graduate</span><h3>{person.studentName}</h3><p className="alumni-programme">{person.courseOrTrack}</p><p className="alumni-date">Completed {formatDate(person.completionDate)}</p>
-            <div className="alumni-socials" aria-label={`${person.studentName} professional links`}>{Object.entries(SOCIAL_LABELS).map(([key, label]) => person[key] ? <a key={key} href={person[key]} target="_blank" rel="noopener noreferrer" aria-label={`${person.studentName} on ${label}`}>{label}</a> : null)}</div>
+            {(person.professionalEmail || person.phone || Object.keys(SOCIAL_LABELS).some((key) => person[key])) && <section className="alumni-connect" aria-label={`Connect with ${person.studentName}`}>
+              <strong>Connect</strong>
+              <div className="alumni-contact-links">
+                {person.professionalEmail && <a href={`mailto:${person.professionalEmail}`} aria-label={`Email ${person.studentName}`}>✉ <span>{person.professionalEmail}</span></a>}
+                {person.phone && <a href={`tel:${person.phone}`} aria-label={`Call ${person.studentName}`}>☎ <span>{person.phone}</span></a>}
+              </div>
+              <div className="alumni-socials">{Object.entries(SOCIAL_LABELS).map(([key, label]) => person[key] ? <a key={key} href={person[key]} target="_blank" rel="noopener noreferrer" title={label} aria-label={`${person.studentName} on ${label}`}>{SOCIAL_ICONS[key]}</a> : null)}</div>
+            </section>}
             <Link className="certificate-link" to={`/verify/${encodeURIComponent(person.certificateId)}`}>View Certificate</Link>
           </div></article>)}</div>}
         {!failed && hasMore && <button className="load-more" type="button" onClick={loadMore} disabled={loadingMore}>{loadingMore ? "Loading alumni..." : "Load More Graduates"}</button>}
