@@ -179,5 +179,31 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['value', 'updatedAt']);
     }
+
+    match /blogPosts/{postId} {
+      function validBlogPost() {
+        return request.resource.data.keys().hasOnly([
+            'title', 'excerpt', 'content', 'imageUrl', 'category', 'status',
+            'createdAt', 'updatedAt'
+          ])
+          && request.resource.data.keys().hasAll([
+            'title', 'excerpt', 'content', 'imageUrl', 'category', 'status',
+            'createdAt', 'updatedAt'
+          ])
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.excerpt is string
+          && request.resource.data.content is string
+          && request.resource.data.imageUrl is string
+          && request.resource.data.category is string
+          && request.resource.data.status in ['draft', 'published'];
+      }
+
+      allow read: if true;
+      // This follows the existing browser-admin architecture. Firebase Auth
+      // custom claims should replace browser-side administration long term.
+      allow create, update: if validBlogPost();
+      allow delete: if true;
+    }
   }
 }
