@@ -495,9 +495,6 @@ const Admin = () => {
           <a href="/admin/live-sessions" className="admin-home-btn">
             Publish Live Sessions
           </a>
-          <a href="/admin/blog" className="admin-home-btn">
-            Manage News
-          </a>
           <button onClick={handleLogout} className="admin-logout-btn">
             Logout
           </button>
