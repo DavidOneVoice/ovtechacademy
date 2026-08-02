@@ -132,23 +132,21 @@ service cloud.firestore {
           .hasOnly(['showInAlumniDirectory', 'updatedAt']);
     }
 
-    match /certificateProfile/{studentId} {
-      // This project deliberately has no Firebase Auth: both student identity
-      // and admin role are held in localStorage, which Firestore rules cannot
-      // inspect or trust. Consequently rules cannot cryptographically distinguish
-      // a student from an admin. Restrict access to a direct document get (never
-      // collection listing) and to the exact state transitions used by the UI.
-      // Migrating both logins to Firebase Auth/custom claims is required before
-      // true per-user ownership and admin-only approval can be enforced here.
-      allow get: if true;
-      allow list: if false;
-      allow create: if isStudentCreate(studentId);
-      allow update: if isStudentUpdate(studentId)
-        || isChangesRequest(studentId)
-        || isApproval(studentId)
-        || isApprovedConsentChange(studentId);
-      allow delete: if false;
-    }
+   match /certificateProfile/{studentId} {
+  // Temporary until Firebase Authentication replaces the current localStorage authentication.
+  // The admin dashboard queries the certificateProfile collection, so collection listing
+  // must be allowed for the current browser-based admin interface.
+  allow get, list: if true;
+
+  allow create: if isStudentCreate(studentId);
+
+  allow update: if isStudentUpdate(studentId)
+    || isChangesRequest(studentId)
+    || isApproval(studentId)
+    || isApprovedConsentChange(studentId);
+
+  allow delete: if false;
+}
 
     match /publicCertificates/{certificateId} {
       // Public verification permits a direct document lookup, never collection

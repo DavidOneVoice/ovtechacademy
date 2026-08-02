@@ -5,13 +5,31 @@ import Footer from "../components/Footer";
 import { getAlumniPage, toDate } from "../services/publicAlumni";
 import "./Alumni.css";
 
-const SOCIAL_LABELS = { linkedin: "LinkedIn", facebook: "Facebook", instagram: "Instagram", twitter: "X", tiktok: "TikTok" };
-const SOCIAL_ICONS = { linkedin: "in", facebook: "f", instagram: "◎", twitter: "𝕏", tiktok: "♪" };
+const SOCIAL_LABELS = {
+  linkedin: "LinkedIn",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  twitter: "X",
+  tiktok: "TikTok",
+};
+const SOCIAL_ICONS = {
+  linkedin: "in",
+  facebook: "f",
+  instagram: "◎",
+  twitter: "𝕏",
+  tiktok: "♪",
+};
 const PLACEHOLDER = "/ovlogo2.png";
 
 const formatDate = (value) => {
   const date = toDate(value);
-  return date ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(date) : "Date unavailable";
+  return date
+    ? new Intl.DateTimeFormat("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(date)
+    : "Date unavailable";
 };
 
 export default function Alumni() {
@@ -26,72 +44,252 @@ export default function Alumni() {
   const [sort, setSort] = useState("newest");
 
   const loadAlumni = useCallback(async () => {
-    setLoading(true); setFailed(false);
+    setLoading(true);
+    setFailed(false);
     try {
       const page = await getAlumniPage();
-      setAlumni(page.records); setCursor(page.cursor); setHasMore(page.hasMore);
-    } catch { setFailed(true); }
-    finally { setLoading(false); }
+      setAlumni(page.records);
+      setCursor(page.cursor);
+      setHasMore(page.hasMore);
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     document.title = "Alumni Directory | OVTech Academy";
     const meta = document.querySelector('meta[name="description"]');
     const previous = meta?.getAttribute("content");
-    meta?.setAttribute("content", "Meet verified OVTech Academy graduates who consented to share their professional profiles and completed programmes.");
+    meta?.setAttribute(
+      "content",
+      "Meet verified OVTech Academy graduates who consented to share their professional profiles and completed programmes.",
+    );
     loadAlumni();
-    return () => { if (meta && previous) meta.setAttribute("content", previous); };
+    return () => {
+      if (meta && previous) meta.setAttribute("content", previous);
+    };
   }, [loadAlumni]);
 
-  const programmes = useMemo(() => [...new Set(alumni.map((person) => person.courseOrTrack).filter(Boolean))].sort(), [alumni]);
+  const programmes = useMemo(
+    () =>
+      [
+        ...new Set(
+          alumni.map((person) => person.courseOrTrack).filter(Boolean),
+        ),
+      ].sort(),
+    [alumni],
+  );
   const visible = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
-    return alumni.filter((person) => (!term || person.studentName.toLocaleLowerCase().includes(term)) && (programme === "all" || person.courseOrTrack === programme)).sort((a, b) => {
-      if (sort === "az" || sort === "za") return a.studentName.localeCompare(b.studentName) * (sort === "az" ? 1 : -1);
-      const difference = (toDate(b.completionDate)?.getTime() || 0) - (toDate(a.completionDate)?.getTime() || 0);
-      return sort === "oldest" ? -difference : difference;
-    });
+    return alumni
+      .filter(
+        (person) =>
+          (!term || person.studentName.toLocaleLowerCase().includes(term)) &&
+          (programme === "all" || person.courseOrTrack === programme),
+      )
+      .sort((a, b) => {
+        if (sort === "az" || sort === "za")
+          return (
+            a.studentName.localeCompare(b.studentName) *
+            (sort === "az" ? 1 : -1)
+          );
+        const difference =
+          (toDate(b.completionDate)?.getTime() || 0) -
+          (toDate(a.completionDate)?.getTime() || 0);
+        return sort === "oldest" ? -difference : difference;
+      });
   }, [alumni, programme, search, sort]);
 
   const loadMore = async () => {
     setLoadingMore(true);
     try {
       const page = await getAlumniPage(cursor);
-      setAlumni((current) => [...current, ...page.records]); setCursor(page.cursor); setHasMore(page.hasMore);
-    } catch { setFailed(true); }
-    finally { setLoadingMore(false); }
+      setAlumni((current) => [...current, ...page.records]);
+      setCursor(page.cursor);
+      setHasMore(page.hasMore);
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
-  return <div className="alumni-page">
-    <Navbar />
-    <main>
-      <header className="alumni-hero">
-        <img src="/ovlogo2.png" alt="OVTech Academy logo" />
-        <p>OVTECH ACADEMY</p><h1>Alumni Directory</h1>
-        <span>Meet graduates who have successfully completed professional training programmes at OVTech Academy.</span>
-      </header>
-      <section className="alumni-directory" aria-labelledby="directory-title">
-        <div className="alumni-section-heading"><div><p>Verified professionals</p><h2 id="directory-title">Meet our graduates</h2></div>{!loading && !failed && <span>{alumni.length} {alumni.length === 1 ? "profile" : "profiles"} loaded</span>}</div>
-        <div className="alumni-controls">
-          <label>Search by graduate name<input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search graduates" /></label>
-          <label>Programme<select value={programme} onChange={(event) => setProgramme(event.target.value)}><option value="all">All Programmes</option>{programmes.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label>Sort graduates<select value={sort} onChange={(event) => setSort(event.target.value)}><option value="newest">Newest graduates</option><option value="oldest">Oldest graduates</option><option value="az">Name A–Z</option><option value="za">Name Z–A</option></select></label>
-        </div>
-        {loading ? <p className="alumni-state" role="status">Loading Alumni</p> : failed ? <div className="alumni-state" role="alert"><h2>Unable to Load Alumni</h2><p>We could not load the alumni directory. Please try again later.</p><button className="load-more" type="button" onClick={loadAlumni}>Retry</button></div> : !alumni.length ? <p className="alumni-state">Our alumni directory is being updated. Please check back soon.</p> : !visible.length ? <p className="alumni-state">No graduates match your search or selected programme.</p> : <div className="alumni-grid">{visible.map((person) => <article className="alumni-card" key={person.certificateId}>
-          <img className="alumni-photo" src={person.photoUrl || PLACEHOLDER} onError={(event) => { event.currentTarget.src = PLACEHOLDER; }} alt={`Professional portrait of ${person.studentName}`} />
-          <div className="alumni-card-body"><span className="verified-badge">✓ OVTech Verified Graduate</span><h3>{person.studentName}</h3><p className="alumni-programme">{person.courseOrTrack}</p><p className="alumni-date">Completed {formatDate(person.completionDate)}</p>
-            {(person.professionalEmail || person.phone || Object.keys(SOCIAL_LABELS).some((key) => person[key])) && <section className="alumni-connect" aria-label={`Connect with ${person.studentName}`}>
-              <strong>Connect</strong>
-              <div className="alumni-contact-links">
-                {person.professionalEmail && <a href={`mailto:${person.professionalEmail}`} aria-label={`Email ${person.studentName}`}>✉ <span>{person.professionalEmail}</span></a>}
-                {person.phone && <a href={`tel:${person.phone}`} aria-label={`Call ${person.studentName}`}>☎ <span>{person.phone}</span></a>}
-              </div>
-              <div className="alumni-socials">{Object.entries(SOCIAL_LABELS).map(([key, label]) => person[key] ? <a key={key} href={person[key]} target="_blank" rel="noopener noreferrer" title={label} aria-label={`${person.studentName} on ${label}`}>{SOCIAL_ICONS[key]}</a> : null)}</div>
-            </section>}
-            <Link className="certificate-link" to={`/verify/${encodeURIComponent(person.certificateId)}`}>View Certificate</Link>
-          </div></article>)}</div>}
-        {!failed && hasMore && <button className="load-more" type="button" onClick={loadMore} disabled={loadingMore}>{loadingMore ? "Loading alumni..." : "Load More Graduates"}</button>}
-      </section>
-    </main><Footer />
-  </div>;
+  return (
+    <div className="alumni-page">
+      <Navbar />
+      <main>
+        <header className="alumni-hero">
+          <img src="/ovlogo2.png" alt="OVTech Academy logo" />
+          <p>OVTECH ACADEMY</p>
+          <h1>Alumni Directory</h1>
+          <span>
+            Meet graduates who have successfully completed professional training
+            programmes at OVTech Academy.
+          </span>
+        </header>
+        <section className="alumni-directory" aria-labelledby="directory-title">
+          <div className="alumni-section-heading">
+            <div>
+              <p>Verified professionals</p>
+              <h2 id="directory-title">Meet our graduates</h2>
+            </div>
+            {!loading && !failed && (
+              <span>
+                {alumni.length} {alumni.length === 1 ? "profile" : "profiles"}{" "}
+                loaded
+              </span>
+            )}
+          </div>
+          <div className="alumni-controls">
+            <label>
+              Search by graduate name
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search graduates"
+              />
+            </label>
+            <label>
+              Programme
+              <select
+                value={programme}
+                onChange={(event) => setProgramme(event.target.value)}
+              >
+                <option value="all">All Programmes</option>
+                {programmes.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Sort graduates
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value)}
+              >
+                <option value="newest">Newest graduates</option>
+                <option value="oldest">Oldest graduates</option>
+                <option value="az">Name A–Z</option>
+                <option value="za">Name Z–A</option>
+              </select>
+            </label>
+          </div>
+          {loading ? (
+            <p className="alumni-state" role="status">
+              Loading Alumni
+            </p>
+          ) : failed ? (
+            <div className="alumni-state" role="alert">
+              <h2>Unable to Load Alumni</h2>
+              <p>
+                We could not load the alumni directory. Please try again later.
+              </p>
+              <button className="load-more" type="button" onClick={loadAlumni}>
+                Retry
+              </button>
+            </div>
+          ) : !alumni.length ? (
+            <p className="alumni-state">
+              Our alumni directory is being updated. Please check back soon.
+            </p>
+          ) : !visible.length ? (
+            <p className="alumni-state">
+              No graduates match your search or selected programme.
+            </p>
+          ) : (
+            <div className="alumni-grid">
+              {visible.map((person) => (
+                <article className="alumni-card" key={person.certificateId}>
+                  <img
+                    className="alumni-photo"
+                    src={person.photoUrl || PLACEHOLDER}
+                    onError={(event) => {
+                      event.currentTarget.src = PLACEHOLDER;
+                    }}
+                    alt={`Professional portrait of ${person.studentName}`}
+                  />
+                  <div className="alumni-card-body">
+                    <span className="verified-badge">
+                      ✓ OVTech Verified Graduate
+                    </span>
+                    <h3>{person.studentName}</h3>
+                    <p className="alumni-programme">{person.courseOrTrack}</p>
+                    <p className="alumni-date">
+                      Completed {formatDate(person.completionDate)}
+                    </p>
+                    {(person.professionalEmail ||
+                      person.phone ||
+                      Object.keys(SOCIAL_LABELS).some(
+                        (key) => person[key],
+                      )) && (
+                      <section
+                        className="alumni-connect"
+                        aria-label={`Connect with ${person.studentName}`}
+                      >
+                        <strong>Connect</strong>
+                        <div className="alumni-contact-links">
+                          {person.professionalEmail && (
+                            <a
+                              href={`mailto:${person.professionalEmail}`}
+                              aria-label={`Email ${person.studentName}`}
+                            >
+                              ✉ <span>{person.professionalEmail}</span>
+                            </a>
+                          )}
+                          {person.phone && (
+                            <a
+                              href={`tel:${person.phone}`}
+                              aria-label={`Call ${person.studentName}`}
+                            >
+                              ☎ <span>{person.phone}</span>
+                            </a>
+                          )}
+                        </div>
+                        <div className="alumni-socials">
+                          {Object.entries(SOCIAL_LABELS).map(([key, label]) =>
+                            person[key] ? (
+                              <a
+                                key={key}
+                                href={person[key]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={label}
+                                aria-label={`${person.studentName} on ${label}`}
+                              >
+                                {SOCIAL_ICONS[key]}
+                              </a>
+                            ) : null,
+                          )}
+                        </div>
+                      </section>
+                    )}
+                    <Link
+                      className="certificate-link"
+                      to={`/verify/${encodeURIComponent(person.certificateId)}`}
+                    >
+                      View Certificate
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+          {!failed && hasMore && (
+            <button
+              className="load-more"
+              type="button"
+              onClick={loadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore ? "Loading alumni..." : "Load More Graduates"}
+            </button>
+          )}
+        </section>
+      </main>
+      <Footer />
+    </div>
+  );
 }
