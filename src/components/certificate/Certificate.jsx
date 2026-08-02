@@ -41,7 +41,7 @@ export default function Certificate({ profile, studentName, courseName }) {
         </button>
       </div>
       {downloadError && <p className="certificate-download-error" role="alert">{downloadError}</p>}
-      <CertificateSharing certificateElement={() => certificateRef.current} certificateId={certificateId} course={course} pdfBlobRef={pdfBlobRef} />
+      <CertificateSharing certificateId={certificateId} course={course} pdfBlobRef={pdfBlobRef} />
       <CertificateViewer>
         <CertificateCanvas
           ref={certificateRef}
