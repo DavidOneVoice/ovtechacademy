@@ -6,7 +6,10 @@ export const CERTIFICATE_ID_PATTERN = /^OVT-[A-Z0-9]+-[0-9]{4}-[0-9]{6}$/;
 
 export const normalizeCertificateId = (value) => String(value || "").trim().toUpperCase();
 export const isCertificateIdValid = (value) => CERTIFICATE_ID_PATTERN.test(normalizeCertificateId(value));
-export const isValidPublicStatus = (status) => ["approved", "valid"].includes(String(status || "").trim().toLowerCase());
+export const isValidPublicStatus = (status) => {
+  const normalizedStatus = String(status || "").trim().toLowerCase();
+  return normalizedStatus === "approved" || normalizedStatus === "valid";
+};
 
 export const getPublicCertificate = async (certificateId) => {
   const normalizedId = normalizeCertificateId(certificateId);
@@ -18,9 +21,7 @@ export const getPublicCertificate = async (certificateId) => {
   const certificate = snapshot.data();
   if (normalizeCertificateId(certificate.certificateId) !== normalizedId) return { kind: "not-valid" };
   if (!isValidPublicStatus(certificate.status)) return { kind: "not-valid" };
-  const studentName = String(
-    certificate.studentName || certificate.displayName || certificate.certificateProfile?.displayName || "",
-  ).trim();
+  const studentName = String(certificate.studentName || certificate.displayName || "").trim();
   // A certificate is never presented as verified without identifying its holder.
   if (!studentName) return { kind: "not-valid" };
   return { kind: "verified", certificate: { ...certificate, studentName } };

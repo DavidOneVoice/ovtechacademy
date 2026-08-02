@@ -1,6 +1,62 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Public application submissions and the browser-based administration
+    // screens both use this collection. A read rule also permits collection
+    // queries/listing used by the enrolled-students page.
+    match /scholarshipApplications/{documentId} {
+      allow create: if true;
+      allow read, update, delete: if true;
+    }
+
+    // LMS content is read by students and maintained through the current
+    // browser-based admin interface (which does not use Firebase Auth).
+    match /curriculum/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /lmsResources/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /liveSessions/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /lmsSettings/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /settings/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /platformSettings/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /studentProgress/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /progress/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /attendanceSessions/{sessionId} {
+      allow read, write: if true;
+
+      match /records/{recordId} {
+        allow read, write: if true;
+      }
+    }
+
+    // Supports collection-group queries over attendance records, regardless of
+    // the parent attendance session.
+    match /{path=**}/records/{recordId} {
+      allow read, write: if true;
+    }
+
     function protectedCertificateFields() {
       return ['approvedAt', 'approvedBy', 'certificateId', 'completionDate'];
     }
