@@ -20,6 +20,26 @@ export default function VerifyCertificate() {
   }, [certificateId]);
 
   const certificate = result.certificate;
+  useEffect(() => {
+    if (!certificate) return undefined;
+    const publicUrl = `https://ovtechacademy.com/verify/${encodeURIComponent(normalizeCertificateId(certificate.certificateId))}`;
+    const title = `${certificate.studentName} — ${certificate.courseOrTrack} Certificate | OVTech Academy`;
+    const values = {
+      "og:title": title,
+      "og:description": "Verified completion certificate issued by OVTech Academy.",
+      "og:url": publicUrl,
+      "og:image": "https://ovtechacademy.com/certificate-social-preview.svg",
+      "twitter:card": "summary_large_image",
+    };
+    document.title = title;
+    Object.entries(values).forEach(([property, content]) => {
+      const attribute = property.startsWith("twitter:") ? "name" : "property";
+      let meta = document.head.querySelector(`meta[${attribute}="${property}"]`);
+      if (!meta) { meta = document.createElement("meta"); meta.setAttribute(attribute, property); document.head.append(meta); }
+      meta.content = content;
+    });
+    return undefined;
+  }, [certificate]);
   const details = certificate ? [
     ["Certificate holder", certificate.studentName],
     ["Course / Track", certificate.courseOrTrack],

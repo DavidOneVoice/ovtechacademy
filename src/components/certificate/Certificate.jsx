@@ -1,12 +1,14 @@
 import { useRef, useState } from "react";
 import CertificateCanvas from "./CertificateCanvas";
 import CertificateViewer from "./CertificateViewer";
-import { downloadCertificatePdf } from "../../utils/certificatePdf";
+import CertificateSharing from "./CertificateSharing";
+import { createCertificatePdf, downloadBlob } from "../../utils/certificatePdf";
 import { getCourseSkills } from "../../data/certificateConfig";
 import "./Certificate.css";
 
 export default function Certificate({ profile, studentName, courseName }) {
   const certificateRef = useRef(null);
+  const pdfBlobRef = useRef(null);
   const [downloadState, setDownloadState] = useState("idle");
   const [downloadError, setDownloadError] = useState("");
   const name = profile.displayName || studentName;
@@ -19,7 +21,8 @@ export default function Certificate({ profile, studentName, courseName }) {
     setDownloadState("preparing");
     setDownloadError("");
     try {
-      await downloadCertificatePdf(certificateRef.current, certificateId);
+      if (!pdfBlobRef.current) pdfBlobRef.current = await createCertificatePdf(certificateRef.current);
+      downloadBlob(pdfBlobRef.current, `OVTech-Certificate-${certificateId}.pdf`);
       setDownloadState("complete");
     } catch (error) {
       console.error("Certificate PDF generation failed:", error);
@@ -38,6 +41,7 @@ export default function Certificate({ profile, studentName, courseName }) {
         </button>
       </div>
       {downloadError && <p className="certificate-download-error" role="alert">{downloadError}</p>}
+      <CertificateSharing certificateElement={() => certificateRef.current} certificateId={certificateId} course={course} pdfBlobRef={pdfBlobRef} />
       <CertificateViewer>
         <CertificateCanvas
           ref={certificateRef}

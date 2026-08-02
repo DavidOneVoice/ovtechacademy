@@ -29,3 +29,6 @@ but those writes cannot be cryptographically admin-only in the current design.
 The backfill uses the Admin SDK. Production hardening should move approval to a
 trusted server/Cloud Function or adopt Firebase Auth admin custom claims, then
 change public certificate writes to authenticated admin-only access.
+## Social preview metadata
+
+Verification routes update their title and Open Graph URL, title, description and image in the browser using the public certificate fields only. Because the current Vite/Netlify deployment is a static single-page application, social crawlers that do not execute JavaScript receive the generic branded `certificate-social-preview.svg`; per-certificate server-rendered preview images would require server-side or edge rendering and are intentionally outside the current architecture.

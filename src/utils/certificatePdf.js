@@ -43,7 +43,7 @@ const copyComputedStyles = (source, clone) => {
   });
 };
 
-const renderCertificate = async (element) => {
+export const renderCertificate = async (element) => {
   await waitForCertificateImages(element);
   const clone = element.cloneNode(true);
   copyComputedStyles(element, clone);
@@ -108,17 +108,35 @@ const createSinglePagePdf = (jpegBytes, imageWidth, imageHeight) => {
   return new Blob(parts, { type: "application/pdf" });
 };
 
-export const downloadCertificatePdf = async (element, certificateId) => {
+export const createCertificatePdf = async (element) => {
   if (!element) throw new Error("Certificate canvas is unavailable.");
   const canvas = await renderCertificate(element);
   const jpeg = dataUrlBytes(canvas.toDataURL("image/jpeg", 0.96));
-  const pdf = createSinglePagePdf(jpeg, canvas.width, canvas.height);
-  const url = URL.createObjectURL(pdf);
+  return createSinglePagePdf(jpeg, canvas.width, canvas.height);
+};
+
+export const createCertificatePng = async (element) => {
+  if (!element) throw new Error("Certificate canvas is unavailable.");
+  const canvas = await renderCertificate(element);
+  return new Promise((resolve, reject) => canvas.toBlob(
+    (blob) => blob ? resolve(blob) : reject(new Error("Certificate image could not be created.")),
+    "image/png",
+  ));
+};
+
+export const downloadBlob = (blob, filename) => {
+  const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `OVTech-Certificate-${certificateId}.pdf`;
+  anchor.download = filename;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+export const downloadCertificatePdf = async (element, certificateId) => {
+  const pdf = await createCertificatePdf(element);
+  downloadBlob(pdf, `OVTech-Certificate-${certificateId}.pdf`);
+  return pdf;
 };
