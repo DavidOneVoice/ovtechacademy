@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">OVTech Academy verified certificate</title>
+  <desc id="description">A navy, white and gold OVTech Academy verified graduate social card.</desc>
+  <rect width="1200" height="630" fill="#081d3d"/>
+  <path d="M0 500L420 80h780v550H0z" fill="#0e2e62"/>
+  <rect x="55" y="55" width="1090" height="520" rx="24" fill="#fffdf8" stroke="#c99a32" stroke-width="4"/>
+  <circle cx="155" cy="155" r="62" fill="#102f65" stroke="#c99a32" stroke-width="7"/>
+  <text x="155" y="172" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="47" font-weight="800">OV</text>
+  <text x="245" y="145" fill="#0b2859" font-family="Arial,sans-serif" font-size="34" font-weight="800" letter-spacing="4">OVTECH ACADEMY</text>
+  <text x="245" y="184" fill="#a37319" font-family="Arial,sans-serif" font-size="19" font-weight="700" letter-spacing="5">PRACTICAL TECHNOLOGY EDUCATION</text>
+  <line x1="115" y1="245" x2="1085" y2="245" stroke="#d9c28e" stroke-width="2"/>
+  <text x="600" y="355" text-anchor="middle" fill="#0b2859" font-family="Georgia,serif" font-size="61" font-weight="700">OVTech Verified Graduate</text>
+  <text x="600" y="416" text-anchor="middle" fill="#52627a" font-family="Arial,sans-serif" font-size="26">Official completion certificate · Publicly verifiable</text>
+  <rect x="390" y="465" width="420" height="62" rx="31" fill="#f8edcf" stroke="#c99a32" stroke-width="2"/>
+  <text x="600" y="505" text-anchor="middle" fill="#183764" font-family="Arial,sans-serif" font-size="23" font-weight="700">ovtechacademy.com/verify</text>
+</svg>
