@@ -2,6 +2,7 @@ const COPY = {
   loading: ["Verifying certificate...", ""],
   "not-found": ["Certificate Not Found", "We could not find an approved certificate matching this certificate ID."],
   "not-valid": ["Certificate Not Valid", "This certificate is not currently valid."],
+  incomplete: ["Certificate Record Incomplete", "This certificate record is approved but is missing required public information."],
   error: ["Unable to Verify Certificate", "We could not complete the verification request. Please try again later."],
 };
 
