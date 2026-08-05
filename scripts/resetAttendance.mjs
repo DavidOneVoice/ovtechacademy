@@ -93,15 +93,6 @@ const nonZeroAttendance = verificationStudents.docs.flatMap((studentDoc) => {
 const remainingSessions = await db.collection("attendanceSessions").get();
 const remainingRecords = await db.collectionGroup("records").get();
 
-console.log(JSON.stringify({
-  updatedStudents: operations.length - recordsSnapshot.size - sessionsSnapshot.size,
-  deletedAttendanceRecords: recordsSnapshot.size,
-  deletedAttendanceSessions: sessionsSnapshot.size,
-  committedOperations: committed,
-  nonZeroAttendance: nonZeroAttendance.length,
-  remainingAttendanceSessions: remainingSessions.size,
-  remainingAttendanceRecords: remainingRecords.size,
-}, null, 2));
 
 if (nonZeroAttendance.length || remainingSessions.size || remainingRecords.size) {
   process.exit(2);

@@ -55,11 +55,3 @@ for (let offset = 0; offset < repairs.length; offset += 500) {
   }
   await batch.commit();
 }
-
-for (const { profilePath, ref } of repairs) {
-  console.log(`Created or repaired ${ref.path} from ${profilePath}`);
-}
-console.log(
-  `Backfill complete: scanned ${profiles.size} approved profiles, ` +
-  `created or repaired ${repairs.length}, skipped ${candidates.length - repairs.length} complete existing records.`,
-);

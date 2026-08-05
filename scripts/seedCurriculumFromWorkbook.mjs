@@ -237,13 +237,7 @@ const admin = await initializeFirebaseAdmin();
 const db = await getFirestore();
 
 const workbook = XLSX.read(readFileSync(workbookPath), { type: "buffer" });
-const { sheetName, headers, rows } = readCurriculumWorksheet(workbook);
-
-console.log(`Detected worksheet name: ${sheetName}`);
-console.log("Detected headers:", headers);
-console.log("First parsed row:");
-console.log(rows[0]);
-console.log(`Total rows found: ${rows.length}`);
+const { rows } = readCurriculumWorksheet(workbook);
 
 let created = 0;
 let updated = 0;
@@ -291,8 +285,3 @@ for (const [index, row] of rows.entries()) {
     created += 1;
   }
 }
-
-console.log(`Documents updated: ${updated}`);
-console.log(
-  `Seed complete from ${workbookPath}. Created: ${created}. Updated: ${updated}. Skipped: ${skipped}.`,
-);
