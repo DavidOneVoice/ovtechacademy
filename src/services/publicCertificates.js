@@ -35,32 +35,72 @@ const logPublicCertificateDiagnostics = ({ normalizedId, documentPath, exists, c
 };
 
 export const getPublicCertificate = async (certificateId) => {
-  const normalizedId = normalizeCertificateId(certificateId);
-  if (!isCertificateIdValid(normalizedId)) return { kind: "not-found" };
+  const normalizedCertificateId = normalizeCertificateId(certificateId);
+  if (!isCertificateIdValid(normalizedCertificateId)) return { kind: "not-found" };
 
-  const certificateRef = doc(db, PUBLIC_CERTIFICATE_COLLECTION, normalizedId);
+  const certificateRef = doc(db, PUBLIC_CERTIFICATE_COLLECTION, normalizedCertificateId);
   const snapshot = await getDoc(certificateRef);
+  console.group("Certificate Verification Debug");
+  console.log("Requested ID:", normalizedCertificateId);
+  console.log("Document exists:", snapshot.exists());
+  console.log("Raw Firestore data:", snapshot.data());
+  console.groupEnd();
   if (!snapshot.exists()) {
-    logPublicCertificateDiagnostics({ normalizedId, documentPath: certificateRef.path, exists: false });
+    logPublicCertificateDiagnostics({ normalizedId: normalizedCertificateId, documentPath: certificateRef.path, exists: false });
     return { kind: "not-found" };
   }
 
   const certificate = snapshot.data();
   const normalizedStatus = getNormalizedPublicStatus(certificate);
   logPublicCertificateDiagnostics({
-    normalizedId,
+    normalizedId: normalizedCertificateId,
     documentPath: certificateRef.path,
     exists: true,
     certificate,
     normalizedStatus,
   });
 
-  if (normalizeCertificateId(certificate.certificateId) !== normalizedId) return { kind: "not-valid" };
+  if (normalizeCertificateId(certificate.certificateId) !== normalizedCertificateId) return { kind: "not-valid" };
   if (!isValidPublicStatus(certificate)) return { kind: "not-valid" };
 
   const studentName = String(certificate.studentName || certificate.displayName || "").trim();
   const courseOrTrack = String(certificate.courseOrTrack || "").trim();
-  if (!studentName || !courseOrTrack) return { kind: "incomplete" };
+  if (!studentName || !courseOrTrack) {
+    console.group("Certificate Incomplete Diagnosis");
+    console.log("certificate:", certificate);
+
+    console.log("studentName:", certificate.studentName);
+    console.log("displayName:", certificate.displayName);
+    console.log("courseOrTrack:", certificate.courseOrTrack);
+    console.log("certificateId:", certificate.certificateId);
+    console.log("status:", certificate.status);
+    console.log("completionDate:", certificate.completionDate);
+    console.log("issuedAt:", certificate.issuedAt);
+    console.log("verificationPath:", certificate.verificationPath);
+
+    const missing = [];
+
+    if (!(certificate.studentName || certificate.displayName))
+      missing.push("studentName/displayName");
+
+    if (!certificate.courseOrTrack)
+      missing.push("courseOrTrack");
+
+    if (!certificate.certificateId)
+      missing.push("certificateId");
+
+    if (!certificate.status)
+      missing.push("status");
+
+    if (!certificate.completionDate)
+      missing.push("completionDate");
+
+    console.log("Missing required fields:", missing);
+
+    console.groupEnd();
+
+    return { kind: "incomplete" };
+  }
 
   return { kind: "verified", certificate: { ...certificate, studentName, courseOrTrack } };
 };
