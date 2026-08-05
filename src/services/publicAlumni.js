@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -81,26 +80,3 @@ export const getAlumniPage = async (cursor = null) => {
 };
 
 export const publicAlumniRef = (certificateId) => doc(db, PUBLIC_ALUMNI_COLLECTION, certificateId);
-
-export const logPublicAlumniRecord = async (certificateId) => {
-  if (!import.meta.env.DEV) return;
-  try {
-    const reference = publicAlumniRef(certificateId);
-    const snapshot = await getDoc(reference);
-    const data = snapshot.data();
-    console.info("[public alumni consent write]", {
-      documentPath: reference.path,
-      exists: snapshot.exists(),
-      publicFields: data && {
-        certificateId: data.certificateId,
-        studentName: data.studentName,
-        courseOrTrack: data.courseOrTrack,
-        completionDate: data.completionDate,
-        status: data.status,
-        verificationPath: data.verificationPath,
-      },
-    });
-  } catch (error) {
-    console.warn("[public alumni consent write] Could not verify the saved public record.", error);
-  }
-};

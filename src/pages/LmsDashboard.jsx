@@ -18,7 +18,7 @@ import Footer from "../components/Footer";
 import Certificate from "../components/certificate/Certificate";
 import { db } from "../src/firebase";
 import { uploadImageToCloudinary } from "../utils/cloudinary";
-import { createPublicAlumniRecord, logPublicAlumniRecord, publicAlumniRef } from "../services/publicAlumni";
+import { createPublicAlumniRecord, publicAlumniRef } from "../services/publicAlumni";
 import { getSafeYouTubeEmbedUrl } from "../lms/youtube";
 import { curriculumItemMatchesStudentTrack } from "../lms/tracks";
 import {
@@ -383,11 +383,6 @@ const LmsDashboard = () => {
       );
       // The LMS session is localStorage-based, so this ID must remain the
       // scholarshipApplications document ID saved by the student login flow.
-      console.info("Certificate profile request", {
-        collectionPath: CERTIFICATE_PROFILE_COLLECTION,
-        currentStudentId: student.id,
-        documentId: profileRef.id,
-      });
       try {
         const profileSnapshot = await getDoc(profileRef);
         if (profileSnapshot.exists()) {
@@ -725,11 +720,6 @@ const LmsDashboard = () => {
         CERTIFICATE_PROFILE_COLLECTION,
         student.id,
       );
-      console.info("Certificate profile write", {
-        collectionPath: CERTIFICATE_PROFILE_COLLECTION,
-        currentStudentId: student.id,
-        documentId: profileRef.id,
-      });
       if (isResubmission) {
         await setDoc(profileRef, profile, { merge: true });
         setCertificateProfile((current) => ({ ...current, ...profile }));
@@ -778,7 +768,6 @@ const LmsDashboard = () => {
       if (consent) batch.set(alumniRef, createPublicAlumniRecord({ profile: certificateProfile, certificateId: certificateProfile.certificateId }));
       else batch.delete(alumniRef);
       await batch.commit();
-      if (consent) await logPublicAlumniRecord(certificateProfile.certificateId);
       setAlumniVisibilityMessage("Your alumni directory visibility has been updated.");
     } catch (error) {
       console.error("Unable to update alumni directory visibility:", error);

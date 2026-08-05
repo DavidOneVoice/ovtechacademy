@@ -31,9 +31,6 @@ const getStudentTracks = (application = {}) => [
   ...(Array.isArray(application.enrolledCourses) ? application.enrolledCourses : []),
 ].filter(Boolean);
 
-const logReset = (documentPath, fieldPath, value = "deleted") => {
-  console.log(`[attendance-reset] ${documentPath}: reset ${fieldPath} -> ${value}`);
-};
 
 const createBatchQueue = (db) => {
   let batch = db.batch();
@@ -90,12 +87,8 @@ const resetTrackAttendance = (attendance = {}, tracks = [], documentPath = "") =
       for (const field of TRACK_ATTENDANCE_FIELDS_TO_DELETE) {
         if (Object.hasOwn(resetStats, field)) {
           delete resetStats[field];
-          logReset(documentPath, `attendance.${track}.${field}`);
         }
       }
-
-      logReset(documentPath, `attendance.${track}.attendedDays`, 0);
-      logReset(documentPath, `attendance.${track}.lectureDays`, 0);
 
       return [
         track,
@@ -135,7 +128,6 @@ export const resetAttendanceTestData = async () => {
 
       for (const recordDoc of recordsSnapshot.docs) {
         await queue.queueDelete(recordDoc.ref);
-        console.log(`[attendance-reset] deleted ${recordDoc.ref.path}`);
         summary.attendanceRecordsDeleted += 1;
       }
 
@@ -156,7 +148,6 @@ export const resetAttendanceTestData = async () => {
       for (const sessionDoc of sessionsSnapshot.docs) {
         await deleteRecordsForSession(sessionDoc.ref);
         await queue.queueDelete(sessionDoc.ref);
-        console.log(`[attendance-reset] deleted ${sessionDoc.ref.path}`);
         summary.attendanceSessionsDeleted += 1;
       }
 
@@ -203,7 +194,6 @@ export const resetAttendanceTestData = async () => {
         for (const field of ATTENDANCE_FIELDS_TO_DELETE) {
           if (Object.hasOwn(application, field)) {
             update[field] = FieldValue.delete();
-            logReset(documentPath, field);
           }
         }
 
@@ -225,18 +215,8 @@ export const resetAttendanceTestData = async () => {
   return summary;
 };
 
-export const printAttendanceResetSummary = (summary) => {
-  console.log(
-    `Attendance sessions deleted: ${summary.attendanceSessionsDeleted}`,
-  );
-  console.log(
-    `Attendance records deleted: ${summary.attendanceRecordsDeleted}`,
-  );
-  console.log(`Student documents reset: ${summary.studentDocumentsReset}`);
-};
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   requireConfirmation("resetAttendanceTestData.mjs");
-  const summary = await resetAttendanceTestData();
-  printAttendanceResetSummary(summary);
+  await resetAttendanceTestData();
 }

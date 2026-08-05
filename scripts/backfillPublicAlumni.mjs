@@ -38,4 +38,3 @@ for (let offset = 0; offset < consentedProfiles.length; offset += 500) {
   }
   await batch.commit();
 }
-console.log(`Backfill complete: scanned ${profiles.size} approved profiles, found ${consentedProfiles.length} with explicit consent, and wrote ${written} public alumni records.`);

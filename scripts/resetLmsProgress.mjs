@@ -42,12 +42,8 @@ export const resetLmsProgress = async () => {
   return { progressDocumentsReset, committedOperations };
 };
 
-export const printLmsResetSummary = (summary) => {
-  console.log(`Progress documents reset: ${summary.progressDocumentsReset}`);
-};
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   requireConfirmation("resetLmsProgress.mjs");
-  const summary = await resetLmsProgress();
-  printLmsResetSummary(summary);
+  await resetLmsProgress();
 }
