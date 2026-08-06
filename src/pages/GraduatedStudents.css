@@ -1,0 +1,20 @@
+.graduate-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 0 0 1.5rem; }
+.graduate-summary article { background: #fff; border: 1px solid #e6e8ee; border-radius: 14px; padding: 1.2rem; box-shadow: 0 6px 22px rgba(20, 30, 55, .06); }
+.graduate-summary span { color: #667085; display: block; font-size: .85rem; }
+.graduate-summary strong { color: #15233c; display: block; font-size: 1.8rem; margin-top: .35rem; }
+.graduate-filters { display: grid; grid-template-columns: minmax(220px, 1.6fr) repeat(4, minmax(145px, 1fr)); gap: .8rem; margin: 1rem 0 1.25rem; }
+.graduate-filters label { color: #475467; display: flex; flex-direction: column; font-size: .78rem; font-weight: 700; gap: .35rem; min-width: 0; }
+.graduate-filters input, .graduate-filters select { background: #fff; border: 1px solid #d0d5dd; border-radius: 8px; box-sizing: border-box; color: #344054; font: inherit; font-size: .88rem; height: 42px; padding: 0 .7rem; width: 100%; }
+.graduate-person { align-items: center; display: flex; gap: .65rem; min-width: 170px; }
+.graduate-person img, .graduate-avatar { align-items: center; background: #e8efff; border-radius: 50%; color: #244da3; display: flex; flex: 0 0 42px; font-weight: 800; height: 42px; justify-content: center; object-fit: cover; width: 42px; }
+.graduate-contact { display: flex; flex-direction: column; gap: .2rem; overflow-wrap: anywhere; }
+.graduate-contact small { color: #667085; }
+.graduate-status { border-radius: 999px; display: inline-block; font-size: .75rem; font-weight: 700; padding: .35rem .55rem; white-space: nowrap; }
+.graduate-status.listed { background: #e8f7ee; color: #137a3d; }
+.graduate-status.private { background: #f2f4f7; color: #475467; }
+.graduate-actions { align-items: stretch; display: flex; flex-direction: column; gap: .4rem; min-width: 130px; }
+.graduate-actions a { background: #eef3ff; border-radius: 6px; color: #244da3; font-size: .78rem; font-weight: 700; padding: .5rem .6rem; text-align: center; text-decoration: none; }
+.graduate-state { align-items: center; display: flex; flex-direction: column; gap: .75rem; padding: 2rem; text-align: center; }
+.graduate-modal { max-width: 760px; }
+@media (max-width: 1050px) { .graduate-summary { grid-template-columns: repeat(2, 1fr); } .graduate-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .graduate-search { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .graduates-page { overflow-x: hidden; } .graduate-summary, .graduate-filters { grid-template-columns: 1fr; } .graduate-search { grid-column: auto; } .graduate-table table, .graduate-table tbody, .graduate-table tr, .graduate-table td { display: block; width: 100%; } .graduate-table thead { display: none; } .graduate-table tr { border-bottom: 1px solid #e4e7ec; box-sizing: border-box; padding: .85rem 0; } .graduate-table td { align-items: flex-start; border: 0; box-sizing: border-box; display: flex; gap: .75rem; justify-content: space-between; padding: .45rem 0; text-align: right; overflow-wrap: anywhere; } .graduate-table td::before { color: #667085; content: attr(data-label); flex: 0 0 34%; font-size: .75rem; font-weight: 700; text-align: left; } .graduate-table td:first-child::before { display: none; } .graduate-table td:first-child { justify-content: flex-start; } .graduate-actions { width: min(100%, 210px); } }
