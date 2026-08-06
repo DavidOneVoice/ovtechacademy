@@ -9,16 +9,12 @@ import {
   getDocs,
   increment,
   query,
-  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
-  writeBatch,
 } from "firebase/firestore";
-import { getStoredAdminRole } from "../auth/adminRoles";
 import { getProgressId } from "../lms/progress";
-import { createPublicCertificateRecord } from "../services/publicCertificates";
-import { createPublicAlumniRecord, publicAlumniRef } from "../services/publicAlumni";
+import { approveAndGraduate, revokeCertificate } from "../services/certificateAdministration";
 
 import courses from "../data/courses";
 import "./Admin.css";
@@ -61,16 +57,6 @@ const getStudentTracks = (student) => [
 const getDateValue = (timestamp) =>
   timestamp?.toDate ? timestamp.toDate().toLocaleDateString() :
     timestamp?.seconds ? new Date(timestamp.seconds * 1000).toLocaleDateString() : "N/A";
-
-const COURSE_CODES = {
-  "data analytics": "DA", "software development": "SD", "web development": "WD",
-  cybersecurity: "CS", "virtual assistant": "VA", "artificial intelligence": "AI",
-  "product design": "PD", "ui/ux design": "UX", "digital marketing": "DM",
-  "project management": "PM", "cloud computing": "CC", "data science": "DS",
-};
-
-const getCourseCode = (course) => COURSE_CODES[String(course || "").trim().toLowerCase()] ||
-  String(course || "GEN").split(/\s+/).map((word) => word[0]).join("").replace(/[^A-Z]/gi, "").toUpperCase().slice(0, 4) || "GEN";
 
 const getAttendanceDisplay = (student) => {
   const stats = student.attendance?.[student.track] || {};
@@ -119,6 +105,9 @@ const EnrolledStudents = () => {
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [changesOpen, setChangesOpen] = useState(false);
   const [changeMessage, setChangeMessage] = useState("");
+  const [revokeOpen, setRevokeOpen] = useState(false);
+  const [revocationReason, setRevocationReason] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -130,7 +119,7 @@ const EnrolledStudents = () => {
             id: docSnap.id,
             ...docSnap.data(),
           }))
-          .filter((student) => student.status === "Enrolled");
+          .filter((student) => String(student.status || "").toLowerCase() !== "graduated");
 
         setStudents(enrolled);
       } finally {
@@ -158,8 +147,10 @@ const EnrolledStudents = () => {
     const matchesLearningMethod =
       learningMethodFilter === "All" ||
       normalizeLearningMethod(student.learningMethod) === learningMethodFilter;
-    return matchesTrack && matchesLearningMethod;
-  }), [learningMethodFilter, students, trackFilter]);
+    const needle = search.trim().toLowerCase();
+    const matchesSearch = !needle || [student.fullName, student.email, student.whatsapp].some((value) => String(value || "").toLowerCase().includes(needle));
+    return matchesTrack && matchesLearningMethod && matchesSearch;
+  }), [learningMethodFilter, search, students, trackFilter]);
 
   const showToast = (message) => {
     setToast(message);
@@ -191,55 +182,30 @@ const EnrolledStudents = () => {
     if (!selectedStudent || certificateProfile?.status !== "Pending") return;
     setSaving(true);
     try {
-      const course = certificateProfile.course || certificateProfile.track || selectedStudent.track;
-      const code = getCourseCode(course);
-      const year = new Date().getFullYear();
-      const profileRef = doc(db, "certificateProfile", selectedStudent.id);
-      const counterRef = doc(db, "certificateCounters", `${code}-${year}`);
-      const approvedAt = serverTimestamp();
-      const completionDate = serverTimestamp();
-      const certificateId = await runTransaction(db, async (transaction) => {
-        const [profileSnap, counterSnap] = await Promise.all([
-          transaction.get(profileRef), transaction.get(counterRef),
-        ]);
-        if (!profileSnap.exists() || profileSnap.data().status !== "Pending") {
-          throw new Error("This application is no longer pending.");
-        }
-        const next = Number(counterSnap.data()?.value || 0) + 1;
-        const id = `OVT-${code}-${year}-${String(next).padStart(6, "0")}`;
-        transaction.set(counterRef, { value: next, courseCode: code, year, updatedAt: serverTimestamp() }, { merge: true });
-        transaction.update(profileRef, {
-          status: "Approved", approvedAt, completionDate,
-          certificateId: id, approvedBy: getStoredAdminRole() || "admin", updatedAt: serverTimestamp(),
-        });
-        return id;
-      });
-
-      const approvedProfileSnap = await getDoc(profileRef);
-      if (!approvedProfileSnap.exists()) {
-        throw new Error(`Approved certificateProfile disappeared: ${profileRef.path}`);
-      }
-      const approvedProfile = approvedProfileSnap.data();
-      const publicData = createPublicCertificateRecord({
-        certificateId,
-        profile: approvedProfile,
-        courseOrTrack: approvedProfile.course ?? approvedProfile.track,
-        completionDate: approvedProfile.completionDate,
-        issuedAt: approvedProfile.approvedAt,
-      });
-      const publicBatch = writeBatch(db);
-      publicBatch.set(doc(db, "publicCertificates", certificateId), publicData, { merge: true });
-      if (approvedProfile.showInAlumniDirectory === true) {
-        publicBatch.set(publicAlumniRef(certificateId), createPublicAlumniRecord({ profile: approvedProfile, certificateId }));
-      }
-      await publicBatch.commit();
+      const certificateId = await approveAndGraduate({ student: selectedStudent, profile: certificateProfile });
       setCertificateProfile((profile) => ({ ...profile, status: "Approved", certificateId }));
+      setStudents((current) => current.filter((student) => student.id !== selectedStudent.id));
       setApprovalOpen(false);
-      showToast(`Certificate approved successfully: ${certificateId}`);
+      showToast("Certificate approved and student moved to Graduated Students.");
     } catch (error) {
       console.error("Certificate approval failed:", error);
       showToast(error.message || "Certificate approval failed.");
       throw error;
+    } finally { setSaving(false); }
+  };
+
+  const confirmRevocation = async (event) => {
+    event.preventDefault();
+    if (!selectedStudent || !revocationReason.trim()) return;
+    setSaving(true);
+    try {
+      await revokeCertificate({ studentId: selectedStudent.id, reason: revocationReason });
+      setCertificateProfile((profile) => ({ ...profile, status: "Pending", previousCertificateId: profile.certificateId, certificateId: null, revocationReason, adminMessage: revocationReason }));
+      setRevokeOpen(false); setRevocationReason("");
+      showToast("Certificate revoked successfully.");
+    } catch (error) {
+      console.error("Certificate revocation failed:", error);
+      showToast("Unable to revoke certificate. Please try again.");
     } finally { setSaving(false); }
   };
 
@@ -377,6 +343,7 @@ const EnrolledStudents = () => {
             Students who have completed registration and have been admitted.
           </p>
         </div>
+        <div className="admin-header-actions"><a className="admin-home-btn" href="/admin">Admin Dashboard</a><a className="admin-home-btn" href="/admin/graduated-students">Graduated Students</a></div>
       </section>
 
       <section className="admin-table-card">
@@ -390,6 +357,7 @@ const EnrolledStudents = () => {
           </button>
         </div>
         <div className="admin-filters">
+          <input aria-label="Search students" placeholder="Search name, email or phone" value={search} onChange={(event) => setSearch(event.target.value)} />
           <select value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}>
             <option value="All">All Courses</option>
             {courseOptions.map((course) => (
@@ -537,6 +505,8 @@ const EnrolledStudents = () => {
                 <div className="admin-details-grid">
                   <div><strong>Course / Track</strong><span>{certificateProfile.course || certificateProfile.track || selectedStudent.track || "—"}</span></div>
                   <div><strong>Status</strong><span className="admin-certificate-status">{certificateProfile.status}</span></div>
+                  <div><strong>Certificate ID</strong><span>{certificateProfile.certificateId || certificateProfile.previousCertificateId || "—"}</span></div>
+                  <div><strong>Revocation reason</strong><span>{certificateProfile.revocationReason || "—"}</span></div>
                   <div><strong>Submitted</strong><span>{getDateValue(certificateProfile.submittedAt)}</span></div>
                   <div><strong>Attendance</strong><span>{getAttendanceDisplay(selectedStudent)}</span></div>
                   <div><strong>Progress</strong><span>{getProgressDisplay(studentProgress)}</span></div>
@@ -547,6 +517,10 @@ const EnrolledStudents = () => {
                 {certificateProfile.status === "Pending" && <div className="admin-certificate-actions">
                   <button type="button" onClick={() => setApprovalOpen(true)}>Approve Certificate</button>
                   <button type="button" className="secondary" onClick={() => setChangesOpen(true)}>Request Changes</button>
+                </div>}
+                {certificateProfile.status === "Approved" && <div className="admin-certificate-actions">
+                  <a className="admin-view-btn" href={`/verify/${certificateProfile.certificateId}`} target="_blank" rel="noreferrer">View Certificate</a>
+                  <button type="button" className="admin-delete" onClick={() => setRevokeOpen(true)}>Revoke Certificate</button>
                 </div>}
               </section>
             )}
@@ -571,6 +545,15 @@ const EnrolledStudents = () => {
         <form onSubmit={requestCertificateChanges} className="admin-change-form">
           <label>Message to Student<textarea required value={changeMessage} onChange={(event) => setChangeMessage(event.target.value)} placeholder="Explain what the student needs to correct or update." /></label>
           <div className="admin-delete-actions"><button type="button" className="admin-cancel-delete" onClick={() => setChangesOpen(false)}>Cancel</button><button type="submit" className="admin-confirm-attendance" disabled={saving || !changeMessage.trim()}>{saving ? "Sending..." : "Request Changes"}</button></div>
+        </form>
+      </div></div>}
+
+      {revokeOpen && <div className="admin-modal-overlay"><div className="admin-delete-modal admin-certificate-dialog">
+        <h2>Revoke Certificate</h2>
+        <p>This will invalidate the student’s certificate, remove the student from the public alumni directory, return the student to the Enrolled Students list, and remove certificate access from the student dashboard.</p>
+        <form onSubmit={confirmRevocation} className="admin-change-form">
+          <label>Reason for revocation<textarea required value={revocationReason} onChange={(event) => setRevocationReason(event.target.value)} placeholder="Explain why this certificate is being revoked." /></label>
+          <div className="admin-delete-actions"><button type="button" className="admin-cancel-delete" disabled={saving} onClick={() => setRevokeOpen(false)}>Cancel</button><button type="submit" className="admin-confirm-delete" disabled={saving || !revocationReason.trim()}>{saving ? "Revoking certificate..." : "Confirm Revocation"}</button></div>
         </form>
       </div></div>}
 

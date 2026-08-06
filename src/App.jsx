@@ -5,6 +5,7 @@ import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 import EnrolledStudents from "./pages/EnrolledStudents";
+import GraduatedStudents from "./pages/GraduatedStudents";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Contact from "./pages/Contact";
 import About from "./pages/About";
@@ -77,6 +78,7 @@ function App() {
             </ProtectedAdminRoute>
           }
         />
+        <Route path="/admin/graduated-students" element={<ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ADMIN]}><GraduatedStudents /></ProtectedAdminRoute>} />
         <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/about" element={<About />} />

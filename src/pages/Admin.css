@@ -1466,3 +1466,14 @@
     flex-direction: column;
   }
 }
+.graduate-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.graduate-summary .admin-table-card { margin: 0; padding: 1.25rem; }
+.graduate-summary h2 { margin: .4rem 0 0; font-size: 2rem; }
+.graduate-person { display: flex; align-items: center; gap: .65rem; }
+.graduate-person img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
+@media (max-width: 800px) { .graduate-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
