@@ -19,6 +19,7 @@ import { getStoredAdminRole } from "../auth/adminRoles";
 import { getProgressId } from "../lms/progress";
 import { createPublicCertificateRecord } from "../services/publicCertificates";
 import { createPublicAlumniRecord, publicAlumniRef } from "../services/publicAlumni";
+import { revokeApprovedCertificate } from "../services/certificateAdministration";
 
 import courses from "../data/courses";
 import "./Admin.css";
@@ -125,14 +126,20 @@ const EnrolledStudents = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const q = query(collection(db, "scholarshipApplications"));
-        const snapshot = await getDocs(q);
+        const [snapshot, profileSnapshot] = await Promise.all([
+          getDocs(query(collection(db, "scholarshipApplications"))),
+          getDocs(collection(db, "certificateProfile")),
+        ]);
+        const profileStatusByStudentId = new Map(
+          profileSnapshot.docs.map((profileDoc) => [profileDoc.id, profileDoc.data().status]),
+        );
         const enrolled = snapshot.docs
           .map((docSnap) => ({
             id: docSnap.id,
             ...docSnap.data(),
           }))
-          .filter((student) => student.status === "Enrolled");
+          .filter((student) => student.status === "Enrolled")
+          .filter((student) => String(profileStatusByStudentId.get(student.id) || "").trim().toLowerCase() !== "approved");
 
         setStudents(enrolled);
       } finally {
@@ -252,27 +259,7 @@ const EnrolledStudents = () => {
     if (!selectedStudent || !reason) return;
     setSaving(true);
     try {
-      const profileRef = doc(db, "certificateProfile", selectedStudent.id);
-      const profileSnap = await getDoc(profileRef);
-      if (!profileSnap.exists() || profileSnap.data().status !== "Approved") {
-        throw new Error("Certificate is no longer approved.");
-      }
-      const approvedProfile = profileSnap.data();
-      const certificateId = approvedProfile.certificateId;
-      if (!certificateId) throw new Error("Approved certificate has no certificate ID.");
-
-      const batch = writeBatch(db);
-      batch.update(profileRef, {
-        status: "Revoked",
-        revokedAt: serverTimestamp(),
-        revokedBy: "admin",
-        revocationReason: reason,
-        previousCertificateId: certificateId,
-        updatedAt: serverTimestamp(),
-      });
-      batch.delete(doc(db, "publicCertificates", certificateId));
-      batch.delete(publicAlumniRef(certificateId));
-      await batch.commit();
+      const profileRef = await revokeApprovedCertificate({ db, studentId: selectedStudent.id, reason });
 
       const updatedSnap = await getDoc(profileRef);
       setCertificateProfile({ id: updatedSnap.id, ...updatedSnap.data() });
