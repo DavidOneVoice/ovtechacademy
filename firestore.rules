@@ -58,10 +58,7 @@ service cloud.firestore {
     }
 
     function protectedCertificateFields() {
-      return [
-        'approvedAt', 'approvedBy', 'certificateId', 'completionDate',
-        'revokedAt', 'revokedBy', 'revocationReason', 'previousCertificateId'
-      ];
+      return ['approvedAt', 'approvedBy', 'certificateId', 'completionDate'];
     }
 
     function studentProfileFields() {
@@ -69,9 +66,7 @@ service cloud.firestore {
         'studentId', 'course', 'track', 'photoUrl', 'displayName', 'email',
         'professionalEmail', 'phone', 'whatsapp',
         'linkedin', 'facebook', 'instagram', 'twitter', 'tiktok', 'status',
-        'updatedAt', 'submittedAt', 'adminMessage', 'showInAlumniDirectory',
-        'revokedAt', 'revokedBy', 'revocationReason', 'previousCertificateId',
-        'approvedAt', 'approvedBy', 'certificateId', 'completionDate'
+        'updatedAt', 'submittedAt', 'adminMessage', 'showInAlumniDirectory'
       ];
     }
 
@@ -137,29 +132,6 @@ service cloud.firestore {
           .hasOnly(['showInAlumniDirectory', 'updatedAt']);
     }
 
-    function isRevocation(studentId) {
-      return resource.data.studentId == studentId
-        && request.resource.data.studentId == studentId
-        && resource.data.status == 'Approved'
-        && request.resource.data.status == 'Pending'
-        && request.resource.data.revokedAt == request.time
-        && request.resource.data.revokedBy in ['admin', 'assistant']
-        && request.resource.data.revocationReason is string
-        && request.resource.data.revocationReason.size() > 0
-        && request.resource.data.previousCertificateId == resource.data.certificateId
-        && request.resource.data.certificateId == null
-        && request.resource.data.approvedAt == null
-        && request.resource.data.approvedBy == null
-        && request.resource.data.completionDate == null
-        && request.resource.data.adminMessage == request.resource.data.revocationReason
-        && request.resource.data.updatedAt == request.time
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'status', 'revokedAt', 'revokedBy', 'revocationReason',
-          'previousCertificateId', 'certificateId', 'approvedAt', 'approvedBy',
-          'completionDate', 'adminMessage', 'updatedAt'
-        ]);
-    }
-
    match /certificateProfile/{studentId} {
   // Temporary until Firebase Authentication replaces the current localStorage authentication.
   // The admin dashboard queries the certificateProfile collection, so collection listing
@@ -171,7 +143,6 @@ service cloud.firestore {
   allow update: if isStudentUpdate(studentId)
     || isChangesRequest(studentId)
     || isApproval(studentId)
-    || isRevocation(studentId)
     || isApprovedConsentChange(studentId);
 
   allow delete: if false;
@@ -183,8 +154,7 @@ service cloud.firestore {
       // application has no Firebase Auth identity; move approval to a trusted
       // backend before treating browser-side admin authorization as secure.
       allow get: if true;
-      allow list: if false;
-      allow delete: if true;
+      allow list, delete: if false;
       allow create, update: if request.resource.data.keys().hasOnly([
           'certificateId', 'studentName', 'courseOrTrack', 'completionDate',
           'issuedAt', 'status', 'issuerName', 'issuerBusinessName',

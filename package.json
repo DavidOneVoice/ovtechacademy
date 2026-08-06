@@ -14,7 +14,6 @@
     "reset:demo": "node scripts/resetDemoData.mjs",
     "backfill:certificates": "node scripts/backfillPublicCertificates.mjs",
     "backfill:alumni": "node scripts/backfillPublicAlumni.mjs"
-    ,"backfill:graduates": "node scripts/backfillGraduates.mjs"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",

@@ -694,7 +694,7 @@ const LmsDashboard = () => {
     setCertificateLoading(true);
     setCertificateError("");
     setCertificateSaveMessage("Saving alumni profile...");
-    const isResubmission = certificateProfile?.status === "Changes Requested" || Boolean(certificateProfile?.revokedAt);
+    const isResubmission = certificateProfile?.status === "Changes Requested";
     const profile = {
       studentId: student.id,
       course: student.course || student.courseName || student.program || courseName,
@@ -887,13 +887,7 @@ const LmsDashboard = () => {
             <div className="certificate-status-card">
               <div className="certificate-status-icon" aria-hidden="true">✓</div>
               <span>Certificate Status</span>
-              {certificateProfile.revokedAt ? <>
-                <h2>Certificate Approval Withdrawn</h2>
-                <p className="certificate-status-lead">Your certificate is no longer active.</p>
-                <div className="certificate-admin-message"><span>Admin message</span><p>{certificateProfile.revocationReason || certificateProfile.adminMessage}</p></div>
-                <p>Your certificate can be approved again after the outstanding requirement has been resolved.</p>
-                <button className="certificate-update-button" type="button" onClick={editCertificateProfile}>Update Certificate Profile</button>
-              </> : certificateProfile.status === "Changes Requested" ? <>
+              {certificateProfile.status === "Changes Requested" ? <>
                 <h2>Changes Required</h2>
                 <p className="certificate-status-lead">Your administrator needs you to update your certificate profile.</p>
                 <div className="certificate-admin-message"><span>Message from admin</span><p>{certificateProfile.adminMessage}</p></div>
