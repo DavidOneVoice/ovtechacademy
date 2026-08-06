@@ -58,7 +58,10 @@ service cloud.firestore {
     }
 
     function protectedCertificateFields() {
-      return ['approvedAt', 'approvedBy', 'certificateId', 'completionDate'];
+      return [
+        'approvedAt', 'approvedBy', 'certificateId', 'completionDate',
+        'revokedAt', 'revokedBy', 'revocationReason', 'previousCertificateId'
+      ];
     }
 
     function studentProfileFields() {
@@ -66,7 +69,8 @@ service cloud.firestore {
         'studentId', 'course', 'track', 'photoUrl', 'displayName', 'email',
         'professionalEmail', 'phone', 'whatsapp',
         'linkedin', 'facebook', 'instagram', 'twitter', 'tiktok', 'status',
-        'updatedAt', 'submittedAt', 'adminMessage', 'showInAlumniDirectory'
+        'updatedAt', 'submittedAt', 'adminMessage', 'showInAlumniDirectory',
+        'revokedAt', 'revokedBy', 'revocationReason', 'previousCertificateId'
       ];
     }
 
@@ -95,13 +99,48 @@ service cloud.firestore {
     function isChangesRequest(studentId) {
       return resource.data.studentId == studentId
         && request.resource.data.studentId == studentId
-        && resource.data.status == 'Pending'
+        && resource.data.status in ['Pending', 'Revoked']
         && request.resource.data.status == 'Changes Requested'
         && request.resource.data.adminMessage is string
         && request.resource.data.adminMessage.size() > 0
         && request.resource.data.updatedAt == request.time
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['status', 'adminMessage', 'updatedAt']);
+    }
+
+    function isRevocation(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status == 'Approved'
+        && request.resource.data.status == 'Revoked'
+        && request.resource.data.revokedAt == request.time
+        && request.resource.data.revokedBy == 'admin'
+        && request.resource.data.revocationReason is string
+        && request.resource.data.revocationReason.size() > 0
+        && request.resource.data.previousCertificateId == resource.data.certificateId
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'revokedAt', 'revokedBy', 'revocationReason',
+          'previousCertificateId', 'updatedAt'
+        ]);
+    }
+
+    function isReapproval(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status == 'Revoked'
+        && request.resource.data.status == 'Approved'
+        && request.resource.data.approvedAt == request.time
+        && request.resource.data.approvedBy == 'admin'
+        && request.resource.data.completionDate == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.certificateId is string
+        && request.resource.data.certificateId != resource.data.previousCertificateId
+        && request.resource.data.certificateId.matches('^OVT-[A-Z]{1,4}-[0-9]{4}-[0-9]{6}$')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'approvedAt', 'approvedBy', 'completionDate',
+          'certificateId', 'updatedAt'
+        ]);
     }
 
     function isApproval(studentId) {
@@ -143,6 +182,8 @@ service cloud.firestore {
   allow update: if isStudentUpdate(studentId)
     || isChangesRequest(studentId)
     || isApproval(studentId)
+    || isRevocation(studentId)
+    || isReapproval(studentId)
     || isApprovedConsentChange(studentId);
 
   allow delete: if false;
@@ -154,7 +195,8 @@ service cloud.firestore {
       // application has no Firebase Auth identity; move approval to a trusted
       // backend before treating browser-side admin authorization as secure.
       allow get: if true;
-      allow list, delete: if false;
+      allow list: if false;
+      allow delete: if true;
       allow create, update: if request.resource.data.keys().hasOnly([
           'certificateId', 'studentName', 'courseOrTrack', 'completionDate',
           'issuedAt', 'status', 'issuerName', 'issuerBusinessName',

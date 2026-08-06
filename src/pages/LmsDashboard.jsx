@@ -883,6 +883,14 @@ const LmsDashboard = () => {
               {alumniVisibilityMessage && <p className={alumniVisibilitySaving ? "alumni-saving" : ""} role="status">{alumniVisibilitySaving && <span className="alumni-spinner" aria-hidden="true" />}{alumniVisibilityMessage}</p>}
             </section>
           </>
+          ) : certificateProfile?.status === "Revoked" && !editingCertificate ? (
+            <div className="certificate-status-card certificate-revoked-card">
+              <span>Certificate Status</span>
+              <h2>Certificate Revoked</h2>
+              <p className="certificate-status-lead">This certificate is no longer active.</p>
+              <div className="certificate-admin-message"><span>Reason:</span><p>{certificateProfile.revocationReason}</p></div>
+              <p>Please contact OVTech Academy if you believe this was done in error or once the outstanding requirement has been resolved.</p>
+            </div>
           ) : certificateProfile && !editingCertificate ? (
             <div className="certificate-status-card">
               <div className="certificate-status-icon" aria-hidden="true">✓</div>

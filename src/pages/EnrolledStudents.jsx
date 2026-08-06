@@ -119,6 +119,8 @@ const EnrolledStudents = () => {
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [changesOpen, setChangesOpen] = useState(false);
   const [changeMessage, setChangeMessage] = useState("");
+  const [revocationOpen, setRevocationOpen] = useState(false);
+  const [revocationReason, setRevocationReason] = useState("");
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -188,7 +190,8 @@ const EnrolledStudents = () => {
   };
 
   const approveCertificate = async () => {
-    if (!selectedStudent || certificateProfile?.status !== "Pending") return;
+    if (!selectedStudent || !["Pending", "Revoked"].includes(certificateProfile?.status)) return;
+    const isReapproval = certificateProfile.status === "Revoked";
     setSaving(true);
     try {
       const course = certificateProfile.course || certificateProfile.track || selectedStudent.track;
@@ -202,15 +205,15 @@ const EnrolledStudents = () => {
         const [profileSnap, counterSnap] = await Promise.all([
           transaction.get(profileRef), transaction.get(counterRef),
         ]);
-        if (!profileSnap.exists() || profileSnap.data().status !== "Pending") {
-          throw new Error("This application is no longer pending.");
+        if (!profileSnap.exists() || profileSnap.data().status !== (isReapproval ? "Revoked" : "Pending")) {
+          throw new Error("This certificate is no longer ready for approval.");
         }
         const next = Number(counterSnap.data()?.value || 0) + 1;
         const id = `OVT-${code}-${year}-${String(next).padStart(6, "0")}`;
         transaction.set(counterRef, { value: next, courseCode: code, year, updatedAt: serverTimestamp() }, { merge: true });
         transaction.update(profileRef, {
           status: "Approved", approvedAt, completionDate,
-          certificateId: id, approvedBy: getStoredAdminRole() || "admin", updatedAt: serverTimestamp(),
+          certificateId: id, approvedBy: isReapproval ? "admin" : getStoredAdminRole() || "admin", updatedAt: serverTimestamp(),
         });
         return id;
       });
@@ -240,6 +243,45 @@ const EnrolledStudents = () => {
       console.error("Certificate approval failed:", error);
       showToast(error.message || "Certificate approval failed.");
       throw error;
+    } finally { setSaving(false); }
+  };
+
+  const revokeCertificate = async (event) => {
+    event.preventDefault();
+    const reason = revocationReason.trim();
+    if (!selectedStudent || !reason) return;
+    setSaving(true);
+    try {
+      const profileRef = doc(db, "certificateProfile", selectedStudent.id);
+      const profileSnap = await getDoc(profileRef);
+      if (!profileSnap.exists() || profileSnap.data().status !== "Approved") {
+        throw new Error("Certificate is no longer approved.");
+      }
+      const approvedProfile = profileSnap.data();
+      const certificateId = approvedProfile.certificateId;
+      if (!certificateId) throw new Error("Approved certificate has no certificate ID.");
+
+      const batch = writeBatch(db);
+      batch.update(profileRef, {
+        status: "Revoked",
+        revokedAt: serverTimestamp(),
+        revokedBy: "admin",
+        revocationReason: reason,
+        previousCertificateId: certificateId,
+        updatedAt: serverTimestamp(),
+      });
+      batch.delete(doc(db, "publicCertificates", certificateId));
+      batch.delete(publicAlumniRef(certificateId));
+      await batch.commit();
+
+      const updatedSnap = await getDoc(profileRef);
+      setCertificateProfile({ id: updatedSnap.id, ...updatedSnap.data() });
+      setRevocationOpen(false);
+      setRevocationReason("");
+      showToast("Certificate revoked successfully.");
+    } catch (error) {
+      console.error("Certificate revocation failed:", error);
+      showToast("Unable to revoke certificate. Please try again.");
     } finally { setSaving(false); }
   };
 
@@ -540,12 +582,26 @@ const EnrolledStudents = () => {
                   <div><strong>Submitted</strong><span>{getDateValue(certificateProfile.submittedAt)}</span></div>
                   <div><strong>Attendance</strong><span>{getAttendanceDisplay(selectedStudent)}</span></div>
                   <div><strong>Progress</strong><span>{getProgressDisplay(studentProgress)}</span></div>
+                  {certificateProfile.status === "Revoked" && <>
+                    <div><strong>Certificate status</strong><span>Revoked</span></div>
+                    <div><strong>Previous certificate ID</strong><span>{certificateProfile.previousCertificateId || certificateProfile.certificateId || "—"}</span></div>
+                    <div><strong>Revocation date</strong><span>{getDateValue(certificateProfile.revokedAt)}</span></div>
+                    <div><strong>Revocation reason</strong><span>{certificateProfile.revocationReason || "—"}</span></div>
+                  </>}
                   {[["LinkedIn", "linkedin"], ["Facebook", "facebook"], ["Instagram", "instagram"], ["X / Twitter", "twitter"], ["TikTok", "tiktok"]].map(([label, key]) => certificateProfile[key] && (
                     <div key={key}><strong>{label}</strong><a href={certificateProfile[key]} target="_blank" rel="noreferrer">View profile</a></div>
                   ))}
                 </div>
                 {certificateProfile.status === "Pending" && <div className="admin-certificate-actions">
                   <button type="button" onClick={() => setApprovalOpen(true)}>Approve Certificate</button>
+                  <button type="button" className="secondary" onClick={() => setChangesOpen(true)}>Request Changes</button>
+                </div>}
+                {certificateProfile.status === "Approved" && <div className="admin-certificate-actions">
+                  <a className="admin-certificate-link" href={`/verify/${certificateProfile.certificateId}`} target="_blank" rel="noreferrer">View Certificate</a>
+                  <button type="button" className="secondary" onClick={() => setRevocationOpen(true)}>Revoke Certificate</button>
+                </div>}
+                {certificateProfile.status === "Revoked" && <div className="admin-certificate-actions">
+                  <button type="button" onClick={() => setApprovalOpen(true)}>Approve Certificate Again</button>
                   <button type="button" className="secondary" onClick={() => setChangesOpen(true)}>Request Changes</button>
                 </div>}
               </section>
@@ -555,7 +611,7 @@ const EnrolledStudents = () => {
       )}
 
       {approvalOpen && selectedStudent && <div className="admin-modal-overlay"><div className="admin-delete-modal admin-certificate-dialog">
-        <h2>Approve Certificate</h2>
+        <h2>{certificateProfile?.status === "Revoked" ? "Approve Certificate Again" : "Approve Certificate"}</h2>
         <p>Confirm that this student has completed the required coursework, attendance, assessments and final project requirements.</p>
         <div className="admin-details-grid">
           <div><strong>Student name</strong><span>{certificateProfile?.displayName || selectedStudent.fullName}</span></div>
@@ -564,6 +620,14 @@ const EnrolledStudents = () => {
           <div><strong>Current progress</strong><span>{getProgressDisplay(studentProgress)}</span></div>
         </div>
         <div className="admin-delete-actions"><button className="admin-cancel-delete" onClick={() => setApprovalOpen(false)}>Cancel</button><button className="admin-confirm-attendance" disabled={saving} onClick={approveCertificate}>{saving ? "Approving..." : "Confirm Approval"}</button></div>
+      </div></div>}
+
+      {revocationOpen && <div className="admin-modal-overlay"><div className="admin-delete-modal admin-certificate-dialog">
+        <h2>Revoke Certificate</h2>
+        <form onSubmit={revokeCertificate} className="admin-change-form">
+          <label>Reason for revocation<textarea required value={revocationReason} onChange={(event) => setRevocationReason(event.target.value)} placeholder="Explain why this certificate is being revoked." /></label>
+          <div className="admin-delete-actions"><button type="button" className="admin-cancel-delete" disabled={saving} onClick={() => setRevocationOpen(false)}>Cancel</button><button type="submit" className="admin-confirm-delete" disabled={saving || !revocationReason.trim()}>{saving ? "Revoking certificate..." : "Confirm Revocation"}</button></div>
+        </form>
       </div></div>}
 
       {changesOpen && <div className="admin-modal-overlay"><div className="admin-delete-modal admin-certificate-dialog">
