@@ -492,6 +492,9 @@ const Admin = () => {
           <a href="/enrolled-students" className="admin-home-btn">
             Enrolled Students
           </a>
+          <a href="/admin/graduated-students" className="admin-home-btn">
+            Graduated Students
+          </a>
           <a href="/admin/live-sessions" className="admin-home-btn">
             Publish Live Sessions
           </a>
