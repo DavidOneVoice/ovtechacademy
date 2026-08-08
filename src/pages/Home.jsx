@@ -58,7 +58,7 @@ const Home = () => {
             </h1>
 
             <p>
-              Master Data Analytics, Software Development (Frontend), and Web
+              Master Data Analytics, Software Development, and Web
               Development through practical training, real-world projects, and
               hands-on learning.
             </p>

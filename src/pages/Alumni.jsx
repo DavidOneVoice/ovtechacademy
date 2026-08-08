@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getAlumniPage, toDate } from "../services/publicAlumni";
 import "./Alumni.css";
+import { normalizeProgrammeName } from "../data/programmes";
 
 const SOCIAL_LABELS = {
   linkedin: "LinkedIn",
@@ -76,7 +77,7 @@ export default function Alumni() {
     () =>
       [
         ...new Set(
-          alumni.map((person) => person.courseOrTrack).filter(Boolean),
+          alumni.map((person) => normalizeProgrammeName(person.courseOrTrack)).filter(Boolean),
         ),
       ].sort(),
     [alumni],
@@ -87,7 +88,7 @@ export default function Alumni() {
       .filter(
         (person) =>
           (!term || person.studentName.toLocaleLowerCase().includes(term)) &&
-          (programme === "all" || person.courseOrTrack === programme),
+          (programme === "all" || normalizeProgrammeName(person.courseOrTrack) === programme),
       )
       .sort((a, b) => {
         if (sort === "az" || sort === "za")
@@ -216,7 +217,7 @@ export default function Alumni() {
                       ✓ OVTech Verified Graduate
                     </span>
                     <h3>{person.studentName}</h3>
-                    <p className="alumni-programme">{person.courseOrTrack}</p>
+                    <p className="alumni-programme">{normalizeProgrammeName(person.courseOrTrack)}</p>
                     <p className="alumni-date">
                       Completed {formatDate(person.completionDate)}
                     </p>

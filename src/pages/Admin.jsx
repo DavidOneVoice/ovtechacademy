@@ -15,6 +15,7 @@ import {
 import emailjs from "@emailjs/browser";
 import { pricing } from "../data/pricing";
 import courses from "../data/courses";
+import { CANONICAL_PROGRAMMES, normalizeProgrammeName } from "../data/programmes";
 import { clearStoredAdminRole } from "../auth/adminRoles";
 
 const DEFAULT_COMMISSION = 2500;
@@ -159,18 +160,7 @@ const Admin = () => {
     fetchApplications();
   }, []);
 
-  const courseOptions = useMemo(
-    () =>
-      [
-        ...new Set(
-          [
-            ...courses.map((course) => course.title),
-            ...applications.map((app) => app.track),
-          ].filter(Boolean),
-        ),
-      ].sort(),
-    [applications],
-  );
+  const courseOptions = CANONICAL_PROGRAMMES;
 
   const referralCodes = useMemo(
     () => [...new Set(applications.map(getReferralCode))].sort(),
@@ -248,7 +238,7 @@ const Admin = () => {
         code.toLowerCase().includes(normalizedSearch);
       const matchesStatus =
         statusFilter === "All" || app.status === statusFilter;
-      const matchesTrack = trackFilter === "All" || app.track === trackFilter;
+      const matchesTrack = trackFilter === "All" || normalizeProgrammeName(app.track) === trackFilter;
       const matchesLearningMethod =
         learningMethodFilter === "All" ||
         normalizeLearningMethod(app.learningMethod) === learningMethodFilter;
@@ -824,7 +814,7 @@ const Admin = () => {
                     <small>{app.email}</small>
                   </td>
                   <td data-label="WhatsApp">{app.whatsapp}</td>
-                  <td data-label="Track">{app.track}</td>
+                  <td data-label="Track">{normalizeProgrammeName(app.track)}</td>
                   <td data-label="Learning Method">
                     {app.learningMethod || "—"}
                   </td>
@@ -952,7 +942,7 @@ const Admin = () => {
                   {selectedReferralSummary.students.map((app) => (
                     <tr key={app.id}>
                       <td data-label="Student Name">{app.fullName}</td>
-                      <td data-label="Track">{app.track}</td>
+                      <td data-label="Track">{normalizeProgrammeName(app.track)}</td>
                       <td data-label="Learning Method">
                         {app.learningMethod || "—"}
                       </td>
@@ -1007,7 +997,7 @@ const Admin = () => {
               </div>
               <div>
                 <strong>Preferred Track</strong>
-                <span>{selectedApplication.track}</span>
+                <span>{normalizeProgrammeName(selectedApplication.track)}</span>
               </div>
               <div>
                 <strong>Learning Method</strong>

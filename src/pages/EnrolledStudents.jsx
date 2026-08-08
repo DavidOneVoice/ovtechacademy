@@ -21,7 +21,7 @@ import { createPublicCertificateRecord } from "../services/publicCertificates";
 import { createPublicAlumniRecord, publicAlumniRef } from "../services/publicAlumni";
 import { revokeApprovedCertificate } from "../services/certificateAdministration";
 
-import courses from "../data/courses";
+import { CANONICAL_PROGRAMMES, normalizeProgrammeName } from "../data/programmes";
 import "./Admin.css";
 
 const LEARNING_METHOD_FILTERS = [
@@ -92,7 +92,7 @@ const EDITABLE_FIELDS = [
   { key: "whatsapp", label: "WhatsApp", type: "text" },
   { key: "location", label: "Location", type: "text" },
   { key: "ageRange", label: "Age Range", type: "text" },
-  { key: "track", label: "Preferred Track", type: "text" },
+  { key: "track", label: "Preferred Track", type: "programme" },
   { key: "learningMethod", label: "Learning Method", type: "text" },
   { key: "referral", label: "Referral Source", type: "text" },
   { key: "referralCode", label: "Referral Code", type: "text" },
@@ -150,20 +150,17 @@ const EnrolledStudents = () => {
     fetchStudents();
   }, []);
 
-  const courseOptions = useMemo(() => [
-    ...new Set([
-      ...courses.map((course) => course.title),
-      ...students.flatMap((student) => getStudentTracks(student)),
-    ].filter(Boolean)),
-  ].sort(), [students]);
+  const courseOptions = CANONICAL_PROGRAMMES;
 
   const attendanceCourses = useMemo(() => courseOptions.map((course) => ({
     title: course,
-    studentCount: students.filter((student) => getStudentTracks(student).includes(course)).length,
+    studentCount: students.filter((student) => getStudentTracks(student)
+      .some((track) => normalizeProgrammeName(track) === course)).length,
   })).filter((course) => course.studentCount > 0), [courseOptions, students]);
 
   const filteredStudents = useMemo(() => students.filter((student) => {
-    const matchesTrack = trackFilter === "All" || getStudentTracks(student).includes(trackFilter);
+    const matchesTrack = trackFilter === "All" || getStudentTracks(student)
+      .some((track) => normalizeProgrammeName(track) === trackFilter);
     const matchesLearningMethod =
       learningMethodFilter === "All" ||
       normalizeLearningMethod(student.learningMethod) === learningMethodFilter;
@@ -456,7 +453,7 @@ const EnrolledStudents = () => {
                   <td data-label="Name">{student.fullName}</td>
                   <td data-label="Email">{student.email}</td>
                   <td data-label="WhatsApp">{student.whatsapp}</td>
-                  <td data-label="Track">{student.track}</td>
+                  <td data-label="Track">{normalizeProgrammeName(student.track)}</td>
                   <td data-label="Method">{student.learningMethod}</td>
                   <td data-label="Location">{student.location}</td>
                   <td data-label="Actions">
@@ -545,7 +542,7 @@ const EnrolledStudents = () => {
               <div><strong>WhatsApp</strong><span>{selectedStudent.whatsapp || "—"}</span></div>
               <div><strong>Location</strong><span>{selectedStudent.location || "—"}</span></div>
               <div><strong>Age Range</strong><span>{selectedStudent.ageRange || "—"}</span></div>
-              <div><strong>Preferred Track</strong><span>{selectedStudent.track || "—"}</span></div>
+              <div><strong>Preferred Track</strong><span>{normalizeProgrammeName(selectedStudent.track) || "—"}</span></div>
               <div><strong>Learning Method</strong><span>{selectedStudent.learningMethod || "—"}</span></div>
               <div><strong>Referral Source</strong><span>{selectedStudent.referral || "—"}</span></div>
               <div><strong>Referral Code</strong><span>{getReferralCode(selectedStudent)}</span></div>
@@ -640,6 +637,15 @@ const EnrolledStudents = () => {
                       value={editForm[field.key] || ""}
                       onChange={(event) => handleEditChange(field.key, event.target.value)}
                     />
+                  ) : field.type === "programme" ? (
+                    <select
+                      value={normalizeProgrammeName(editForm[field.key])}
+                      onChange={(event) => handleEditChange(field.key, event.target.value)}
+                    >
+                      {CANONICAL_PROGRAMMES.map((programme) => (
+                        <option key={programme} value={programme}>{programme}</option>
+                      ))}
+                    </select>
                   ) : (
                     <input
                       type={field.type}

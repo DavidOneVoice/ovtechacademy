@@ -24,6 +24,7 @@ import {
   curriculumItemMatchesGroup,
   resolveStudentCurriculumGroup,
 } from "../lms/tracks";
+import { normalizeProgrammeName } from "../data/programmes";
 import {
   getStudentProgramDay,
   isItemUnlocked,
@@ -78,11 +79,13 @@ const ENROLLMENT_PACKAGE_FIELDS = [
 const getStudentName = (student) =>
   student?.fullName || student?.name || student?.studentName || "Student";
 const getStudentCourse = (student) =>
-  student?.track ||
-  student?.course ||
-  student?.courseName ||
-  student?.program ||
-  "";
+  normalizeProgrammeName(
+    student?.track ||
+      student?.course ||
+      student?.courseName ||
+      student?.program ||
+      "",
+  );
 
 const getStudentTracks = (student) =>
   [

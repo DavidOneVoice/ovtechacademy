@@ -1,3 +1,5 @@
+import { normalizeProgrammeKey } from "../data/programmes.js";
+
 const DATA_ANALYTICS_COURSES = [
   "Data Fundamentals",
   "Microsoft Excel",
@@ -40,20 +42,23 @@ const DIRECT_TRACK_COURSE_ALIASES = {
 };
 
 export const normalizeTrackName = (value) =>
-  String(value || "")
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-    .replace(/\s+/g, " ");
+  normalizeProgrammeKey(value);
 
 const TRACK_CURRICULUM_GROUP_MAP = {
   "data analytics": CURRICULUM_GROUPS.DATA_ANALYTICS,
   "software development": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
   "software development frontend": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
+  "software development front end": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
   "frontend development": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
+  "front end development": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
+  "frontend software development": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
+  "front end software development": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
+  frontend: CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
   "web development": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
 };
+
+export const resolveCurriculumGroup = (programme) =>
+  TRACK_CURRICULUM_GROUP_MAP[normalizeTrackName(programme)] || null;
 
 const getStudentTrackValues = (student) =>
   [
@@ -68,10 +73,9 @@ const getStudentTrackValues = (student) =>
 
 export const resolveStudentCurriculumGroup = (student) => {
   const track = getStudentTrackValues(student)
-    .map(normalizeTrackName)
-    .find((value) => TRACK_CURRICULUM_GROUP_MAP[value]);
+    .find((value) => resolveCurriculumGroup(value));
 
-  return track ? TRACK_CURRICULUM_GROUP_MAP[track] : null;
+  return track ? resolveCurriculumGroup(track) : null;
 };
 
 export const getCurriculumItemGroup = (item) =>

@@ -1,3 +1,5 @@
+import { normalizeProgrammeName } from "./programmes";
+
 export const COURSE_DURATIONS = {
   "Virtual Assistant": "1 Month",
   "Data Analytics": "2 Months",
@@ -22,13 +24,14 @@ export const CERTIFICATE_FOOTER = {
 };
 
 export const normalizeCourseName = (course = "") => {
-  const normalized = course.trim().toLowerCase();
+  const canonical = normalizeProgrammeName(course);
+  const normalized = canonical.trim().toLowerCase();
   if (normalized.includes("software development")) return "Software Development";
   if (normalized.includes("data analytics")) return "Data Analytics";
   if (normalized.includes("cybersecurity") || normalized.includes("cyber security")) return "Cybersecurity";
   if (normalized.includes("virtual assistant")) return "Virtual Assistant";
   if (normalized.includes("artificial intelligence")) return "Artificial Intelligence";
-  return course.trim();
+  return canonical;
 };
 
 export const getCourseDuration = (course) => COURSE_DURATIONS[normalizeCourseName(course)] || DEFAULT_COURSE_DURATION;
