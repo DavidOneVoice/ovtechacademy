@@ -1398,6 +1398,13 @@
 }
 
 .admin-lms-card { margin-bottom: 24px; }
+.admin-programme-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.admin-programme-card h2 { margin: 6px 0; }
+.admin-programme-card small { color: #6b7280; font-weight: 800; }
+.admin-programme-card label { display: grid; gap: 8px; color: #12233f; font-weight: 800; min-width: 260px; }
+.admin-programme-card select { border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px 14px; font: inherit; background: white; }
+.admin-programme-eyebrow { color: #d4af37; font-size: .78rem; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; }
+@media (max-width: 700px) { .admin-programme-card { align-items: stretch; flex-direction: column; } }
 .admin-lms-form,
 .admin-live-session-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; align-items: end; }
 .admin-lms-form input,

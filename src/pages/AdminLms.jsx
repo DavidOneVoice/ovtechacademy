@@ -13,6 +13,11 @@ import {
 } from "firebase/firestore";
 import { db } from "../src/firebase";
 import courseCatalog from "../data/courses";
+import {
+  CURRICULUM_GROUPS,
+  CURRICULUM_PROGRAMMES,
+  curriculumItemMatchesGroup,
+} from "../lms/tracks";
 import "./Admin.css";
 
 const emptyResource = {
@@ -28,6 +33,12 @@ const emptyResource = {
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const toDateInputValue = (value) => {
+  if (!value) return "";
+  const date = typeof value?.toDate === "function" ? value.toDate() : new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
 };
 
 const sortLessons = (items) =>
@@ -53,6 +64,9 @@ const sortResources = (items) =>
   );
 
 const AdminLms = () => {
+  const [selectedGroup, setSelectedGroup] = useState(
+    CURRICULUM_GROUPS.DATA_ANALYTICS,
+  );
   const [lessons, setLessons] = useState([]);
   const [resources, setResources] = useState([]);
   const [resourceForm, setResourceForm] = useState(emptyResource);
@@ -68,10 +82,10 @@ const AdminLms = () => {
     setTimeout(() => setToast(""), 2600);
   };
 
-  const loadLmsContent = async () => {
+  const loadLmsContent = async (curriculumGroup) => {
     setLoading(true);
 
-    const [lessonSnapshot, resourceSnapshot, settingsSnapshot] =
+    const [lessonSnapshot, resourceSnapshot, settingsSnapshot, legacySettingsSnapshot] =
       await Promise.all([
         getDocs(
           query(collection(db, "curriculum"), orderBy("globalOrder", "asc")),
@@ -79,6 +93,7 @@ const AdminLms = () => {
         getDocs(
           query(collection(db, "lmsResources"), orderBy("unlockDay", "asc")),
         ),
+        getDoc(doc(db, "lmsSettings", "selfPacedStartDates")),
         getDoc(doc(db, "lmsSettings", "selfPaced")),
       ]);
 
@@ -96,23 +111,34 @@ const AdminLms = () => {
       ? settingsSnapshot.data()
       : {};
 
-    setLessons(sortLessons(lessonData));
-    setResources(sortResources(resourceData));
+    setLessons(sortLessons(lessonData.filter((item) =>
+      curriculumItemMatchesGroup(item, curriculumGroup),
+    )));
+    setResources(sortResources(resourceData.filter((item) =>
+      curriculumItemMatchesGroup(item, curriculumGroup),
+    )));
     setSettings({
-      selfPacedStartDate:
-        savedSettings.startDate || savedSettings.selfPacedStartDate || "",
+      selfPacedStartDate: toDateInputValue(
+        savedSettings[curriculumGroup] ||
+        (curriculumGroup === CURRICULUM_GROUPS.DATA_ANALYTICS &&
+          legacySettingsSnapshot.exists()
+          ? legacySettingsSnapshot.data().startDate ||
+            legacySettingsSnapshot.data().selfPacedStartDate
+          : "") ||
+        "",
+      ),
     });
 
     setLoading(false);
   };
 
   useEffect(() => {
-    loadLmsContent().catch((error) => {
+    loadLmsContent(selectedGroup).catch((error) => {
       console.error("LMS management load error:", error);
       showToast("Unable to load LMS content.");
       setLoading(false);
     });
-  }, []);
+  }, [selectedGroup]);
 
   const courses = useMemo(
     () =>
@@ -157,9 +183,9 @@ const AdminLms = () => {
 
     try {
       await setDoc(
-        doc(db, "lmsSettings", "selfPaced"),
+        doc(db, "lmsSettings", "selfPacedStartDates"),
         {
-          startDate: settings.selfPacedStartDate || "",
+          [selectedGroup]: settings.selfPacedStartDate || "",
           updatedAt: new Date(),
         },
         { merge: true },
@@ -207,6 +233,7 @@ const AdminLms = () => {
 
     const payload = {
       ...resourceForm,
+      curriculumGroup: selectedGroup,
       unlockDay: toNumber(resourceForm.unlockDay, 1),
       isPublished: Boolean(resourceForm.isPublished),
       createdAt: new Date(),
@@ -284,8 +311,33 @@ const AdminLms = () => {
         </div>
       </section>
 
+      <section className="admin-table-card admin-lms-card admin-programme-card">
+        <div>
+          <span className="admin-programme-eyebrow">Managing Curriculum</span>
+          <h2>
+            {CURRICULUM_PROGRAMMES.find(
+              (programme) => programme.value === selectedGroup,
+            )?.label}
+          </h2>
+          <small>{lessons.length + resources.length} curriculum items</small>
+        </div>
+        <label>
+          Curriculum Programme
+          <select
+            value={selectedGroup}
+            onChange={(event) => setSelectedGroup(event.target.value)}
+          >
+            {CURRICULUM_PROGRAMMES.map((programme) => (
+              <option key={programme.value} value={programme.value}>
+                {programme.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </section>
+
       {loading ? (
-        <p className="admin-loading">Loading LMS content...</p>
+        <p className="admin-loading">Loading selected curriculum...</p>
       ) : (
         <>
           <section className="admin-table-card admin-lms-card">
@@ -389,7 +441,9 @@ const AdminLms = () => {
             ))}
 
             {lessons.length === 0 && (
-              <p className="admin-empty">No curriculum lessons found.</p>
+              <p className="admin-empty">
+                No curriculum has been uploaded for this programme yet.
+              </p>
             )}
           </section>
 
@@ -494,7 +548,7 @@ const AdminLms = () => {
           </section>
 
           <section className="admin-table-card admin-lms-card">
-            <h2>Resources</h2>
+            <h2>Resources ({resources.length})</h2>
 
             {resources.map((resource) => (
               <article className="admin-lms-row" key={resource.id}>

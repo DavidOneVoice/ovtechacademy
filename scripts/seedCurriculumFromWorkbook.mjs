@@ -8,280 +8,181 @@ import {
   serviceAccountPath,
 } from "./firebaseAdmin.mjs";
 
-const DEFAULT_WORKBOOK_PATH = path.join(
-  projectRoot,
-  "data",
-  "OVTech Master Curriculum.xlsx",
-);
+const SUPPORTED_GROUPS = new Set(["data-analytics", "computer-programming"]);
+const DEFAULT_WORKBOOK_PATH = path.join(projectRoot, "data", "OVTech Master Curriculum.xlsx");
+const REQUIRED_HEADERS = ["Global Order", "Course", "Section", "Lesson ID", "Course Order", "Type", "Title", "Unlock Day"];
 
-const REQUIRED_HEADERS = [
-  "Course",
-  "Section",
-  "Lesson ID",
-  "Title",
-  "YouTube Link",
-];
+const getArgument = (name) => {
+  const argument = process.argv.slice(2).find((value) => value.startsWith(`--${name}=`));
+  return argument ? argument.slice(name.length + 3) : "";
+};
+const positionalFile = process.argv.slice(2).find((value) => !value.startsWith("--"));
+const workbookPath = path.resolve(getArgument("file") || positionalFile || DEFAULT_WORKBOOK_PATH);
+const curriculumGroup = getArgument("group") || "data-analytics";
 
-const slugify = (value) =>
-  String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-
-const normalizeHeader = (value) =>
-  String(value || "")
-    .trim()
-    .replace(/\s+/g, " ");
-
-const pick = (row, names) =>
-  names
-    .map((name) => row[name])
-    .find(
-      (value) =>
-        value !== undefined && value !== null && String(value).trim() !== "",
-    );
-
-const boolValue = (value, fallback = true) =>
-  value === undefined || value === ""
-    ? fallback
-    : !["false", "no", "0", "draft", "unpublished"].includes(
-        String(value).toLowerCase(),
-      );
-
-const numberValue = (value, fallback) => {
+const normalizeHeader = (value) => String(value || "").trim().replace(/\s+/g, " ");
+const cell = (row, name) => row[name] === undefined || row[name] === null ? "" : row[name];
+const textValue = (value) => String(value ?? "").trim();
+const positiveNumber = (value) => {
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
-
-const rowHasCurriculumHeaders = (row) => {
-  const headers = new Set(row.map(normalizeHeader).filter(Boolean));
-  return REQUIRED_HEADERS.every((header) => headers.has(header));
+const boolValue = (value, fallback = true) => value === undefined || value === ""
+  ? fallback
+  : !["false", "no", "0", "draft", "unpublished"].includes(String(value).toLowerCase());
+const isYoutubeUrl = (value) => {
+  try {
+    const url = new URL(value);
+    return ["youtube.com", "www.youtube.com", "youtu.be", "www.youtu.be"].includes(url.hostname);
+  } catch {
+    return false;
+  }
 };
+const stableId = (lessonId) => curriculumGroup === "data-analytics"
+  ? textValue(lessonId)
+  : `${curriculumGroup}__${textValue(lessonId).replace(/\s+/g, "")}`;
 
-const parseWorksheetRows = (worksheet) => {
-  const sheetRows = XLSX.utils.sheet_to_json(worksheet, {
-    header: 1,
-    defval: "",
-    blankrows: false,
-  });
-
-  const headerRowIndex = sheetRows.findIndex(rowHasCurriculumHeaders);
-  if (headerRowIndex === -1) return null;
-
-  const headers = sheetRows[headerRowIndex].map(normalizeHeader);
-
-  const rows = sheetRows
-    .slice(headerRowIndex + 1)
-    .map((values) =>
-      headers.reduce((row, header, columnIndex) => {
-        if (header) row[header] = values[columnIndex] ?? "";
+const parseWorksheet = (workbook) => {
+  for (const sheetName of workbook.SheetNames) {
+    const values = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "", blankrows: false });
+    const headerRowIndex = values.findIndex((row) => {
+      const headers = new Set(row.map(normalizeHeader));
+      return REQUIRED_HEADERS.every((header) => headers.has(header));
+    });
+    if (headerRowIndex < 0) continue;
+    const headers = values[headerRowIndex].map(normalizeHeader);
+    const rows = values.slice(headerRowIndex + 1).map((rowValues, offset) => ({
+      rowNumber: headerRowIndex + offset + 2,
+      values: headers.reduce((row, header, index) => {
+        if (header) row[header] = rowValues[index] ?? "";
         return row;
       }, {}),
-    )
-    .filter((row) =>
-      Object.values(row).some((value) => String(value).trim() !== ""),
-    );
-
-  return { headers: headers.filter(Boolean), headerRowIndex, rows };
+    })).filter(({ values: row }) => Object.values(row).some((value) => textValue(value)));
+    return { sheetName, rows };
+  }
+  throw new Error(`No worksheet has all required headers: ${REQUIRED_HEADERS.join(", ")}`);
 };
 
-const readCurriculumWorksheet = (workbook) => {
-  for (const sheetName of workbook.SheetNames) {
-    const parsed = parseWorksheetRows(workbook.Sheets[sheetName]);
-    if (parsed) return { sheetName, ...parsed };
-  }
+const validateAndNormalize = (rows) => {
+  const warnings = [];
+  const seenLessonIds = new Map();
+  const seenOrders = new Map();
+  const validRows = [];
 
-  throw new Error(
-    `No worksheet found with required headers: ${REQUIRED_HEADERS.join(", ")}`,
-  );
-};
+  for (const { rowNumber, values: row } of rows) {
+    const lessonId = textValue(cell(row, "Lesson ID"));
+    const globalOrder = positiveNumber(cell(row, "Global Order"));
+    const courseOrder = positiveNumber(cell(row, "Course Order"));
+    const course = textValue(cell(row, "Course"));
+    const section = textValue(cell(row, "Section"));
+    const requestedType = textValue(cell(row, "Type")).toLowerCase();
+    const title = textValue(cell(row, "Title"));
+    const unlockDay = positiveNumber(cell(row, "Unlock Day"));
+    const youtubeUrl = textValue(cell(row, "YouTube Link"));
+    const downloadUrl = textValue(cell(row, "Downloadable Resource"));
+    const errors = [];
 
-const normalizeRow = (row, index) => {
-  const course = pick(row, ["Course", "course", "track", "Track"]);
-  const section = pick(row, [
-    "Section",
-    "section",
-    "module",
-    "Module",
-    "section/module",
-    "Section/Module",
-    "Section / Module",
-  ]);
-  const title = pick(row, [
-    "Title",
-    "title",
-    "lesson",
-    "Lesson",
-    "Lesson Title",
-    "Resource Title",
-  ]);
-  const youtubeUrl = pick(row, [
-    "YouTube Link",
-    "youtubeUrl",
-    "YouTube URL",
-    "Youtube URL",
-    "Video URL",
-    "videoUrl",
-  ]);
-  const downloadUrl = pick(row, [
-    "Downloadable Resource",
-    "downloadUrl",
-    "Download URL",
-    "File URL",
-    "Resource URL",
-  ]);
-  const fileName = pick(row, ["fileName", "File Name", "Filename"]);
+    if (!globalOrder) errors.push("missing or invalid Global Order");
+    if (!course) errors.push("missing Course");
+    if (!section) errors.push("missing Section");
+    if (!lessonId) errors.push("missing Lesson ID");
+    if (!courseOrder) errors.push("missing or invalid Course Order");
+    if (!requestedType) errors.push("missing Type");
+    if (!title) errors.push("missing Title");
+    if (!unlockDay) errors.push("missing or invalid Unlock Day");
 
-  const requestedType = String(
-    pick(row, ["Type", "type", "itemType", "Item Type"]) || "",
-  ).toLowerCase();
+    const type = ["resource", "download", "file", "worksheet", "pdf"].includes(requestedType) ? "resource" : requestedType === "video" ? "video" : "";
+    if (requestedType && !type) errors.push(`unsupported Type "${requestedType}"`);
+    if (type === "video" && !youtubeUrl) errors.push("Video is missing YouTube Link");
+    if (type === "video" && youtubeUrl && !isYoutubeUrl(youtubeUrl)) errors.push("invalid YouTube URL");
+    if (type === "resource" && !downloadUrl) errors.push("Resource is missing Downloadable Resource");
 
-  const type = requestedType || (youtubeUrl ? "video" : "resource");
+    const normalizedLessonId = lessonId.toLowerCase();
+    if (lessonId && seenLessonIds.has(normalizedLessonId)) {
+      errors.push(`duplicate Lesson ID (also row ${seenLessonIds.get(normalizedLessonId)})`);
+    } else if (lessonId) seenLessonIds.set(normalizedLessonId, rowNumber);
+    if (globalOrder && seenOrders.has(globalOrder)) {
+      errors.push(`duplicate Global Order (also row ${seenOrders.get(globalOrder)})`);
+    } else if (globalOrder) seenOrders.set(globalOrder, rowNumber);
 
-  const unlockDay = numberValue(
-    pick(row, ["Unlock Day", "unlockDay", "day", "Day"]),
-    1,
-  );
+    if (errors.length) {
+      warnings.push(`Row ${rowNumber}: ${errors.join("; ")}`);
+      continue;
+    }
 
-  const globalOrder = numberValue(
-    pick(row, ["Global Order", "globalOrder", "order", "Order"]),
-    index + 1,
-  );
-
-  const lessonOrder = numberValue(
-    pick(row, ["Course Order", "lessonOrder", "Lesson Order"]),
-    globalOrder,
-  );
-
-  const normalizedSection = section || "General";
-
-  if (!course || !title) {
-    return { invalid: `Row ${index + 2}: missing course or title` };
-  }
-
-  if (["resource", "download", "file", "worksheet", "pdf"].includes(type)) {
-    const resourceId =
-      pick(row, ["resourceId", "Resource ID", "Lesson ID"]) ||
-      slugify(`${course}-${normalizedSection}-${title}`);
-
-    return {
-      collectionName: "lmsResources",
-      id: resourceId,
-      data: {
-        resourceId,
-        course,
-        section: normalizedSection,
-        module: normalizedSection,
-        title,
-        fileType: pick(row, ["fileType", "File Type"]) || "link",
-        fileName: fileName || title,
-        downloadUrl: downloadUrl || "",
-        storagePath: pick(row, ["storagePath", "Storage Path"]) || "",
-        unlockDay,
-        isPublished: boolValue(
-          pick(row, ["isPublished", "Published", "published"]),
-        ),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-    };
-  }
-
-  const lessonId =
-    pick(row, ["Lesson ID", "lessonId"]) ||
-    slugify(`${course}-${normalizedSection}-${globalOrder}-${title}`);
-
-  return {
-    collectionName: "curriculum",
-    id: lessonId,
-    data: {
-      lessonId,
+    const id = stableId(lessonId);
+    const common = {
+      curriculumGroup,
       course,
-      section: normalizedSection,
-      module: normalizedSection,
+      section,
+      module: section,
       globalOrder,
-      lessonOrder,
+      lessonOrder: courseOrder,
+      courseOrder,
       title,
-      type: "video",
-      youtubeUrl: youtubeUrl || "",
+      type,
       unlockDay,
-      isPublished: boolValue(
-        pick(row, ["isPublished", "Published", "published"]),
-      ),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    },
-  };
+      week: cell(row, "Week"),
+      lectureDate: cell(row, "Lecture Date"),
+      dayOfWeek: cell(row, "Day of Week"),
+      isPublished: boolValue(cell(row, "Published")),
+    };
+    validRows.push(type === "video" ? {
+      collectionName: "curriculum", id,
+      data: { ...common, lessonId: id, sourceLessonId: lessonId, youtubeUrl },
+    } : {
+      collectionName: "lmsResources", id,
+      data: { ...common, resourceId: id, sourceLessonId: lessonId, fileType: "link", fileName: title, downloadUrl, storagePath: "" },
+    });
+  }
+
+  const unlockDays = [...new Set(validRows.map((row) => row.data.unlockDay))].sort((a, b) => a - b);
+  unlockDays.forEach((day, index) => {
+    if (day !== index + 1) warnings.push(`Unlock sequence gap: expected Day ${index + 1}, found Day ${day}.`);
+  });
+  return { validRows, warnings, skipped: rows.length - validRows.length };
 };
 
-const workbookPath = path.resolve(process.argv[2] || DEFAULT_WORKBOOK_PATH);
-
+if (!SUPPORTED_GROUPS.has(curriculumGroup)) {
+  console.error(`Unsupported --group=${curriculumGroup}. Use: ${[...SUPPORTED_GROUPS].join(", ")}`);
+  process.exit(1);
+}
 if (!existsSync(workbookPath)) {
   console.error(`Workbook not found: ${workbookPath}`);
-  console.error(
-    "Place the curriculum file at data/OVTech Master Curriculum.xlsx or pass a path as the first argument.",
-  );
   process.exit(1);
 }
 
+const workbook = XLSX.read(readFileSync(workbookPath), { type: "buffer", cellDates: true });
+const { sheetName, rows } = parseWorksheet(workbook);
+const { validRows, warnings, skipped } = validateAndNormalize(rows);
+console.log(`Validated ${rows.length} row(s) from "${sheetName}" for ${curriculumGroup}.`);
+warnings.forEach((warning) => console.warn(`Warning: ${warning}`));
+if (!validRows.length) {
+  console.error("No valid curriculum rows to import.");
+  process.exit(1);
+}
 if (!existsSync(serviceAccountPath)) {
-  console.error(
-    `Firebase Admin service account not found: ${serviceAccountPath}`,
-  );
-  console.error(
-    "Add a local serviceAccountKey.json file in the project root. This file is ignored by git.",
-  );
+  console.error(`Validation complete, but Firebase Admin service account was not found: ${serviceAccountPath}`);
   process.exit(1);
 }
 
 const admin = await initializeFirebaseAdmin();
 const db = await getFirestore();
-
-const workbook = XLSX.read(readFileSync(workbookPath), { type: "buffer" });
-const { rows } = readCurriculumWorksheet(workbook);
-
 let created = 0;
 let updated = 0;
-let skipped = 0;
-
-for (const [index, row] of rows.entries()) {
-  const normalized = normalizeRow(row, index);
-
-  if (normalized.invalid) {
-    console.warn(`Skipped: ${normalized.invalid}`);
-    skipped += 1;
+for (const row of validRows) {
+  const ref = db.collection(row.collectionName).doc(row.id);
+  const existing = await ref.get();
+  if (existing.exists && existing.data().curriculumGroup && existing.data().curriculumGroup !== curriculumGroup) {
+    console.warn(`Skipped ${row.collectionName}/${row.id}: belongs to ${existing.data().curriculumGroup}.`);
     continue;
   }
-
-  if (normalized.data.type === "video" && !normalized.data.youtubeUrl) {
-    console.warn(`Warning: ${normalized.id} has no YouTube URL.`);
-  }
-
-  if (
-    normalized.collectionName === "lmsResources" &&
-    !normalized.data.downloadUrl &&
-    !normalized.data.storagePath
-  ) {
-    console.warn(
-      `Warning: ${normalized.id} has no download URL or storage path.`,
-    );
-  }
-
-  const ref = db.collection(normalized.collectionName).doc(normalized.id);
-  const existing = await ref.get();
-
-  await ref.set(
-    {
-      ...normalized.data,
-      createdAt: existing.exists
-        ? existing.data().createdAt
-        : admin.firestore.FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
-
-  if (existing.exists) {
-    updated += 1;
-  } else {
-    created += 1;
-  }
+  await ref.set({
+    ...row.data,
+    createdAt: existing.exists ? existing.data().createdAt : admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+  if (existing.exists) updated += 1;
+  else created += 1;
 }
+console.log(`Import complete for ${curriculumGroup}: ${created} created, ${updated} updated, ${skipped} skipped.`);
