@@ -12,15 +12,23 @@ export const toDate = (value) => {
 const getDateOnlyUtc = (date) =>
   Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
 
-export const getSelfPacedStartDate = (settings) =>
-  toDate(settings?.startDate) || toDate(settings?.selfPacedStartDate);
+export const getSelfPacedStartDate = (settings, curriculumGroup) =>
+  toDate(settings?.startDates?.[curriculumGroup]) ||
+  toDate(settings?.[curriculumGroup]) ||
+  (curriculumGroup && curriculumGroup !== "data-analytics"
+    ? null
+    : toDate(settings?.startDate) || toDate(settings?.selfPacedStartDate));
 
 export const getStudentProgramDay = (
   student,
   now = new Date(),
   settings = {},
+  curriculumGroup,
 ) => {
-  const configuredStartDate = getSelfPacedStartDate(settings);
+  const configuredStartDate = getSelfPacedStartDate(settings, curriculumGroup);
+  if (curriculumGroup === "computer-programming" && !configuredStartDate) {
+    return 0;
+  }
   const startDate =
     configuredStartDate ||
     toDate(student?.lmsStartedAt) ||
@@ -38,9 +46,13 @@ export const isItemUnlocked = (
   student,
   now = new Date(),
   settings = {},
+  curriculumGroup,
 ) => {
   const unlockDay = Number(item?.unlockDay || 1);
-  return unlockDay <= getStudentProgramDay(student, now, settings);
+  return (
+    unlockDay <=
+    getStudentProgramDay(student, now, settings, curriculumGroup)
+  );
 };
 
 export const sortLmsItems = (items) =>

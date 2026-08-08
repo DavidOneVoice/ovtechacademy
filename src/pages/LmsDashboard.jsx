@@ -20,7 +20,10 @@ import { db } from "../src/firebase";
 import { uploadImageToCloudinary } from "../utils/cloudinary";
 import { createPublicAlumniRecord, publicAlumniRef } from "../services/publicAlumni";
 import { getSafeYouTubeEmbedUrl } from "../lms/youtube";
-import { curriculumItemMatchesStudentTrack } from "../lms/tracks";
+import {
+  curriculumItemMatchesGroup,
+  resolveStudentCurriculumGroup,
+} from "../lms/tracks";
 import {
   getStudentProgramDay,
   isItemUnlocked,
@@ -489,6 +492,7 @@ const LmsDashboard = () => {
     const fetchLmsData = async () => {
       setLoading(true);
       setDataError("");
+      const curriculumGroup = resolveStudentCurriculumGroup(student);
       const lessonQuery = query(
         collection(db, "curriculum"),
         where("isPublished", "==", true),
@@ -505,40 +509,55 @@ const LmsDashboard = () => {
         resourceSnapshot,
         progressSnapshot,
         legacyProgressSnapshot,
-        settingsSnapshot,
+        programmeSettingsSnapshot,
+        legacySettingsSnapshot,
       ] = await Promise.all([
         getDocs(lessonQuery),
         getDocs(resourceQuery),
         getDoc(doc(db, "progress", progressId)),
         getDoc(doc(db, "studentProgress", progressId)),
+        getDoc(doc(db, "lmsSettings", "selfPacedStartDates")),
         getDoc(doc(db, "lmsSettings", "selfPaced")),
       ]);
 
-      const lessonData = lessonSnapshot.docs
-        .map((item) => ({
-          id: item.id,
-          ...item.data(),
-          type: "video",
-        }))
-        .filter((lesson) => curriculumItemMatchesStudentTrack(lesson, student));
-      const resourceData = resourceSnapshot.docs
-        .map((item) => ({
-          id: item.id,
-          ...item.data(),
-          type: "resource",
-        }))
-        .filter((resource) =>
-          curriculumItemMatchesStudentTrack(resource, student),
-        );
+      const lessonData = curriculumGroup
+        ? lessonSnapshot.docs
+            .map((item) => ({
+              id: item.id,
+              ...item.data(),
+              type: "video",
+            }))
+            .filter((lesson) =>
+              curriculumItemMatchesGroup(lesson, curriculumGroup),
+            )
+        : [];
+      const resourceData = curriculumGroup
+        ? resourceSnapshot.docs
+            .map((item) => ({
+              id: item.id,
+              ...item.data(),
+              type: "resource",
+            }))
+            .filter((resource) =>
+              curriculumItemMatchesGroup(resource, curriculumGroup),
+            )
+        : [];
       const progress = progressSnapshot.exists()
         ? progressSnapshot.data()
         : legacyProgressSnapshot.exists()
           ? legacyProgressSnapshot.data()
           : {};
-      const settings = settingsSnapshot.exists() ? settingsSnapshot.data() : {};
+      const settings = {
+        ...(legacySettingsSnapshot.exists()
+          ? legacySettingsSnapshot.data()
+          : {}),
+        startDates: programmeSettingsSnapshot.exists()
+          ? programmeSettingsSnapshot.data()
+          : {},
+      };
       const sortedLessons = sortLmsItems(lessonData);
       const firstUnlockedLesson = sortedLessons.find((item) =>
-        isItemUnlocked(item, student, new Date(), settings),
+        isItemUnlocked(item, student, new Date(), settings, curriculumGroup),
       );
 
       setLmsSettings(settings);
@@ -549,7 +568,13 @@ const LmsDashboard = () => {
         (lesson) => getLessonId(lesson) === progress.lastWatchedLessonId,
       );
       const savedLessonIsUnlocked = savedLesson
-        ? isItemUnlocked(savedLesson, student, new Date(), settings)
+        ? isItemUnlocked(
+            savedLesson,
+            student,
+            new Date(),
+            settings,
+            curriculumGroup,
+          )
         : false;
 
       setSelectedLessonId(
@@ -582,14 +607,26 @@ const LmsDashboard = () => {
   const selectedLesson = lessons.find(
     (lesson) => getLessonId(lesson) === selectedLessonId,
   );
-  const programDay = getStudentProgramDay(student, new Date(), lmsSettings);
+  const curriculumGroup = resolveStudentCurriculumGroup(student);
+  const programDay = getStudentProgramDay(
+    student,
+    new Date(),
+    lmsSettings,
+    curriculumGroup,
+  );
   const progressPercentage = calculateProgressPercentage(
     completedLessonIds,
     lessons,
   );
   const nextLesson = lessons.find(
     (lesson) =>
-      isItemUnlocked(lesson, student, new Date(), lmsSettings) &&
+      isItemUnlocked(
+        lesson,
+        student,
+        new Date(),
+        lmsSettings,
+        curriculumGroup,
+      ) &&
       !completedLessonIds.includes(getLessonId(lesson)),
   );
   const courseName = getStudentCourse(student) || "Your Course";
@@ -1101,6 +1138,7 @@ const LmsDashboard = () => {
                         student,
                         new Date(),
                         lmsSettings,
+                        curriculumGroup,
                       );
                       const lessonId = getLessonId(item);
                       const complete =

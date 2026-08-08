@@ -11,6 +11,19 @@ const TRACK_COURSE_MAP = {
   "data analytics": DATA_ANALYTICS_COURSES,
 };
 
+export const CURRICULUM_GROUPS = {
+  DATA_ANALYTICS: "data-analytics",
+  COMPUTER_PROGRAMMING: "computer-programming",
+};
+
+export const CURRICULUM_PROGRAMMES = [
+  { value: CURRICULUM_GROUPS.DATA_ANALYTICS, label: "Data Analytics" },
+  {
+    value: CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
+    label: "Computer Programming",
+  },
+];
+
 const DIRECT_TRACK_COURSE_ALIASES = {
   "software development frontend": [
     "Software Development (Frontend)",
@@ -34,6 +47,14 @@ export const normalizeTrackName = (value) =>
     .trim()
     .replace(/\s+/g, " ");
 
+const TRACK_CURRICULUM_GROUP_MAP = {
+  "data analytics": CURRICULUM_GROUPS.DATA_ANALYTICS,
+  "software development": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
+  "software development frontend": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
+  "frontend development": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
+  "web development": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
+};
+
 const getStudentTrackValues = (student) =>
   [
     student?.track,
@@ -44,6 +65,20 @@ const getStudentTrackValues = (student) =>
     ...(Array.isArray(student?.courses) ? student.courses : []),
     ...(Array.isArray(student?.enrolledCourses) ? student.enrolledCourses : []),
   ].filter(Boolean);
+
+export const resolveStudentCurriculumGroup = (student) => {
+  const track = getStudentTrackValues(student)
+    .map(normalizeTrackName)
+    .find((value) => TRACK_CURRICULUM_GROUP_MAP[value]);
+
+  return track ? TRACK_CURRICULUM_GROUP_MAP[track] : null;
+};
+
+export const getCurriculumItemGroup = (item) =>
+  item?.curriculumGroup || CURRICULUM_GROUPS.DATA_ANALYTICS;
+
+export const curriculumItemMatchesGroup = (item, curriculumGroup) =>
+  getCurriculumItemGroup(item) === curriculumGroup;
 
 export const getAllowedCurriculumCoursesForStudent = (student) => {
   const normalizedTracks = getStudentTrackValues(student).map(normalizeTrackName);
