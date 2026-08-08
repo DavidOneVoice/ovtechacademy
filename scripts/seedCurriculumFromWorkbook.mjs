@@ -11,40 +11,47 @@ import {
 const SUPPORTED_GROUPS = new Set(["data-analytics", "computer-programming"]);
 const DEFAULT_WORKBOOK_PATH = path.join(projectRoot, "data", "OVTech Master Curriculum.xlsx");
 const REQUIRED_HEADERS = ["Global Order", "Course", "Section", "Lesson ID", "Course Order", "Type", "Title", "Unlock Day"];
+const args = process.argv.slice(2);
 
 const getArgument = (name) => {
-  const argument = process.argv.slice(2).find((value) => value.startsWith(`--${name}=`));
+  const argument = args.find((value) => value.startsWith(`--${name}=`));
   return argument ? argument.slice(name.length + 3) : "";
 };
-const positionalFile = process.argv.slice(2).find((value) => !value.startsWith("--"));
+const positionalFile = args.find((value) => !value.startsWith("--"));
 const workbookPath = path.resolve(getArgument("file") || positionalFile || DEFAULT_WORKBOOK_PATH);
 const curriculumGroup = getArgument("group") || "data-analytics";
+const dryRun = args.includes("--dry-run");
 
 const normalizeHeader = (value) => String(value || "").trim().replace(/\s+/g, " ");
 const cell = (row, name) => row[name] === undefined || row[name] === null ? "" : row[name];
 const textValue = (value) => String(value ?? "").trim();
-const positiveNumber = (value) => {
+const positiveInteger = (value) => {
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 const boolValue = (value, fallback = true) => value === undefined || value === ""
   ? fallback
-  : !["false", "no", "0", "draft", "unpublished"].includes(String(value).toLowerCase());
+  : !["false", "no", "0", "draft", "unpublished"].includes(String(value).trim().toLowerCase());
 const isYoutubeUrl = (value) => {
   try {
     const url = new URL(value);
-    return ["youtube.com", "www.youtube.com", "youtu.be", "www.youtu.be"].includes(url.hostname);
+    return ["youtube.com", "www.youtube.com", "youtu.be", "www.youtu.be"].includes(url.hostname.toLowerCase());
   } catch {
     return false;
   }
 };
+const normalizedSourceId = (lessonId) => textValue(lessonId).replace(/[^a-z0-9]/gi, "").toUpperCase();
 const stableId = (lessonId) => curriculumGroup === "data-analytics"
   ? textValue(lessonId)
-  : `${curriculumGroup}__${textValue(lessonId).replace(/\s+/g, "")}`;
+  : `${curriculumGroup}__${normalizedSourceId(lessonId)}`;
 
 const parseWorksheet = (workbook) => {
-  for (const sheetName of workbook.SheetNames) {
-    const values = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "", blankrows: false });
+  const preferredSheets = workbook.SheetNames.includes("Master Curriculum")
+    ? ["Master Curriculum"]
+    : workbook.SheetNames;
+  for (const sheetName of preferredSheets) {
+    const worksheet = workbook.Sheets[sheetName];
+    const values = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", blankrows: true });
     const headerRowIndex = values.findIndex((row) => {
       const headers = new Set(row.map(normalizeHeader));
       return REQUIRED_HEADERS.every((header) => headers.has(header));
@@ -58,131 +65,177 @@ const parseWorksheet = (workbook) => {
         return row;
       }, {}),
     })).filter(({ values: row }) => Object.values(row).some((value) => textValue(value)));
-    return { sheetName, rows };
+    const physicalRows = XLSX.utils.decode_range(worksheet["!ref"]).e.r + 1;
+    return { sheetName, rows, physicalRows };
   }
   throw new Error(`No worksheet has all required headers: ${REQUIRED_HEADERS.join(", ")}`);
 };
 
+const rowDescription = (rowNumber, row) => ({
+  rowNumber,
+  globalOrder: textValue(cell(row, "Global Order")),
+  lessonId: textValue(cell(row, "Lesson ID")),
+  type: textValue(cell(row, "Type")),
+  course: textValue(cell(row, "Course")),
+  section: textValue(cell(row, "Section")),
+  title: textValue(cell(row, "Title")),
+});
+
 const validateAndNormalize = (rows) => {
-  const warnings = [];
-  const seenLessonIds = new Map();
+  const invalidRows = [];
+  const collisions = [];
+  const seenIds = new Map();
   const seenOrders = new Map();
   const validRows = [];
 
   for (const { rowNumber, values: row } of rows) {
-    const lessonId = textValue(cell(row, "Lesson ID"));
-    const globalOrder = positiveNumber(cell(row, "Global Order"));
-    const courseOrder = positiveNumber(cell(row, "Course Order"));
+    const sourceLessonId = textValue(cell(row, "Lesson ID"));
+    const globalOrder = positiveInteger(cell(row, "Global Order"));
+    const courseOrder = positiveInteger(cell(row, "Course Order"));
     const course = textValue(cell(row, "Course"));
     const section = textValue(cell(row, "Section"));
-    const requestedType = textValue(cell(row, "Type")).toLowerCase();
+    const requestedType = String(cell(row, "Type") || "").trim().toLowerCase();
     const title = textValue(cell(row, "Title"));
-    const unlockDay = positiveNumber(cell(row, "Unlock Day"));
+    const unlockDay = positiveInteger(cell(row, "Unlock Day"));
     const youtubeUrl = textValue(cell(row, "YouTube Link"));
     const downloadUrl = textValue(cell(row, "Downloadable Resource"));
     const errors = [];
 
-    if (!globalOrder) errors.push("missing or invalid Global Order");
+    if (!globalOrder) errors.push("missing or invalid positive-integer Global Order");
     if (!course) errors.push("missing Course");
     if (!section) errors.push("missing Section");
-    if (!lessonId) errors.push("missing Lesson ID");
-    if (!courseOrder) errors.push("missing or invalid Course Order");
+    if (!sourceLessonId) errors.push("missing Lesson ID");
+    if (!courseOrder) errors.push("missing or invalid positive-integer Course Order");
     if (!requestedType) errors.push("missing Type");
     if (!title) errors.push("missing Title");
-    if (!unlockDay) errors.push("missing or invalid Unlock Day");
+    if (!unlockDay) errors.push("missing or invalid positive-integer Unlock Day");
 
-    const type = ["resource", "download", "file", "worksheet", "pdf"].includes(requestedType) ? "resource" : requestedType === "video" ? "video" : "";
-    if (requestedType && !type) errors.push(`unsupported Type "${requestedType}"`);
+    const type = requestedType === "video" || requestedType === "resource" ? requestedType : "";
+    if (requestedType && !type) errors.push(`unsupported Type "${requestedType}" (expected Video or Resource)`);
     if (type === "video" && !youtubeUrl) errors.push("Video is missing YouTube Link");
-    if (type === "video" && youtubeUrl && !isYoutubeUrl(youtubeUrl)) errors.push("invalid YouTube URL");
+    if (type === "video" && youtubeUrl && !isYoutubeUrl(youtubeUrl)) errors.push(`invalid YouTube URL "${youtubeUrl}"`);
     if (type === "resource" && !downloadUrl) errors.push("Resource is missing Downloadable Resource");
 
-    const normalizedLessonId = lessonId.toLowerCase();
-    if (lessonId && seenLessonIds.has(normalizedLessonId)) {
-      errors.push(`duplicate Lesson ID (also row ${seenLessonIds.get(normalizedLessonId)})`);
-    } else if (lessonId) seenLessonIds.set(normalizedLessonId, rowNumber);
+    const id = sourceLessonId ? stableId(sourceLessonId) : "";
+    if (id && seenIds.has(id)) {
+      const firstRow = seenIds.get(id);
+      const reason = `generated ID collision "${id}" (also Excel row ${firstRow})`;
+      errors.push(reason);
+      collisions.push({ id, firstRow, rowNumber });
+    } else if (id) seenIds.set(id, rowNumber);
     if (globalOrder && seenOrders.has(globalOrder)) {
-      errors.push(`duplicate Global Order (also row ${seenOrders.get(globalOrder)})`);
+      errors.push(`duplicate Global Order ${globalOrder} (also Excel row ${seenOrders.get(globalOrder)})`);
     } else if (globalOrder) seenOrders.set(globalOrder, rowNumber);
 
     if (errors.length) {
-      warnings.push(`Row ${rowNumber}: ${errors.join("; ")}`);
+      invalidRows.push({ ...rowDescription(rowNumber, row), reasons: errors });
       continue;
     }
 
-    const id = stableId(lessonId);
     const common = {
-      curriculumGroup,
-      course,
-      section,
-      module: section,
-      globalOrder,
-      lessonOrder: courseOrder,
-      courseOrder,
-      title,
-      type,
-      unlockDay,
-      week: cell(row, "Week"),
-      lectureDate: cell(row, "Lecture Date"),
-      dayOfWeek: cell(row, "Day of Week"),
-      isPublished: boolValue(cell(row, "Published")),
+      curriculumGroup, course, section, module: section, globalOrder,
+      lessonOrder: courseOrder, courseOrder, title, type, unlockDay,
+      week: cell(row, "Week"), lectureDate: cell(row, "Lecture Date"),
+      dayOfWeek: cell(row, "Day of Week"), isPublished: boolValue(cell(row, "Published")),
     };
     validRows.push(type === "video" ? {
-      collectionName: "curriculum", id,
-      data: { ...common, lessonId: id, sourceLessonId: lessonId, youtubeUrl },
+      rowNumber, collectionName: "curriculum", id,
+      data: { ...common, lessonId: id, sourceLessonId, youtubeUrl },
     } : {
-      collectionName: "lmsResources", id,
-      data: { ...common, resourceId: id, sourceLessonId: lessonId, fileType: "link", fileName: title, downloadUrl, storagePath: "" },
+      rowNumber, collectionName: "lmsResources", id,
+      data: { ...common, resourceId: id, sourceLessonId, fileType: "link", fileName: title, downloadUrl, storagePath: "" },
     });
   }
-
-  const unlockDays = [...new Set(validRows.map((row) => row.data.unlockDay))].sort((a, b) => a - b);
-  unlockDays.forEach((day, index) => {
-    if (day !== index + 1) warnings.push(`Unlock sequence gap: expected Day ${index + 1}, found Day ${day}.`);
-  });
-  return { validRows, warnings, skipped: rows.length - validRows.length };
+  return { validRows, invalidRows, collisions };
 };
 
-if (!SUPPORTED_GROUPS.has(curriculumGroup)) {
-  console.error(`Unsupported --group=${curriculumGroup}. Use: ${[...SUPPORTED_GROUPS].join(", ")}`);
-  process.exit(1);
-}
-if (!existsSync(workbookPath)) {
-  console.error(`Workbook not found: ${workbookPath}`);
-  process.exit(1);
-}
+const printDetectionReport = ({ sheetName, rows, physicalRows }, validation) => {
+  const courses = new Map();
+  let videos = 0;
+  let resources = 0;
+  for (const { values: row } of rows) {
+    const course = textValue(cell(row, "Course"));
+    const type = String(cell(row, "Type") || "").trim().toLowerCase();
+    if (!courses.has(course)) courses.set(course, { videos: 0, resources: 0 });
+    if (type === "video") { courses.get(course).videos += 1; videos += 1; }
+    if (type === "resource") { courses.get(course).resources += 1; resources += 1; }
+  }
+  const orders = rows.map(({ values }) => positiveInteger(cell(values, "Global Order"))).filter(Boolean);
+  console.log(`Workbook:\n${workbookPath}\n\nWorksheet:\n${sheetName}`);
+  console.log(`\nPhysical worksheet rows: ${physicalRows}`);
+  console.log(`Last actual curriculum row: ${rows.at(-1)?.rowNumber ?? "none"}`);
+  console.log(`Global Order: ${orders.length ? `${Math.min(...orders)} through ${Math.max(...orders)}` : "none"}`);
+  console.log("\nCURRICULUM DETECTED");
+  for (const [course, counts] of courses) {
+    console.log(`\n${course}\nVideos: ${counts.videos}\nResources: ${counts.resources}\nTotal: ${counts.videos + counts.resources}`);
+  }
+  console.log(`\nTOTAL\nVideos: ${videos}\nResources: ${resources}\nTotal curriculum items: ${rows.length}`);
+  console.log(`\nVALIDATION\nValid rows: ${validation.validRows.length}\nInvalid/skipped rows: ${validation.invalidRows.length}\nGenerated ID collisions: ${validation.collisions.length}`);
+  if (validation.invalidRows.length) {
+    console.log("\nINVALID/SKIPPED ROWS");
+    for (const row of validation.invalidRows) {
+      console.log(`Excel row ${row.rowNumber} | Global Order: ${row.globalOrder || "(missing)"} | Lesson ID: ${row.lessonId || "(missing)"} | Type: ${row.type || "(missing)"} | Course: ${row.course || "(missing)"} | Section: ${row.section || "(missing)"} | Title: ${row.title || "(missing)"} | Reason: ${row.reasons.join("; ")}`);
+    }
+  }
+};
+
+const comparableData = (data) => Object.fromEntries(Object.entries(data).filter(([key]) => !["createdAt", "updatedAt"].includes(key)));
+const isUnchanged = (existing, intended) => JSON.stringify(comparableData(existing)) === JSON.stringify(comparableData({ ...existing, ...intended }));
+
+if (!SUPPORTED_GROUPS.has(curriculumGroup)) throw new Error(`Unsupported --group=${curriculumGroup}. Use: ${[...SUPPORTED_GROUPS].join(", ")}`);
+if (!existsSync(workbookPath)) throw new Error(`Workbook not found: ${workbookPath}`);
 
 const workbook = XLSX.read(readFileSync(workbookPath), { type: "buffer", cellDates: true });
-const { sheetName, rows } = parseWorksheet(workbook);
-const { validRows, warnings, skipped } = validateAndNormalize(rows);
-console.log(`Validated ${rows.length} row(s) from "${sheetName}" for ${curriculumGroup}.`);
-warnings.forEach((warning) => console.warn(`Warning: ${warning}`));
-if (!validRows.length) {
-  console.error("No valid curriculum rows to import.");
-  process.exit(1);
-}
-if (!existsSync(serviceAccountPath)) {
-  console.error(`Validation complete, but Firebase Admin service account was not found: ${serviceAccountPath}`);
-  process.exit(1);
-}
-
-const admin = await initializeFirebaseAdmin();
-const db = await getFirestore();
-let created = 0;
-let updated = 0;
-for (const row of validRows) {
-  const ref = db.collection(row.collectionName).doc(row.id);
-  const existing = await ref.get();
-  if (existing.exists && existing.data().curriculumGroup && existing.data().curriculumGroup !== curriculumGroup) {
-    console.warn(`Skipped ${row.collectionName}/${row.id}: belongs to ${existing.data().curriculumGroup}.`);
-    continue;
+const parsed = parseWorksheet(workbook);
+const validation = validateAndNormalize(parsed.rows);
+printDetectionReport(parsed, validation);
+if (!validation.validRows.length || validation.invalidRows.length || validation.collisions.length) {
+  console.error("\nImport blocked: every workbook row must pass validation and generated IDs must be unique.");
+  process.exitCode = 1;
+} else if (!existsSync(serviceAccountPath)) {
+  if (dryRun) {
+    console.log(`\nFIRESTORE PLAN\nComparison unavailable: Firebase Admin service account not found at ${serviceAccountPath}.`);
+    console.log("Would create/update/skip unchanged: unknown until Firestore comparison can run.");
+    console.log("\nDRY RUN COMPLETE — zero Firestore writes.");
+  } else {
+    throw new Error(`Validation complete, but Firebase Admin service account was not found: ${serviceAccountPath}`);
   }
-  await ref.set({
-    ...row.data,
-    createdAt: existing.exists ? existing.data().createdAt : admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  }, { merge: true });
-  if (existing.exists) updated += 1;
-  else created += 1;
+} else {
+  const admin = await initializeFirebaseAdmin();
+  const db = await getFirestore();
+  const refs = validation.validRows.map((row) => db.collection(row.collectionName).doc(row.id));
+  const snapshots = await db.getAll(...refs);
+  const plan = { create: [], update: [], unchanged: [], protected: [] };
+  validation.validRows.forEach((row, index) => {
+    const snapshot = snapshots[index];
+    const existing = snapshot.exists ? snapshot.data() : null;
+    if (existing?.curriculumGroup && existing.curriculumGroup !== curriculumGroup) plan.protected.push(row);
+    else if (!existing) plan.create.push(row);
+    else if (isUnchanged(existing, row.data)) plan.unchanged.push(row);
+    else plan.update.push({ ...row, existing });
+  });
+  console.log(`\nFIRESTORE PLAN\nWould create: ${plan.create.length}\nWould update: ${plan.update.length}\nWould skip unchanged: ${plan.unchanged.length}\nWould skip protected: ${plan.protected.length}`);
+  for (const row of plan.create) console.log(`CREATE ${row.collectionName}/${row.id} (Excel row ${row.rowNumber})`);
+  for (const row of plan.update) console.log(`UPDATE ${row.collectionName}/${row.id} (Excel row ${row.rowNumber})`);
+  for (const row of plan.unchanged) console.log(`UNCHANGED ${row.collectionName}/${row.id} (Excel row ${row.rowNumber})`);
+  for (const row of plan.protected) console.log(`PROTECTED ${row.collectionName}/${row.id} (Excel row ${row.rowNumber}): belongs to another curriculum group`);
+
+  if (dryRun) {
+    console.log("\nDRY RUN COMPLETE — zero Firestore writes.");
+  } else if (plan.protected.length) {
+    throw new Error("Import blocked because one or more generated IDs belong to another curriculum group.");
+  } else {
+    const writes = [...plan.create, ...plan.update];
+    const batch = db.batch();
+    for (const row of writes) {
+      const existing = row.existing;
+      batch.set(db.collection(row.collectionName).doc(row.id), {
+        ...row.data,
+        createdAt: existing?.createdAt || admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+    if (writes.length) await batch.commit();
+    console.log(`Import complete for ${curriculumGroup}: ${plan.create.length} created, ${plan.update.length} updated, ${plan.unchanged.length} unchanged.`);
+  }
 }
-console.log(`Import complete for ${curriculumGroup}: ${created} created, ${updated} updated, ${skipped} skipped.`);
