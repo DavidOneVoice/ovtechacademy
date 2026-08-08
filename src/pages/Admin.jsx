@@ -519,7 +519,7 @@ const Admin = () => {
             </p>
           </div>
           <a href="/admin/lms" className="admin-home-btn">
-            Advanced Live Session Manager
+            LMS Management
           </a>
         </div>
         <form
