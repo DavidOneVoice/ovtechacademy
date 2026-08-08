@@ -31,9 +31,9 @@ const courses = [
     ],
   },
   {
-    id: "front-end-development",
+    id: "web-development",
     label: "💻 Learning Path 02",
-    title: "Front-End Development",
+    title: "Web Development",
     description:
       "Learn how to build responsive, interactive, and modern web applications using frontend technologies.",
     duration: "12 Weeks",
@@ -96,13 +96,13 @@ const courses = [
   {
     id: "virtual-assistance",
     label: "🗂️ Learning Path 04",
-    title: "Virtual Assistance",
+    title: "Virtual Assistant",
     description:
       "Learn administrative support, communication, scheduling, customer management, productivity tools, and remote work skills required to work as a professional virtual assistant for businesses and entrepreneurs worldwide.",
     duration: "8 Weeks",
     icon: "🗂️",
     image: "/va.png",
-    alt: "Virtual Assistance",
+    alt: "Virtual Assistant",
     imageClass: "ov-va-img",
     featured: false,
     tools: [
@@ -130,13 +130,13 @@ const courses = [
   {
     id: "cyber-security",
     label: "🔐 Learning Path 05",
-    title: "Cyber Security",
+    title: "Cybersecurity",
     description:
       "Learn cybersecurity fundamentals, digital safety, threat detection, network security, ethical security practices, and essential tools used to protect systems and data.",
     duration: "12 Weeks",
     icon: "🔐",
     image: "/cyber.png",
-    alt: "Cyber Security",
+    alt: "Cybersecurity",
     imageClass: "ov-cyber-img",
     featured: true,
     featuredOrder: 2,

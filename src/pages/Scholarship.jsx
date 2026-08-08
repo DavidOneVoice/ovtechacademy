@@ -8,6 +8,7 @@ import emailjs from "@emailjs/browser";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import usePricing from "../hooks/usePricing";
+import { CANONICAL_PROGRAMMES } from "../data/programmes";
 
 const Scholarship = () => {
   const pricing = usePricing();
@@ -40,7 +41,7 @@ const Scholarship = () => {
 
       if (
         name === "track" &&
-        ["Cyber Security", "Virtual Assistance"].includes(value)
+        ["Cybersecurity", "Virtual Assistant"].includes(value)
       ) {
         updated.learningMethod = "";
       }
@@ -246,65 +247,23 @@ const Scholarship = () => {
         <div className="sch-radio-group">
           <p>Preferred Track</p>
 
-          <label>
-            <input
-              type="radio"
-              name="track"
-              required
-              value="Data Analytics"
-              checked={formData.track === "Data Analytics"}
-              onChange={handleChange}
-            />
-            Data Analytics
-          </label>
-
-          <label>
-            <input
-              type="radio"
-              name="track"
-              value="Software Development (Frontend)"
-              checked={formData.track === "Software Development (Frontend)"}
-              onChange={handleChange}
-            />
-            Software Development (Frontend)
-          </label>
-
-          <label>
-            <input
-              type="radio"
-              name="track"
-              value="Cyber Security"
-              checked={formData.track === "Cyber Security"}
-              onChange={handleChange}
-            />
-            Cyber Security
-          </label>
-
-          <label>
-            <input
-              type="radio"
-              name="track"
-              value="Web Development"
-              checked={formData.track === "Web Development"}
-              onChange={handleChange}
-            />
-            Web Development
-          </label>
-
-          <label>
-            <input
-              type="radio"
-              name="track"
-              value="Virtual Assistance"
-              checked={formData.track === "Virtual Assistance"}
-              onChange={handleChange}
-            />
-            Virtual Assistance
-          </label>
+          {CANONICAL_PROGRAMMES.map((programme, index) => (
+            <label key={programme}>
+              <input
+                type="radio"
+                name="track"
+                required={index === 0}
+                value={programme}
+                checked={formData.track === programme}
+                onChange={handleChange}
+              />
+              {programme}
+            </label>
+          ))}
         </div>
         {[
           "Data Analytics",
-          "Software Development (Frontend)",
+          "Software Development",
           "Web Development",
         ].includes(formData.track) && (
           <label className="sch-full">

@@ -5,6 +5,7 @@ import { getProgressId } from "../lms/progress";
 import { revokeApprovedCertificate } from "../services/certificateAdministration";
 import "./Admin.css";
 import "./GraduatedStudents.css";
+import { normalizeProgrammeName } from "../data/programmes";
 
 const normalized = (value) => String(value || "").trim().toLowerCase();
 
@@ -21,7 +22,7 @@ const isListed = (graduate) => graduate.profile.showInAlumniDirectory === true;
 const getName = (graduate) => graduate.profile.displayName || graduate.application.fullName || "Unnamed student";
 const getEmail = (graduate) => graduate.application.email || graduate.profile.email || graduate.profile.professionalEmail || "";
 const getPhone = (graduate) => graduate.application.whatsapp || graduate.application.phone || graduate.profile.phone || graduate.profile.whatsapp || "";
-const getCourse = (graduate) => graduate.profile.course || graduate.profile.track || graduate.application.track || "";
+const getCourse = (graduate) => normalizeProgrammeName(graduate.profile.course || graduate.profile.track || graduate.application.track || "");
 const getMethod = (graduate) => graduate.application.learningMethod || graduate.profile.learningMethod || "";
 
 const attendanceText = (application) => {
@@ -78,7 +79,7 @@ const GraduatedStudents = () => {
 
   useEffect(() => { loadGraduates(); }, [loadGraduates]);
 
-  const courseOptions = useMemo(() => [...new Set(graduates.map(getCourse).filter(Boolean))].sort(), [graduates]);
+  const courseOptions = useMemo(() => [...new Set(graduates.map((graduate) => normalizeProgrammeName(getCourse(graduate))).filter(Boolean))].sort(), [graduates]);
   const methodOptions = useMemo(() => [...new Set(graduates.map(getMethod).filter(Boolean))].sort(), [graduates]);
   const visibleGraduates = useMemo(() => {
     const term = normalized(search);
@@ -86,7 +87,7 @@ const GraduatedStudents = () => {
       const matchesSearch = !term || [getName(graduate), getEmail(graduate), getPhone(graduate), graduate.profile.certificateId]
         .some((value) => normalized(value).includes(term));
       return matchesSearch &&
-        (courseFilter === "All" || getCourse(graduate) === courseFilter) &&
+        (courseFilter === "All" || normalizeProgrammeName(getCourse(graduate)) === courseFilter) &&
         (methodFilter === "All" || getMethod(graduate) === methodFilter) &&
         (alumniFilter === "All" || (alumniFilter === "listed") === isListed(graduate));
     }).sort((a, b) => {
