@@ -7,6 +7,7 @@ import {
   projectRoot,
   serviceAccountPath,
 } from "./firebaseAdmin.mjs";
+import { isValidResourceUrl, mergeSafeResourceData } from "../src/lms/resourceLinks.js";
 
 const SUPPORTED_GROUPS = new Set(["data-analytics", "computer-programming"]);
 const DEFAULT_WORKBOOK_PATH = path.join(projectRoot, "data", "OVTech Master Curriculum.xlsx");
@@ -25,6 +26,18 @@ const dryRun = args.includes("--dry-run");
 const normalizeHeader = (value) => String(value || "").trim().replace(/\s+/g, " ");
 const cell = (row, name) => row[name] === undefined || row[name] === null ? "" : row[name];
 const textValue = (value) => String(value ?? "").trim();
+const firstCell = (row, names) => {
+  for (const name of names) {
+    const value = textValue(cell(row, name));
+    if (value) return value;
+  }
+  return "";
+};
+const FILE_TYPE_LABELS = new Set([
+  "pdf", "doc", "docx", "word document", "excel", "spreadsheet", "ppt",
+  "pptx", "powerpoint", "link",
+]);
+const isFileTypeLabel = (value) => FILE_TYPE_LABELS.has(textValue(value).toLowerCase());
 const positiveInteger = (value) => {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
@@ -98,7 +111,12 @@ const validateAndNormalize = (rows) => {
     const title = textValue(cell(row, "Title"));
     const unlockDay = positiveInteger(cell(row, "Unlock Day"));
     const youtubeUrl = textValue(cell(row, "YouTube Link"));
-    const downloadUrl = textValue(cell(row, "Downloadable Resource"));
+    const legacyResourceValue = textValue(cell(row, "Downloadable Resource"));
+    const explicitFileType = firstCell(row, ["File Type", "FileType"]);
+    const explicitDownloadUrl = firstCell(row, ["Download URL", "Download Url", "File URL"]);
+    const fileType = explicitFileType || (isFileTypeLabel(legacyResourceValue) ? legacyResourceValue : "link");
+    const downloadUrl = explicitDownloadUrl || (isValidResourceUrl(legacyResourceValue) ? legacyResourceValue : "");
+    const storagePath = firstCell(row, ["Storage Path", "StoragePath"]);
     const errors = [];
 
     if (!globalOrder) errors.push("missing or invalid positive-integer Global Order");
@@ -114,7 +132,9 @@ const validateAndNormalize = (rows) => {
     if (requestedType && !type) errors.push(`unsupported Type "${requestedType}" (expected Video or Resource)`);
     if (type === "video" && !youtubeUrl) errors.push("Video is missing YouTube Link");
     if (type === "video" && youtubeUrl && !isYoutubeUrl(youtubeUrl)) errors.push(`invalid YouTube URL "${youtubeUrl}"`);
-    if (type === "resource" && !downloadUrl) errors.push("Resource is missing Downloadable Resource");
+    if (type === "resource" && explicitDownloadUrl && !isValidResourceUrl(explicitDownloadUrl)) {
+      errors.push(`invalid Download URL "${explicitDownloadUrl}"`);
+    }
 
     const id = sourceLessonId ? stableId(sourceLessonId) : "";
     if (id && seenIds.has(id)) {
@@ -143,7 +163,7 @@ const validateAndNormalize = (rows) => {
       data: { ...common, lessonId: id, sourceLessonId, youtubeUrl },
     } : {
       rowNumber, collectionName: "lmsResources", id,
-      data: { ...common, resourceId: id, sourceLessonId, fileType: "link", fileName: title, downloadUrl, storagePath: "" },
+      data: { ...common, resourceId: id, sourceLessonId, fileType, fileName: title, downloadUrl, storagePath },
     });
   }
   return { validRows, invalidRows, collisions };
@@ -181,6 +201,13 @@ const printDetectionReport = ({ sheetName, rows, physicalRows }, validation) => 
 
 const comparableData = (data) => Object.fromEntries(Object.entries(data).filter(([key]) => !["createdAt", "updatedAt"].includes(key)));
 const isUnchanged = (existing, intended) => JSON.stringify(comparableData(existing)) === JSON.stringify(comparableData({ ...existing, ...intended }));
+const resourceReport = (row, existing) => {
+  if (row.data.type !== "resource") return;
+  const proposed = mergeSafeResourceData(row.data, existing);
+  const preservesExisting = !isValidResourceUrl(row.data.downloadUrl) && isValidResourceUrl(existing?.downloadUrl);
+  const wouldUpdate = existing ? !isUnchanged(existing, proposed) : true;
+  console.log(`RESOURCE Excel row ${row.rowNumber} | ${row.data.title} | fileType: ${row.data.fileType || "(blank)"} | proposed downloadUrl: ${proposed.downloadUrl || "(blank)"} | valid URL: ${isValidResourceUrl(proposed.downloadUrl)} | preserve existing valid URL: ${preservesExisting} | would update: ${wouldUpdate}`);
+};
 
 if (!SUPPORTED_GROUPS.has(curriculumGroup)) throw new Error(`Unsupported --group=${curriculumGroup}. Use: ${[...SUPPORTED_GROUPS].join(", ")}`);
 if (!existsSync(workbookPath)) throw new Error(`Workbook not found: ${workbookPath}`);
@@ -196,6 +223,8 @@ if (!validation.validRows.length || validation.invalidRows.length || validation.
   if (dryRun) {
     console.log(`\nFIRESTORE PLAN\nComparison unavailable: Firebase Admin service account not found at ${serviceAccountPath}.`);
     console.log("Would create/update/skip unchanged: unknown until Firestore comparison can run.");
+    console.log("\nRESOURCE PLAN (existing-value preservation is unknown without Firestore access)");
+    validation.validRows.forEach((row) => resourceReport(row, null));
     console.log("\nDRY RUN COMPLETE — zero Firestore writes.");
   } else {
     throw new Error(`Validation complete, but Firebase Admin service account was not found: ${serviceAccountPath}`);
@@ -209,12 +238,15 @@ if (!validation.validRows.length || validation.invalidRows.length || validation.
   validation.validRows.forEach((row, index) => {
     const snapshot = snapshots[index];
     const existing = snapshot.exists ? snapshot.data() : null;
-    if (existing?.curriculumGroup && existing.curriculumGroup !== curriculumGroup) plan.protected.push(row);
-    else if (!existing) plan.create.push(row);
-    else if (isUnchanged(existing, row.data)) plan.unchanged.push(row);
-    else plan.update.push({ ...row, existing });
+    const plannedRow = { ...row, data: mergeSafeResourceData(row.data, existing) };
+    if (existing?.curriculumGroup && existing.curriculumGroup !== curriculumGroup) plan.protected.push(plannedRow);
+    else if (!existing) plan.create.push(plannedRow);
+    else if (isUnchanged(existing, plannedRow.data)) plan.unchanged.push(plannedRow);
+    else plan.update.push({ ...plannedRow, existing });
   });
   console.log(`\nFIRESTORE PLAN\nWould create: ${plan.create.length}\nWould update: ${plan.update.length}\nWould skip unchanged: ${plan.unchanged.length}\nWould skip protected: ${plan.protected.length}`);
+  console.log("\nRESOURCE PLAN");
+  validation.validRows.forEach((row, index) => resourceReport(row, snapshots[index].exists ? snapshots[index].data() : null));
   for (const row of plan.create) console.log(`CREATE ${row.collectionName}/${row.id} (Excel row ${row.rowNumber})`);
   for (const row of plan.update) console.log(`UPDATE ${row.collectionName}/${row.id} (Excel row ${row.rowNumber})`);
   for (const row of plan.unchanged) console.log(`UNCHANGED ${row.collectionName}/${row.id} (Excel row ${row.rowNumber})`);
