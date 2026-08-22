@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import XLSX from "xlsx";
 import {
@@ -7,7 +7,11 @@ import {
   projectRoot,
   serviceAccountPath,
 } from "./firebaseAdmin.mjs";
-import { isValidResourceUrl, mergeSafeResourceData } from "../src/lms/resourceLinks.js";
+import {
+  isValidResourceStoragePath,
+  isValidResourceUrl,
+  mergeSafeResourceData,
+} from "../src/lms/resourceLinks.js";
 
 const SUPPORTED_GROUPS = new Set(["data-analytics", "computer-programming"]);
 const DEFAULT_WORKBOOK_PATH = path.join(projectRoot, "data", "OVTech Master Curriculum.xlsx");
@@ -22,6 +26,37 @@ const positionalFile = args.find((value) => !value.startsWith("--"));
 const workbookPath = path.resolve(getArgument("file") || positionalFile || DEFAULT_WORKBOOK_PATH);
 const curriculumGroup = getArgument("group") || "data-analytics";
 const dryRun = args.includes("--dry-run");
+const localResourceDirectory = path.join(projectRoot, "public", "lms-resources");
+
+// These rows cannot be selected uniquely from the title alone. Keep exceptions
+// Data Analytics-only and in one place; all other rows use normalized filenames.
+const DATA_ANALYTICS_RESOURCE_FILE_OVERRIDES = Object.freeze({
+  "DF-RES016": "datahandbook.pdf",
+  "EX-RES077": "list_of_countries_and_dependencies.xlsx",
+  "SQL-RES003": "SQLNotes.docx",
+  PY021: "OVTech DA Capstone Project Question.xlsx",
+});
+
+const normalizedFileStem = (value) => path.parse(textValue(value)).name
+  .normalize("NFKD")
+  .replace(/[^a-z0-9]/gi, "")
+  .toLowerCase();
+const localResourceFiles = curriculumGroup === "data-analytics" && existsSync(localResourceDirectory)
+  ? readdirSync(localResourceDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b))
+  : [];
+const matchLocalResource = (sourceLessonId, title) => {
+  if (curriculumGroup !== "data-analytics") return { fileName: "", method: "none" };
+  const override = DATA_ANALYTICS_RESOURCE_FILE_OVERRIDES[sourceLessonId];
+  if (override && localResourceFiles.includes(override)) return { fileName: override, method: "explicit" };
+  const titleStem = normalizedFileStem(title);
+  const matches = localResourceFiles.filter((fileName) => normalizedFileStem(fileName) === titleStem);
+  return matches.length === 1
+    ? { fileName: matches[0], method: "automatic" }
+    : { fileName: "", method: matches.length > 1 ? "ambiguous" : "unresolved", candidates: matches };
+};
 
 const normalizeHeader = (value) => String(value || "").trim().replace(/\s+/g, " ");
 const cell = (row, name) => row[name] === undefined || row[name] === null ? "" : row[name];
@@ -116,7 +151,7 @@ const validateAndNormalize = (rows) => {
     const explicitDownloadUrl = firstCell(row, ["Download URL", "Download Url", "File URL"]);
     const fileType = explicitFileType || (isFileTypeLabel(legacyResourceValue) ? legacyResourceValue : "link");
     const downloadUrl = explicitDownloadUrl || (isValidResourceUrl(legacyResourceValue) ? legacyResourceValue : "");
-    const storagePath = firstCell(row, ["Storage Path", "StoragePath"]);
+    const workbookStoragePath = firstCell(row, ["Storage Path", "StoragePath"]);
     const errors = [];
 
     if (!globalOrder) errors.push("missing or invalid positive-integer Global Order");
@@ -158,12 +193,22 @@ const validateAndNormalize = (rows) => {
       week: cell(row, "Week"), lectureDate: cell(row, "Lecture Date"),
       dayOfWeek: cell(row, "Day of Week"), isPublished: boolValue(cell(row, "Published")),
     };
+    const localMatch = type === "resource" && !downloadUrl
+      ? matchLocalResource(sourceLessonId, title)
+      : { fileName: "", method: "external-url" };
+    const matchedStoragePath = localMatch.fileName
+      ? `/lms-resources/${localMatch.fileName}`
+      : "";
+    const storagePath = isValidResourceStoragePath(workbookStoragePath)
+      ? workbookStoragePath
+      : matchedStoragePath;
     validRows.push(type === "video" ? {
       rowNumber, collectionName: "curriculum", id,
       data: { ...common, lessonId: id, sourceLessonId, youtubeUrl },
     } : {
       rowNumber, collectionName: "lmsResources", id,
       data: { ...common, resourceId: id, sourceLessonId, fileType, fileName: title, downloadUrl, storagePath },
+      localMatch,
     });
   }
   return { validRows, invalidRows, collisions };
@@ -204,9 +249,21 @@ const isUnchanged = (existing, intended) => JSON.stringify(comparableData(existi
 const resourceReport = (row, existing) => {
   if (row.data.type !== "resource") return;
   const proposed = mergeSafeResourceData(row.data, existing);
-  const preservesExisting = !isValidResourceUrl(row.data.downloadUrl) && isValidResourceUrl(existing?.downloadUrl);
+  const preservesExistingUrl = !isValidResourceUrl(row.data.downloadUrl) && isValidResourceUrl(existing?.downloadUrl);
+  const preservesExistingStoragePath = !isValidResourceStoragePath(row.data.storagePath)
+    && isValidResourceStoragePath(existing?.storagePath);
   const wouldUpdate = existing ? !isUnchanged(existing, proposed) : true;
-  console.log(`RESOURCE Excel row ${row.rowNumber} | ${row.data.title} | fileType: ${row.data.fileType || "(blank)"} | proposed downloadUrl: ${proposed.downloadUrl || "(blank)"} | valid URL: ${isValidResourceUrl(proposed.downloadUrl)} | preserve existing valid URL: ${preservesExisting} | would update: ${wouldUpdate}`);
+  console.log(`\nRESOURCE ${row.data.sourceLessonId}`);
+  console.log(`Title: ${row.data.title}`);
+  console.log(`File type: ${row.data.fileType || "(blank)"}`);
+  console.log(`Matched local file: ${row.localMatch?.fileName || "(none)"}`);
+  console.log(`Match method: ${row.localMatch?.method || "none"}`);
+  console.log(`Proposed storagePath: ${row.data.storagePath || "(blank)"}`);
+  console.log(`Existing downloadUrl: ${existing?.downloadUrl || "(blank)"}`);
+  console.log(`Existing storagePath: ${existing?.storagePath || "(blank)"}`);
+  console.log(`Preserve existing URL: ${preservesExistingUrl}`);
+  console.log(`Preserve existing storagePath: ${preservesExistingStoragePath}`);
+  console.log(`Would update: ${wouldUpdate}`);
 };
 
 if (!SUPPORTED_GROUPS.has(curriculumGroup)) throw new Error(`Unsupported --group=${curriculumGroup}. Use: ${[...SUPPORTED_GROUPS].join(", ")}`);

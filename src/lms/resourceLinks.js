@@ -1,10 +1,8 @@
-const HTTP_PROTOCOLS = new Set(["http:", "https:"]);
-
 export const isValidResourceUrl = (value) => {
   if (typeof value !== "string" || !value.trim()) return false;
   try {
     const url = new URL(value.trim());
-    return HTTP_PROTOCOLS.has(url.protocol) && Boolean(url.hostname);
+    return url.protocol === "https:" && Boolean(url.hostname);
   } catch {
     return false;
   }
@@ -37,6 +35,8 @@ export const mergeSafeResourceData = (intended, existing) => {
     downloadUrl: isValidResourceUrl(intended.downloadUrl)
       ? intended.downloadUrl
       : isValidResourceUrl(existing.downloadUrl) ? existing.downloadUrl : "",
-    storagePath: intended.storagePath || existing.storagePath || "",
+    storagePath: isValidResourceStoragePath(intended.storagePath)
+      ? intended.storagePath
+      : isValidResourceStoragePath(existing.storagePath) ? existing.storagePath : "",
   };
 };

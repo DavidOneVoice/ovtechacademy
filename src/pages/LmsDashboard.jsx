@@ -1184,6 +1184,7 @@ const LmsDashboard = () => {
                               return action.href ? (
                                 <a
                                   href={action.href}
+                                  download={action.href.startsWith("/lms-resources/") ? "" : undefined}
                                   target="_blank"
                                   rel="noreferrer"
                                   onClick={(e) => e.stopPropagation()}
