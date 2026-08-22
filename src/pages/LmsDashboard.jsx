@@ -20,6 +20,7 @@ import { db } from "../src/firebase";
 import { uploadImageToCloudinary } from "../utils/cloudinary";
 import { createPublicAlumniRecord, publicAlumniRef } from "../services/publicAlumni";
 import { getSafeYouTubeEmbedUrl } from "../lms/youtube";
+import { getResourceAction } from "../lms/resourceLinks";
 import {
   curriculumItemMatchesGroup,
   resolveStudentCurriculumGroup,
@@ -308,12 +309,6 @@ const liveSessionMatchesStudent = (session, student) => {
   if (!session.track || session.track === "all") return true;
   return getStudentTracks(student).some((track) => normalize(track) === normalize(session.track));
 };
-const getResourceAction = (resource) => {
-  if (resource.downloadUrl)
-    return { label: "Download", href: resource.downloadUrl };
-  return { label: "Resource coming soon", href: "" };
-};
-
 const LmsDashboard = () => {
   const navigate = useNavigate();
   const playerRef = useRef(null);
