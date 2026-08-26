@@ -5,6 +5,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getDocsFromServer,
   limit,
   orderBy,
   query,
@@ -22,9 +23,15 @@ import { createPublicAlumniRecord, publicAlumniRef } from "../services/publicAlu
 import { getSafeYouTubeEmbedUrl } from "../lms/youtube";
 import { getResourceAction } from "../lms/resourceLinks";
 import {
-  curriculumItemMatchesGroup,
-  resolveStudentCurriculumGroup,
-} from "../lms/tracks";
+  filterItemsForCurriculumGroup,
+  getResourceDebugRows,
+  getStudentResourceQuery,
+  isCurriculumLesson,
+  LMS_CURRICULUM_COLLECTION,
+  LMS_RESOURCE_COLLECTION,
+  snapshotItems,
+} from "../lms/content";
+import { resolveStudentCurriculumGroup } from "../lms/tracks";
 import { normalizeProgrammeName } from "../data/programmes";
 import {
   getStudentProgramDay,
@@ -492,15 +499,12 @@ const LmsDashboard = () => {
       setDataError("");
       const curriculumGroup = resolveStudentCurriculumGroup(student);
       const lessonQuery = query(
-        collection(db, "curriculum"),
+        collection(db, LMS_CURRICULUM_COLLECTION),
         where("isPublished", "==", true),
         orderBy("globalOrder", "asc"),
       );
 
-      const resourceQuery = query(
-        collection(db, "lmsResources"),
-        where("isPublished", "==", true),
-      );
+      const resourceQuery = getStudentResourceQuery(db);
       const progressId = getProgressId(student);
       const [
         lessonSnapshot,
@@ -518,28 +522,42 @@ const LmsDashboard = () => {
         getDoc(doc(db, "lmsSettings", "selfPaced")),
       ]);
 
+      let canonicalResourceSnapshot = resourceSnapshot;
+      if (import.meta.env.DEV) {
+        try {
+          const serverResourceSnapshot = await getDocsFromServer(resourceQuery);
+          const normalIds = new Set(resourceSnapshot.docs.map(({ id }) => id));
+          const serverIds = new Set(serverResourceSnapshot.docs.map(({ id }) => id));
+          console.info("Student resource cache/server diagnostic", {
+            normalQueryResourceCount: normalIds.size,
+            serverQueryResourceCount: serverIds.size,
+            normalButAbsentFromServer: [...normalIds].filter((id) => !serverIds.has(id)),
+          });
+          canonicalResourceSnapshot = serverResourceSnapshot;
+        } catch (error) {
+          console.warn("Student resource server diagnostic unavailable:", error);
+        }
+      }
+
       const lessonData = curriculumGroup
-        ? lessonSnapshot.docs
-            .map((item) => ({
-              id: item.id,
-              ...item.data(),
-              type: "video",
-            }))
-            .filter((lesson) =>
-              curriculumItemMatchesGroup(lesson, curriculumGroup),
-            )
+        ? filterItemsForCurriculumGroup(
+            snapshotItems(lessonSnapshot, LMS_CURRICULUM_COLLECTION)
+              .filter(isCurriculumLesson)
+              .map((item) => ({ ...item, type: "video" })),
+            curriculumGroup,
+          )
         : [];
       const resourceData = curriculumGroup
-        ? resourceSnapshot.docs
-            .map((item) => ({
-              id: item.id,
-              ...item.data(),
-              type: "resource",
-            }))
-            .filter((resource) =>
-              curriculumItemMatchesGroup(resource, curriculumGroup),
-            )
+        ? filterItemsForCurriculumGroup(
+            snapshotItems(canonicalResourceSnapshot, LMS_RESOURCE_COLLECTION)
+              .map((item) => ({ ...item, type: "resource" })),
+            curriculumGroup,
+          )
         : [];
+      if (import.meta.env.DEV) {
+        console.info("STUDENT RESOURCE IDS", resourceData.map(({ id }) => id));
+        console.table(getResourceDebugRows(resourceData));
+      }
       const progress = progressSnapshot.exists()
         ? progressSnapshot.data()
         : legacyProgressSnapshot.exists()
