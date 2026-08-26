@@ -16,8 +16,16 @@ import courseCatalog from "../data/courses";
 import {
   CURRICULUM_GROUPS,
   CURRICULUM_PROGRAMMES,
-  curriculumItemMatchesGroup,
 } from "../lms/tracks";
+import {
+  filterItemsForCurriculumGroup,
+  getAdminResourceQuery,
+  getResourceDebugRows,
+  isCurriculumLesson,
+  LMS_CURRICULUM_COLLECTION,
+  LMS_RESOURCE_COLLECTION,
+  snapshotItems,
+} from "../lms/content";
 import "./Admin.css";
 
 const emptyResource = {
@@ -88,35 +96,35 @@ const AdminLms = () => {
     const [lessonSnapshot, resourceSnapshot, settingsSnapshot, legacySettingsSnapshot] =
       await Promise.all([
         getDocs(
-          query(collection(db, "curriculum"), orderBy("globalOrder", "asc")),
+          query(collection(db, LMS_CURRICULUM_COLLECTION), orderBy("globalOrder", "asc")),
         ),
         getDocs(
-          query(collection(db, "lmsResources"), orderBy("unlockDay", "asc")),
+          getAdminResourceQuery(db),
         ),
         getDoc(doc(db, "lmsSettings", "selfPacedStartDates")),
         getDoc(doc(db, "lmsSettings", "selfPaced")),
       ]);
 
-    const lessonData = lessonSnapshot.docs.map((lesson) => ({
-      id: lesson.id,
-      ...lesson.data(),
-    }));
-
-    const resourceData = resourceSnapshot.docs.map((resource) => ({
-      id: resource.id,
-      ...resource.data(),
-    }));
+    const lessonData = snapshotItems(lessonSnapshot, LMS_CURRICULUM_COLLECTION);
+    const resourceData = snapshotItems(resourceSnapshot, LMS_RESOURCE_COLLECTION);
 
     const savedSettings = settingsSnapshot.exists()
       ? settingsSnapshot.data()
       : {};
 
-    setLessons(sortLessons(lessonData.filter((item) =>
-      curriculumItemMatchesGroup(item, curriculumGroup),
-    )));
-    setResources(sortResources(resourceData.filter((item) =>
-      curriculumItemMatchesGroup(item, curriculumGroup),
-    )));
+    const groupLessons = filterItemsForCurriculumGroup(
+      lessonData.filter(isCurriculumLesson),
+      curriculumGroup,
+    );
+    const groupResources = filterItemsForCurriculumGroup(resourceData, curriculumGroup);
+
+    if (import.meta.env.DEV) {
+      console.info("ADMIN RESOURCE IDS", groupResources.map(({ id }) => id));
+      console.table(getResourceDebugRows(groupResources));
+    }
+
+    setLessons(sortLessons(groupLessons));
+    setResources(sortResources(groupResources));
     setSettings({
       selfPacedStartDate: toDateInputValue(
         savedSettings[curriculumGroup] ||
