@@ -233,7 +233,7 @@ export default function Alumni() {
                         <strong>Connect</strong>
                         <div className="alumni-contact-links">
                           {person.professionalEmail && (
-                            <a
+                            <a target="_blank" rel="noopener noreferrer"
                               href={`mailto:${person.professionalEmail}`}
                               aria-label={`Email ${person.studentName}`}
                             >
@@ -241,7 +241,7 @@ export default function Alumni() {
                             </a>
                           )}
                           {person.phone && (
-                            <a
+                            <a target="_blank" rel="noopener noreferrer"
                               href={`tel:${person.phone}`}
                               aria-label={`Call ${person.studentName}`}
                             >
@@ -267,7 +267,7 @@ export default function Alumni() {
                         </div>
                       </section>
                     )}
-                    <Link
+                    <Link target="_blank" rel="noopener noreferrer"
                       className="certificate-link"
                       to={`/verify/${encodeURIComponent(person.certificateId)}`}
                     >

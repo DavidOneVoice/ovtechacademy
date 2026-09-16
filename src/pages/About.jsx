@@ -136,8 +136,8 @@ const About = () => {
         </p>
 
         <div>
-          <a href="/scholarship">Apply for Scholarship</a>
-          <a href="/#paths">Explore Learning Paths</a>
+          <a target="_blank" rel="noopener noreferrer" href="/scholarship">Apply for Scholarship</a>
+          <a target="_blank" rel="noopener noreferrer" href="/#paths">Explore Learning Paths</a>
         </div>
       </section>
 

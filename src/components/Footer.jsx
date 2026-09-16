@@ -28,7 +28,7 @@ const Footer = () => {
             <a
               href="https://web.facebook.com/61559488910917/"
               target="_blank"
-              rel="noreferrer"
+              rel="noreferrer noopener"
               aria-label="Facebook"
             >
               <FacebookIcon />
@@ -37,7 +37,7 @@ const Footer = () => {
             <a
               href="https://www.linkedin.com/in/badrudavid/"
               target="_blank"
-              rel="noreferrer"
+              rel="noreferrer noopener"
               aria-label="LinkedIn"
             >
               <LinkedInIcon />
@@ -46,7 +46,7 @@ const Footer = () => {
             <a
               href="https://www.youtube.com/@D-OVTech"
               target="_blank"
-              rel="noreferrer"
+              rel="noreferrer noopener"
               aria-label="YouTube"
             >
               <YouTubeIcon />
@@ -55,7 +55,7 @@ const Footer = () => {
             <a
               href="https://www.tiktok.com/@onevoicetech"
               target="_blank"
-              rel="noreferrer"
+              rel="noreferrer noopener"
               aria-label="TikTok"
             >
               <TikTokIcon />
@@ -65,34 +65,34 @@ const Footer = () => {
 
         <div className="ov-footer-links">
           <h4>Quick Links</h4>
-          <a href="/">Home</a>
-          <a href="/courses">Courses</a>
-          <a href="/alumni">Alumni</a>
-          <a href="/scholarship">Scholarship</a>
-          <a href="/register">Full-Tuition Registration</a>
-          <a href="/lms">Student Portal</a>
-          <a href="/about">About</a>
-          <a href="/contact">Contact</a>
+          <a target="_blank" rel="noopener noreferrer" href="/">Home</a>
+          <a target="_blank" rel="noopener noreferrer" href="/courses">Courses</a>
+          <a target="_blank" rel="noopener noreferrer" href="/alumni">Alumni</a>
+          <a target="_blank" rel="noopener noreferrer" href="/scholarship">Scholarship</a>
+          <a target="_blank" rel="noopener noreferrer" href="/register">Full-Tuition Registration</a>
+          <a target="_blank" rel="noopener noreferrer" href="/lms">Student Portal</a>
+          <a target="_blank" rel="noopener noreferrer" href="/about">About</a>
+          <a target="_blank" rel="noopener noreferrer" href="/contact">Contact</a>
         </div>
 
         <div className="ov-footer-links">
           <h4>Programs</h4>
-          {courses.map((course) => <a key={course.id} href={`/courses#${course.id}`}>{course.title}</a>)}
+          {courses.map((course) => <a target="_blank" rel="noopener noreferrer" key={course.id} href={`/courses#${course.id}`}>{course.title}</a>)}
         </div>
 
         <div className="ov-footer-links">
           <h4>Contact</h4>
 
-          <a href="mailto:onevoicetech2023@gmail.com">
+          <a target="_blank" rel="noopener noreferrer" href="mailto:onevoicetech2023@gmail.com">
             onevoicetech2023@gmail.com
           </a>
 
-          <a href="tel:+2348130624789">+234 813 062 4789</a>
+          <a target="_blank" rel="noopener noreferrer" href="tel:+2348130624789">+234 813 062 4789</a>
 
           <a
             href="https://wa.me/2348130624789"
             target="_blank"
-            rel="noreferrer"
+            rel="noreferrer noopener"
             className="ov-footer-whatsapp"
           >
             <WhatsAppIcon fontSize="small" />

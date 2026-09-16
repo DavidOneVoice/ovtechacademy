@@ -127,6 +127,8 @@ export const createCertificatePng = async (element) => {
 export const downloadBlob = (blob, filename) => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
+  anchor.target = "_blank";
+  anchor.rel = "noopener noreferrer";
   anchor.href = url;
   anchor.download = filename;
   document.body.appendChild(anchor);

@@ -30,14 +30,14 @@ const PaymentSuccess = () => {
         </div>
 
         <div className="payment-success-actions">
-          <Link to="/" className="payment-home-btn">
+          <Link target="_blank" rel="noopener noreferrer" to="/" className="payment-home-btn">
             Back to Homepage
           </Link>
 
           <a
             href="https://wa.me/2348130624789"
             target="_blank"
-            rel="noreferrer"
+            rel="noreferrer noopener"
             className="payment-whatsapp-btn"
           >
             Chat on WhatsApp

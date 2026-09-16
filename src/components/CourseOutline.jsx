@@ -20,7 +20,7 @@ export default function CourseOutline({ course, onClose }) {
       <h3>Tools and skills</h3><div className="academy-tags">{course.tools.map((tool) => <span key={tool}>{tool}</span>)}</div>
       <h3>Projects you’ll build</h3><ul>{course.projects.map((item) => <li key={item}>{item}</li>)}</ul>
       <p className="academy-mode-note">{course.scholarshipRecordedOnly ? "Scholarship places include pre-recorded lessons. One-on-one live classes are available with full tuition." : "This course is delivered through live group classes."}</p>
-      <div className="academy-dialog-actions"><a className="academy-button" href={`/scholarship?course=${course.id}`}>Apply for Scholarship</a><a className="academy-button academy-button-secondary" href={fees.fullTuitionPaymentLink}>Register & Pay Full Tuition</a></div>
+      <div className="academy-dialog-actions"><a target="_blank" rel="noopener noreferrer" className="academy-button" href={`/scholarship?course=${course.id}`}>Apply for Scholarship</a><a target="_blank" rel="noopener noreferrer" className="academy-button academy-button-secondary" href={fees.fullTuitionPaymentLink}>Register & Pay Full Tuition</a></div>
     </div>
   </dialog>;
 }

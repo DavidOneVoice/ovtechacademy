@@ -188,7 +188,7 @@ const AttendancePage = () => {
             </div>
           )}
 
-          <Link className="attendance-login-link" to="/lms">Go to LMS Login</Link>
+          <Link target="_blank" rel="noopener noreferrer" className="attendance-login-link" to="/lms">Go to LMS Login</Link>
         </section>
       </main>
       <Footer />

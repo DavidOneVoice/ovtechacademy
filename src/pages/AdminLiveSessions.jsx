@@ -168,13 +168,13 @@ const AdminLiveSessions = () => {
           </p>
         </div>
         <div className="admin-header-actions">
-          <a href="/admin" className="admin-home-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/admin" className="admin-home-btn">
             Scholarship Admin
           </a>
-          <a href="/admin/lms" className="admin-home-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/admin/lms" className="admin-home-btn">
             LMS Management
           </a>
-          <a href="/lms" className="admin-home-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/lms" className="admin-home-btn">
             Open LMS
           </a>
         </div>

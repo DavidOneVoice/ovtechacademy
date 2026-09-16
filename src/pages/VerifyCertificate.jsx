@@ -57,6 +57,6 @@ export default function VerifyCertificate() {
       <dl>{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
       <div className="issuer"><strong>OVTech Academy</strong><span>A Training Division of ONE VOICE TECH SOLUTIONS</span><span>Business Registration No. 9664153</span><span>www.ovtechacademy.com</span></div>
     </section>}
-    <nav className="verification-actions"><a href="https://ovtechacademy.com/">View OVTech Academy Website</a><Link to="/verify">Verify Another Certificate</Link></nav>
+    <nav className="verification-actions"><a target="_blank" rel="noopener noreferrer" href="https://ovtechacademy.com/">View OVTech Academy Website</a><Link target="_blank" rel="noopener noreferrer" to="/verify">Verify Another Certificate</Link></nav>
   </VerificationLayout>;
 }

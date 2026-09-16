@@ -58,11 +58,11 @@ const Home = () => {
             </p>
 
             <div className="ov-hero-actions">
-              <a href="/scholarship" className="ov-primary-btn">
+              <a target="_blank" rel="noopener noreferrer" href="/scholarship" className="ov-primary-btn">
                 Apply for Scholarship
               </a>
 
-              <a href="#paths" className="ov-secondary-btn">
+              <a target="_blank" rel="noopener noreferrer" href="#paths" className="ov-secondary-btn">
                 Explore Learning Paths
               </a>
             </div>
@@ -158,7 +158,7 @@ const Home = () => {
         </div>
 
         <div className="ov-view-all-wrap">
-          <a href="/courses" className="ov-view-all-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/courses" className="ov-view-all-btn">
             View All Courses
           </a>
         </div>
@@ -179,11 +179,11 @@ const Home = () => {
           </p>
 
           <div className="ov-cohort-actions">
-            <a href="/scholarship" className="ov-primary-btn">
+            <a target="_blank" rel="noopener noreferrer" href="/scholarship" className="ov-primary-btn">
               Apply For Scholarship
             </a>
 
-            <a
+            <a target="_blank" rel="noopener noreferrer"
               href="/register"
               className="ov-secondary-btn"
             >
@@ -193,7 +193,7 @@ const Home = () => {
         </div>
 
         <div className="ov-cohort-image">
-          <a href="/images/october-cohort.webp" target="_blank" rel="noreferrer" aria-label="Open the October cohort poster"><img src="/images/october-cohort.webp" alt="OVTech Academy October 2026 cohort. Starts October 5, 2026. Six courses and limited scholarships. Apply at ovtechacademy.com." loading="lazy" width="1024" height="1536" /></a>
+          <a href="/images/october-cohort.webp" target="_blank" rel="noreferrer noopener" aria-label="Open the October cohort poster"><img src="/images/october-cohort.webp" alt="OVTech Academy October 2026 cohort. Starts October 5, 2026. Six courses and limited scholarships. Apply at ovtechacademy.com." loading="lazy" width="1024" height="1536" /></a>
         </div>
       </section>
 
@@ -565,7 +565,7 @@ const Home = () => {
             </div>
           </div>
 
-          <a href="/scholarship" className="ov-scholarship-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/scholarship" className="ov-scholarship-btn">
             Apply for Scholarship
           </a>
         </div>
@@ -579,7 +579,7 @@ const Home = () => {
       <a
         href="https://wa.me/2348130624789"
         target="_blank"
-        rel="noreferrer"
+        rel="noreferrer noopener"
         className="ov-whatsapp-float"
       >
         <WhatsAppIcon style={{ fontSize: "2rem", color: "#fff" }} />

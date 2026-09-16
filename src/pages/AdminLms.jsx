@@ -307,13 +307,13 @@ const AdminLms = () => {
         </div>
 
         <div className="admin-header-actions">
-          <a href="/admin" className="admin-home-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/admin" className="admin-home-btn">
             Scholarship Admin
           </a>
-          <a href="/admin/live-sessions" className="admin-home-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/admin/live-sessions" className="admin-home-btn">
             Live Sessions
           </a>
-          <a href="/lms" className="admin-home-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/lms" className="admin-home-btn">
             Open LMS
           </a>
         </div>

@@ -57,6 +57,8 @@ const downloadCSV = (filename, rows) => {
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
 
   link.href = url;
   link.download = filename;
@@ -486,16 +488,16 @@ const Admin = () => {
         </div>
 
         <div className="admin-header-actions">
-          <a href="/" className="admin-home-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/" className="admin-home-btn">
             Back to Website
           </a>
-          <a href="/enrolled-students" className="admin-home-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/enrolled-students" className="admin-home-btn">
             Enrolled Students
           </a>
-          <a href="/admin/graduated-students" className="admin-home-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/admin/graduated-students" className="admin-home-btn">
             Graduated Students
           </a>
-          <a href="/admin/live-sessions" className="admin-home-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/admin/live-sessions" className="admin-home-btn">
             Publish Live Sessions
           </a>
           <button onClick={handleLogout} className="admin-logout-btn">
@@ -518,7 +520,7 @@ const Admin = () => {
               deletion.
             </p>
           </div>
-          <a href="/admin/lms" className="admin-home-btn">
+          <a target="_blank" rel="noopener noreferrer" href="/admin/lms" className="admin-home-btn">
             LMS Management
           </a>
         </div>

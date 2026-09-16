@@ -173,7 +173,7 @@ const AdminAssistant = () => {
     {toast && <div className="admin-toast">{toast}</div>}
     <section className="admin-header">
       <div><span>OVTech Admin Assistant</span><h1>Application Overview</h1><p>Review pending and approved course applications, or generate an attendance link.</p></div>
-      <div className="admin-header-actions"><a href="/" className="admin-home-btn">Back to Website</a><button onClick={handleLogout} className="admin-logout-btn">Logout</button></div>
+      <div className="admin-header-actions"><a target="_blank" rel="noopener noreferrer" href="/" className="admin-home-btn">Back to Website</a><button onClick={handleLogout} className="admin-logout-btn">Logout</button></div>
     </section>
     <section className="admin-stats admin-assistant-stats">
       <div><h3>{totalApplications}</h3><p>Registered Applications</p></div>

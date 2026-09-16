@@ -25,16 +25,16 @@ const Navbar = () => {
       </div>
 
       <div className="ov-nav-links">
-        <a href="/">Home</a>
-        <a href="/courses">Courses</a>
-        <a href="/alumni">Alumni</a>
-        <a href="/scholarship">Scholarship</a>
-        <a href="/lms">Student Portal</a>
-        <a href="/about">About</a>
-        <a href="/contact">Contact</a>
+        <a target="_blank" rel="noopener noreferrer" href="/">Home</a>
+        <a target="_blank" rel="noopener noreferrer" href="/courses">Courses</a>
+        <a target="_blank" rel="noopener noreferrer" href="/alumni">Alumni</a>
+        <a target="_blank" rel="noopener noreferrer" href="/scholarship">Scholarship</a>
+        <a target="_blank" rel="noopener noreferrer" href="/lms">Student Portal</a>
+        <a target="_blank" rel="noopener noreferrer" href="/about">About</a>
+        <a target="_blank" rel="noopener noreferrer" href="/contact">Contact</a>
       </div>
 
-      <a href="/scholarship" className="ov-nav-btn">
+      <a target="_blank" rel="noopener noreferrer" href="/scholarship" className="ov-nav-btn">
         Apply for Scholarship
       </a>
 
@@ -57,32 +57,32 @@ const Navbar = () => {
               <CloseIcon />
             </button>
 
-            <a href="/" onClick={closeMobileMenu}>
+            <a target="_blank" rel="noopener noreferrer" href="/" onClick={closeMobileMenu}>
               Home
             </a>
 
-            <a href="/courses" onClick={closeMobileMenu}>
+            <a target="_blank" rel="noopener noreferrer" href="/courses" onClick={closeMobileMenu}>
               Courses
             </a>
-            <a href="/alumni" onClick={closeMobileMenu}>Alumni</a>
+            <a target="_blank" rel="noopener noreferrer" href="/alumni" onClick={closeMobileMenu}>Alumni</a>
 
-            <a href="/scholarship" onClick={closeMobileMenu}>
+            <a target="_blank" rel="noopener noreferrer" href="/scholarship" onClick={closeMobileMenu}>
               Scholarship
             </a>
 
-            <a href="/lms" onClick={closeMobileMenu}>
+            <a target="_blank" rel="noopener noreferrer" href="/lms" onClick={closeMobileMenu}>
               Student Portal
             </a>
 
-            <a href="/about" onClick={closeMobileMenu}>
+            <a target="_blank" rel="noopener noreferrer" href="/about" onClick={closeMobileMenu}>
               About
             </a>
 
-            <a href="/contact" onClick={closeMobileMenu}>
+            <a target="_blank" rel="noopener noreferrer" href="/contact" onClick={closeMobileMenu}>
               Contact
             </a>
 
-            <a
+            <a target="_blank" rel="noopener noreferrer"
               href="/scholarship"
               className="ov-mobile-cta"
               onClick={closeMobileMenu}
