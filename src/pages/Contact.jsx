@@ -102,7 +102,7 @@ ${formData.message}`,
           <div className="contact-cards">
             <div className="contact-card">
               <h3>Email</h3>
-              <p>onevoicetech@gmail.com</p>
+              <p>onevoicetech2023@gmail.com</p>
             </div>
 
             <div className="contact-card">

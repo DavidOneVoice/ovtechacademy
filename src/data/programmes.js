@@ -1,10 +1,6 @@
-export const CANONICAL_PROGRAMMES = [
-  "Data Analytics",
-  "Virtual Assistant",
-  "Cybersecurity",
-  "Web Development",
-  "Software Development",
-];
+import courses from "./courses.js";
+
+export const CANONICAL_PROGRAMMES = courses.map((course) => course.title);
 
 const LEGACY_PROGRAMME_ALIASES = {
   "software development frontend": "Software Development",
@@ -16,6 +12,7 @@ const LEGACY_PROGRAMME_ALIASES = {
   "front end software development": "Software Development",
   "virtual assistance": "Virtual Assistant",
   "cyber security": "Cybersecurity",
+  "ai automation": "AI Automation",
 };
 
 export const normalizeProgrammeKey = (value) =>

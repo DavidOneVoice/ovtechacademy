@@ -16,9 +16,15 @@ const TRACK_COURSE_MAP = {
 export const CURRICULUM_GROUPS = {
   DATA_ANALYTICS: "data-analytics",
   COMPUTER_PROGRAMMING: "computer-programming",
+  CYBERSECURITY: "cyber-security",
+  VIRTUAL_ASSISTANT: "virtual-assistance",
+  AI_AUTOMATION: "ai-automation",
 };
 
 export const CURRICULUM_PROGRAMMES = [
+  { value: CURRICULUM_GROUPS.CYBERSECURITY, label: "Cybersecurity" },
+  { value: CURRICULUM_GROUPS.VIRTUAL_ASSISTANT, label: "Virtual Assistant" },
+  { value: CURRICULUM_GROUPS.AI_AUTOMATION, label: "AI Automation" },
   { value: CURRICULUM_GROUPS.DATA_ANALYTICS, label: "Data Analytics" },
   {
     value: CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
@@ -45,6 +51,9 @@ export const normalizeTrackName = (value) =>
   normalizeProgrammeKey(value);
 
 const TRACK_CURRICULUM_GROUP_MAP = {
+  "cybersecurity": CURRICULUM_GROUPS.CYBERSECURITY,
+  "virtual assistant": CURRICULUM_GROUPS.VIRTUAL_ASSISTANT,
+  "ai automation": CURRICULUM_GROUPS.AI_AUTOMATION,
   "data analytics": CURRICULUM_GROUPS.DATA_ANALYTICS,
   "software development": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,
   "software development frontend": CURRICULUM_GROUPS.COMPUTER_PROGRAMMING,

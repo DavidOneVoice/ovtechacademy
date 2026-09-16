@@ -1,10 +1,9 @@
 import "./About.css";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
-import usePricing from "../hooks/usePricing";
+import courses from "../data/courses";
 
 const About = () => {
-  const { scholarshipPercent } = usePricing();
   return (
     <main className="about-page">
       <Navbar />
@@ -114,17 +113,17 @@ const About = () => {
         </div>
 
         <div>
-          <h3>3</h3>
+          <h3>{courses.length}</h3>
           <p>Learning Paths</p>
         </div>
 
         <div>
-          <h3>12</h3>
-          <p>Weeks Training</p>
+          <h3>Online</h3>
+          <p>Learn from anywhere</p>
         </div>
 
         <div>
-          <h3>{scholarshipPercent}</h3>
+          <h3>Up to 96%</h3>
           <p>Scholarship Support</p>
         </div>
       </section>

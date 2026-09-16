@@ -6,7 +6,7 @@ import { createCertificatePdf, downloadBlob } from "../../utils/certificatePdf";
 import { getCourseSkills } from "../../data/certificateConfig";
 import "./Certificate.css";
 
-export default function Certificate({ profile, studentName, courseName }) {
+export default function Certificate({ profile, studentName, courseName, durationWeeks }) {
   const certificateRef = useRef(null);
   const pdfBlobRef = useRef(null);
   const [downloadState, setDownloadState] = useState("idle");
@@ -47,6 +47,7 @@ export default function Certificate({ profile, studentName, courseName }) {
           ref={certificateRef}
           name={name}
           course={course}
+          durationWeeks={durationWeeks}
           certificateId={certificateId}
           completionDate={profile.completionDate}
           verificationUrl={verificationUrl}

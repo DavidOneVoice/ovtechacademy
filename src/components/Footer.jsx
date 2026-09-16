@@ -1,4 +1,5 @@
 import "./Footer.css";
+import courses from "../data/courses";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import YouTubeIcon from "@mui/icons-material/YouTube";
@@ -68,6 +69,7 @@ const Footer = () => {
           <a href="/courses">Courses</a>
           <a href="/alumni">Alumni</a>
           <a href="/scholarship">Scholarship</a>
+          <a href="/register">Full-Tuition Registration</a>
           <a href="/lms">Student Portal</a>
           <a href="/about">About</a>
           <a href="/contact">Contact</a>
@@ -75,11 +77,7 @@ const Footer = () => {
 
         <div className="ov-footer-links">
           <h4>Programs</h4>
-          <a href="/courses">Data Analytics</a>
-          <a href="/courses">Web Development</a>
-          <a href="/courses">Software Development</a>
-          <a href="/courses">Virtual Assistant</a>
-          <a href="/courses">Cybersecurity</a>
+          {courses.map((course) => <a key={course.id} href={`/courses#${course.id}`}>{course.title}</a>)}
         </div>
 
         <div className="ov-footer-links">

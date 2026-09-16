@@ -39,3 +39,7 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## October 2026 cohort
+
+See [the release and payment activation notes](docs/october-2026-release.md) for the six-course fee table, new registration flow, Netlify function variables, Firestore rules, and staging checks. Payment acceptance is disabled until the server configuration is complete.

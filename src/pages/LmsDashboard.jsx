@@ -122,6 +122,10 @@ const getEnrollmentPackage = (student) =>
     .join(" ");
 
 const isPaidOrEnrolled = (student) => {
+  if (student?.cohortId === 'october-2026') {
+    return student.status === 'Enrolled' && (student.applicationType !== 'tuition' ||
+      (student.paymentVerified === true && student.registrationStatus === 'submitted'));
+  }
   const statusText = normalize(
     [student?.status, student?.paymentStatus, student?.enrollmentStatus]
       .filter(Boolean)
@@ -928,6 +932,7 @@ const LmsDashboard = () => {
               profile={certificateProfile}
               studentName={getStudentName(student)}
               courseName={courseName}
+              durationWeeks={student?.durationWeeks}
             />
             <section className="alumni-visibility" aria-labelledby="alumni-visibility-title">
               <div><span>Public graduate profile</span><h2 id="alumni-visibility-title">Alumni Directory Visibility</h2><strong>{certificateProfile.showInAlumniDirectory === true ? "Listed publicly" : "Not listed publicly"}</strong></div>

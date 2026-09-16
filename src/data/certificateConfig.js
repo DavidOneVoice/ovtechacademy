@@ -10,6 +10,8 @@ export const CERTIFICATE_WIDTH = 1120;
 export const CERTIFICATE_HEIGHT = 790;
 
 export const COURSE_SKILLS = {
+  "Web Development": ["HTML", "CSS", "JavaScript", "React", "Accessibility", "Deployment"],
+  "AI Automation": ["Workflow Design", "AI Tools", "APIs", "Make", "n8n", "Responsible AI"],
   "Data Analytics": ["Microsoft Excel", "SQL", "Power BI", "Power Query", "Python", "Data Visualization"],
   "Software Development": ["HTML", "CSS", "JavaScript", "React", "Git", "Responsive Design"],
   Cybersecurity: ["Network Security", "Threat Detection", "Risk Assessment", "Incident Response", "SIEM"],

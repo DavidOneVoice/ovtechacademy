@@ -8,15 +8,14 @@ const PaymentSuccess = () => {
       <div className="payment-success-card">
         <div className="payment-success-icon">✓</div>
 
-        <h1>Payment Submitted Successfully</h1>
+        <h1>Check Your Payment Status</h1>
 
         <p>
-          Thank you for completing your OVTech Academy registration payment.
+          If you paid through an earlier payment link, please keep your Paystack receipt and reference.
         </p>
 
         <p>
-          Your payment details have been received and are currently being
-          verified by our admissions team.
+          This page does not verify a payment. Our admissions team can confirm your earlier payment using its reference. For the October cohort, use the return link provided after the new registration checkout.
         </p>
 
         <p>

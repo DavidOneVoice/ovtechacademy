@@ -1,12 +1,65 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Public application submissions and the browser-based administration
-    // screens both use this collection. A read rule also permits collection
-    // queries/listing used by the enrolled-students page.
+    // Private payment drafts, transaction reuse guards, and checkout locks.
+    // Only the Netlify Firebase Admin SDK may access these collections.
+    match /paymentOrders/{id} { allow read, write: if false; }
+    match /paymentReceipts/{id} { allow read, write: if false; }
+    match /scholarshipPaymentLocks/{id} { allow read, write: if false; }
+
+    function protectedPaymentFields() {
+      return ['paymentVerified', 'paymentReference', 'paymentAmount',
+        'paymentCurrency', 'paymentProvider', 'paymentTransactionId',
+        'paymentVerifiedAt', 'registrationStatus', 'submittedAt'];
+    }
+    function enrollmentFacts() {
+      return ['applicationType', 'courseId', 'track', 'learningMethod',
+        'cohortId', 'cohortStartDate', 'durationWeeks', 'currency',
+        'tuitionAmount', 'tuition', 'scholarshipFeeAmount', 'scholarshipFee',
+        'scholarshipPercent', 'studentPaysPercent', 'email', 'createdAt'];
+    }
+    function validNewScholarship() {
+      let d = request.resource.data;
+      return d.applicationType == 'scholarship' && d.status == 'Pending'
+        && d.cohortId == 'october-2026' && d.cohortStartDate == '2026-10-05'
+        && d.currency == 'NGN' && d.createdAt == request.time
+        && !d.keys().hasAny(protectedPaymentFields())
+        && !d.keys().hasAny(['paymentStatus', 'enrolledAt'])
+        && d.fullName is string && d.fullName.size() >= 2 && d.fullName.size() <= 120
+        && d.email is string && d.email.size() > 3 && d.email.size() <= 254
+        && d.reason is string && d.reason.size() >= 10 && d.reason.size() <= 2000
+        && (
+          (d.courseId == 'data-analytics' && d.track == 'Data Analytics'
+            && d.durationWeeks == 12 && d.tuitionAmount == 300000 && d.scholarshipFeeAmount == 20000
+            && d.learningMethod == 'Self-Paced Pre-recorded Videos')
+          || (d.courseId in ['software-development', 'web-development']
+            && ((d.courseId == 'software-development' && d.track == 'Software Development')
+              || (d.courseId == 'web-development' && d.track == 'Web Development'))
+            && d.durationWeeks == 20 && d.tuitionAmount == 500000 && d.scholarshipFeeAmount == 20000
+            && d.learningMethod == 'Self-Paced Pre-recorded Videos')
+          || (d.courseId in ['cyber-security', 'ai-automation']
+            && ((d.courseId == 'cyber-security' && d.track == 'Cybersecurity')
+              || (d.courseId == 'ai-automation' && d.track == 'AI Automation'))
+            && d.durationWeeks == 12 && d.tuitionAmount == 400000 && d.scholarshipFeeAmount == 20000
+            && d.learningMethod == 'Live Online Classes')
+          || (d.courseId == 'virtual-assistance' && d.track == 'Virtual Assistant'
+            && d.durationWeeks == 8 && d.tuitionAmount == 150000 && d.scholarshipFeeAmount == 15000
+            && d.learningMethod == 'Live Online Classes')
+        );
+    }
     match /scholarshipApplications/{documentId} {
-      allow create: if true;
-      allow read, update, delete: if true;
+      // New tuition applications and verified-payment fields are server-only.
+      allow create: if validNewScholarship();
+      allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(protectedPaymentFields())
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(enrollmentFacts())
+        && (!('paymentVerified' in resource.data) || resource.data.paymentVerified != true
+          || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['paymentStatus']))
+        && (!('applicationType' in resource.data) || !(resource.data.applicationType == 'tuition')
+          || request.resource.data.status != 'Enrolled'
+          || resource.data.registrationStatus == 'submitted');
+      // Legacy admin/student screens still require public reads and deletion.
+      // This does NOT authenticate an administrator. See deployment notes.
+      allow read, delete: if true;
     }
 
     // LMS content is read by students and maintained through the current

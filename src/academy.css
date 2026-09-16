@@ -1,0 +1,143 @@
+/* Shared October 2026 public-site styles. Kept after page styles in App.jsx. */
+.ov-home, .ov-courses-page, .academy-registration, .about-page, .contact-page {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #12233f;
+}
+.ov-home button, .ov-courses-page button, .academy-registration button,
+.academy-registration input, .academy-registration select, .academy-registration textarea { font: inherit; }
+.ov-home, .ov-courses-page, .academy-registration { --ov-muted: #526071; --ov-gold: #e9b82f; }
+.ov-home :focus-visible, .ov-courses-page :focus-visible, .academy-registration :focus-visible {
+  outline: 3px solid #087b78; outline-offset: 4px;
+}
+.ov-home .ov-hero { background: #fffcf5; padding: 72px 0 80px; }
+.ov-home .ov-hero-bg { display: none; }
+.ov-home .ov-hero-content { grid-template-columns: 1fr 1fr; gap: 44px; }
+.ov-home .ov-hero h1 { font-size: clamp(2.7rem, 4.5vw, 4.5rem); line-height: 1.05; letter-spacing: -.055em; }
+.ov-home .ov-hero h1 span { color: #886212; }
+.ov-home .ov-badge { font-size: .76rem; line-height: 1.5; letter-spacing: .015em; border-radius: 6px; }
+.ov-home .ov-main-hero-image { height: auto; aspect-ratio: 4 / 4.25; object-fit: cover; border-radius: 12px; box-shadow: none; }
+.ov-hero-caption { background: #f0c245; color: #12233f; padding: 18px 20px; font-size: .85rem; font-weight: 700; border-radius: 0 0 12px 12px; margin: -12px 0 0; position: relative; }
+.ov-home .ov-trust-list { gap: 8px; }
+.ov-home .ov-trust-list span { padding: 5px 0; border: 0; background: none; font-size: .75rem; }
+.ov-home .ov-primary-btn, .ov-home .ov-secondary-btn { border-radius: 7px; box-shadow: none; font-size: .87rem; }
+.ov-home .ov-why-grid { gap: 24px; }
+.ov-home .ov-view-all-btn { background: #12233f; box-shadow: none; border-radius: 7px; }
+.ov-home .ov-stats-wrapper { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ov-home .ov-advantages-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ov-home .ov-adv-card { min-height: auto; border-radius: 12px; padding: 24px; }
+.ov-home .ov-cohort-banner { gap: 64px; background: #fff8e8; grid-template-columns: 1fr .85fr; }
+.ov-home .ov-cohort-image { max-width: 470px; margin: auto; }
+.ov-home .ov-cohort-image img { height: auto; border-radius: 8px; box-shadow: 0 8px 24px #12233f14; }
+.ov-home .ov-cohort-content > span { color: #785913; font-weight: 750; line-height: 1.6; }
+.ov-home .ov-cohort-content h2 { letter-spacing: -.045em; }
+.ov-courses-page .ov-courses-hero { background: #fff8e8; padding: 85px 0; }
+.ov-courses-page .ov-courses-hero h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); line-height: 1.06; }
+.ov-courses-page .ov-courses-hero span, .ov-courses-page .ov-courses-section-head span { color: #795611; }
+.ov-courses-page .ov-courses-hero-actions a { background: #12233f; box-shadow: none; border-radius: 7px; }
+.ov-courses-page .ov-courses-hero-actions .secondary { background: #e9b82f; color: #12233f; }
+.academy-eyebrow { display: block; color: #76550f; text-transform: uppercase; font-size: .72rem; font-weight: 750; letter-spacing: .11em; line-height: 1.6; }
+.academy-course-card { display: flex; flex-direction: column; border: 1px solid #dce1e6; border-radius: 12px; overflow: hidden; background: white; scroll-margin-top: 110px; min-width: 0; }
+.academy-course-image { display: block; width: 100%; height: auto; aspect-ratio: 3/2; object-fit: cover; }
+.academy-course-body { display: flex; flex: 1; flex-direction: column; padding: 24px; }
+.academy-course-body h3 { font-size: 1.5rem; letter-spacing: -.035em; margin: 9px 0 12px; }
+.academy-course-body > p { color: #526071; line-height: 1.75; font-size: .91rem; }
+.academy-course-facts { margin: 22px 0 15px; border-top: 1px solid #e3e6e9; }
+.academy-course-facts div { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #e3e6e9; }
+.academy-course-facts dt { color: #526071; font-size: .8rem; }
+.academy-course-facts dd { font-size: .88rem; font-weight: 750; text-align: right; margin: 0; }
+.academy-course-facts small { display: block; color: #526071; font-size: .7rem; font-weight: 500; margin-top: 4px; }
+.academy-course-body .academy-mode-note { font-size: .79rem; line-height: 1.7; margin-bottom: 22px; }
+.academy-course-actions { display: grid; gap: 10px; margin-top: auto; }
+.academy-button, .academy-outline-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-align: center; min-height: 48px; border-radius: 7px; padding: 13px 16px; border: 1px solid #12233f; background: #12233f; color: white; font-size: .85rem; font-weight: 700; text-decoration: none; cursor: pointer; line-height: 1.4; }
+.academy-button-secondary { background: #f0c245; border-color: #f0c245; color: #12233f; }
+.academy-outline-button { background: white; color: #12233f; border-color: #cbd2db; }
+.academy-button:hover, .academy-outline-button:hover { filter: brightness(.94); }
+.academy-button:disabled { opacity: .5; cursor: wait; }
+.academy-course-dialog { border: 0; border-radius: 14px; width: min(760px, calc(100% - 28px)); max-height: 90dvh; margin: auto; padding: 0; color: #12233f; box-shadow: 0 24px 90px #08142640; }
+.academy-course-dialog::backdrop { background: #081426b3; }
+.academy-dialog-inner { position: relative; padding: 36px; }
+.academy-dialog-close { position: sticky; top: 0; float: right; border: 1px solid #dce1e6; background: white; border-radius: 50%; height: 40px; width: 40px; cursor: pointer; font-size: 1.7rem !important; margin-left: 10px; }
+.academy-course-dialog h2 { font-size: 2.2rem; letter-spacing: -.04em; margin: 12px 0; }
+.academy-course-dialog h3 { margin: 25px 0 12px; font-size: 1.1rem; }
+.academy-course-dialog p, .academy-course-dialog li { color: #526071; font-size: .92rem; line-height: 1.8; }
+.academy-course-dialog ol, .academy-course-dialog ul { padding-left: 22px; }
+.academy-fee-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #fff8e8; padding: 18px; border-radius: 8px; margin-top: 24px; font-size: .8rem; }
+.academy-fee-strip strong { display: block; margin-top: 6px; font-size: 1.1rem; }
+.academy-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.academy-tags span { padding: 7px 10px; border-radius: 5px; background: #f0f3f6; font-size: .8rem; }
+.academy-dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+.academy-course-dialog .academy-mode-note { margin-top: 20px; }
+.academy-registration { background: #f7f8fa; min-height: 100vh; }
+.academy-registration-heading { max-width: 860px; padding: 64px 24px 36px; margin: auto; text-align: center; }
+.academy-registration-heading h1 { font-size: clamp(2rem, 4.5vw, 3.3rem); line-height: 1.15; letter-spacing: -.045em; margin: 14px 0 18px; }
+.academy-registration-heading p { line-height: 1.8; color: #526071; max-width: 680px; margin: auto; }
+.academy-registration-layout { max-width: 1180px; margin: 0 auto; padding: 20px 24px 80px; display: grid; grid-template-columns: 1.7fr 1fr; gap: 28px; align-items: start; }
+.academy-registration-form, .academy-registration-summary, .academy-completion { border: 1px solid #dce1e6; border-radius: 12px; padding: 32px; background: white; min-width: 0; }
+.academy-registration-form h2 { font-size: 1.1rem; margin: 8px 0 22px; }
+.academy-registration-form h2:not(:first-child) { margin-top: 32px; }
+.academy-registration-form label { display: block; font-size: .84rem; font-weight: 650; line-height: 1.6; margin-bottom: 18px; }
+.academy-registration-form input:not([type=checkbox]), .academy-registration-form select, .academy-registration-form textarea { display: block; margin-top: 7px; width: 100%; min-height: 48px; padding: 12px; border: 1px solid #afb9c8; border-radius: 6px; background: white; color: #12233f; font-size: 16px; }
+.academy-registration-form textarea { resize: vertical; }
+.academy-registration-form .academy-consent { display: flex; align-items: flex-start; gap: 12px; font-weight: 400; font-size: .83rem; }
+.academy-consent input { width: 20px; height: 20px; flex: 0 0 20px; margin-top: 3px; accent-color: #12233f; }
+.academy-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+.academy-optional { color: #687587; font-weight: 400; }
+.academy-learning-rule { background: #fff7dc; border-left: 3px solid #e9b82f; padding: 18px; margin: 20px 0 26px; font-size: .88rem; line-height: 1.7; }
+.academy-learning-rule label { margin: 12px 0 0; }
+.academy-registration-summary { position: sticky; top: 110px; }
+.academy-registration-summary h2 { margin: 10px 0 20px; font-size: 1.5rem; }
+.academy-registration-summary img { width: 100%; height: auto; aspect-ratio: 3/2; object-fit: cover; border-radius: 7px; }
+.academy-registration-summary dl { margin: 20px 0; }
+.academy-registration-summary dl div { border-bottom: 1px solid #e1e5ea; padding: 13px 0; }
+.academy-registration-summary dt { color: #526071; font-size: .8rem; margin-bottom: 5px; }
+.academy-registration-summary dd { margin: 0; font-size: .95rem; font-weight: 700; }
+.academy-registration-summary p, .academy-registration-summary a, .academy-form-help { font-size: .8rem; line-height: 1.8; color: #526071; }
+.academy-registration-summary a, .academy-form-help a, .academy-completion a:not(.academy-button) { color: #126967; }
+.academy-form-help { margin-top: 18px; }
+.academy-registration-form > .academy-button { width: 100%; }
+.academy-error { padding: 16px; background: #fff1ee; border: 1px solid #c87661; color: #8a2e18; border-radius: 6px; line-height: 1.7; margin: 18px 0; overflow-wrap: anywhere; }
+.academy-completion { max-width: 760px; margin: 64px auto; padding: 40px; }
+.academy-completion h1, .academy-completion h2 { margin: 12px 0 20px; letter-spacing: -.025em; }
+.academy-completion p { margin: 18px 0; line-height: 1.8; }
+.academy-reference { font-size: .8rem; overflow-wrap: anywhere; }
+.academy-payment-receipt { border: 1px solid #afd0c5; background: #f0f9f5; padding: 20px; border-radius: 8px; margin: 24px 0; }
+.academy-payment-receipt p { margin: 6px 0; }
+@media (max-width: 980px) {
+  .ov-home .ov-hero-content, .ov-home .ov-cohort-banner { grid-template-columns: 1fr; }
+  .ov-home .ov-main-hero-image { max-height: 500px; aspect-ratio: 3/2; }
+  .ov-home .ov-hero-right { max-width: 650px; width: 100%; margin: auto; }
+  .ov-home .ov-cohort-image { order: 0; }
+  .ov-home .ov-advantages-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .academy-registration-layout { grid-template-columns: 1.4fr 1fr; gap: 18px; }
+  .academy-registration-form, .academy-registration-summary { padding: 22px; }
+  .academy-form-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .ov-home .ov-hero { padding: 42px 0 48px; }
+  .ov-home .ov-hero h1 { font-size: clamp(2.3rem, 9vw, 3.2rem); letter-spacing: -.045em; }
+  .ov-home .ov-hero-content { width: calc(100% - 36px); gap: 32px; }
+  .ov-home .ov-hero p { font-size: .96rem; }
+  .ov-home .ov-hero-actions { gap: 10px; }
+  .ov-home .ov-advantages-grid { display: grid; grid-template-columns: 1fr; overflow: visible; padding: 0; margin: 30px 0 0; }
+  .ov-home .ov-adv-card { min-height: 0; }
+  .ov-home .ov-stats-wrapper { grid-template-columns: 1fr; }
+  .ov-home .ov-cohort-banner { padding: 54px 20px; gap: 32px; }
+  .ov-home .ov-cohort-actions { display: grid; }
+  .ov-courses-page .ov-courses-hero { padding: 54px 0; }
+  .academy-course-body { padding: 22px; }
+  .academy-dialog-inner { padding: 24px 20px; }
+  .academy-course-dialog h2 { font-size: 1.8rem; }
+  .academy-dialog-actions { grid-template-columns: 1fr; }
+  .academy-registration-heading { padding: 40px 20px 24px; }
+  .academy-registration-layout { display: flex; flex-direction: column; padding: 0 16px 48px; }
+  .academy-registration-form, .academy-registration-summary { width: 100%; }
+  .academy-registration-summary { position: static; }
+  .academy-completion { margin: 32px 16px; padding: 24px; }
+  .academy-completion .academy-button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .ov-home *, .ov-courses-page *, .academy-registration * { scroll-behavior: auto !important; transition: none !important; } }
+
+@media (min-width: 701px) and (max-width: 1180px) {
+  .ov-navbar .ov-nav-links, .ov-navbar .ov-nav-btn { display: none; }
+  .ov-navbar .ov-menu-btn { display: block; }
+}

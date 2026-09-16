@@ -1,3 +1,6 @@
+import { findCourse } from "./courses.js";
+
+// Legacy prices are retained only for historical application email fallbacks.
 export const pricing = {
   NG: {
     country: "Nigeria",
@@ -119,4 +122,21 @@ export const getPricingByCountryCode = (countryCode) => {
   }
 
   return pricing.DEFAULT;
+};
+
+// New cohort prices are explicitly NGN and course-specific; legacy regional
+// values above remain available for previously saved application records.
+export const formatNaira = (amount) => `₦${Number(amount).toLocaleString("en-NG")}`;
+const formatPercent = (value) => `${Number(value.toFixed(2))}%`;
+export const getCoursePricing = (value) => {
+  const course = findCourse(value);
+  if (!course) return null;
+  return {
+    country: "Nigeria", countryCode: "NG", currency: "NGN",
+    tuitionAmount: course.tuitionAmount, scholarshipAmount: course.scholarshipAmount,
+    tuition: formatNaira(course.tuitionAmount), scholarship: formatNaira(course.scholarshipAmount),
+    scholarshipPercent: formatPercent((1 - course.scholarshipAmount / course.tuitionAmount) * 100),
+    studentPaysPercent: formatPercent(course.scholarshipAmount / course.tuitionAmount * 100),
+    fullTuitionPaymentLink: `/register?course=${course.id}`,
+  };
 };

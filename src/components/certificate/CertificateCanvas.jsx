@@ -13,7 +13,7 @@ const formatCompletionDate = (value) => {
 
 const nameClass = (name) => name.length > 52 ? "certificate-name certificate-name-long" : name.length > 34 ? "certificate-name certificate-name-medium" : "certificate-name";
 
-const CertificateCanvas = forwardRef(function CertificateCanvas({ name, course, certificateId, completionDate, verificationUrl, skills }, ref) {
+const CertificateCanvas = forwardRef(function CertificateCanvas({ name, course, certificateId, completionDate, verificationUrl, skills, durationWeeks }, ref) {
   return (
     <article className="digital-certificate" ref={ref} aria-label={`Certificate of completion for ${name}`}>
       <div className="certificate-corner certificate-corner-top" aria-hidden="true" />
@@ -29,7 +29,7 @@ const CertificateCanvas = forwardRef(function CertificateCanvas({ name, course, 
         <p className="certificate-statement">training programme at OVTech Academy and has demonstrated competency in the required learning outcomes.</p>
       </section>
       <dl className="certificate-facts">
-        <div><dt>Course / Track</dt><dd>{course}</dd></div><div><dt>Duration</dt><dd>{getCourseDuration(course)}</dd></div>
+        <div><dt>Course / Track</dt><dd>{course}</dd></div><div><dt>Duration</dt><dd>{Number.isInteger(durationWeeks) && durationWeeks > 0 ? `${durationWeeks} Weeks` : getCourseDuration(course)}</dd></div>
         <div><dt>Completion Date</dt><dd>{formatCompletionDate(completionDate)}</dd></div><div><dt>Certificate ID</dt><dd>{certificateId}</dd></div>
       </dl>
       <section className="certificate-skills"><h3>Skills demonstrated</h3><div>{skills.map((skill) => <span key={skill}>{skill}</span>)}</div></section>

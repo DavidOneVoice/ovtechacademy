@@ -1,3 +1,6 @@
+import Registration from "./pages/Registration";
+import PaymentReturn from "./pages/PaymentReturn";
+import ScholarshipPayment from "./pages/ScholarshipPayment";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Scholarship from "./pages/Scholarship";
@@ -26,6 +29,8 @@ const AdminDashboardRoute = () => (
     : <Admin />
 );
 
+import "./academy.css";
+
 function App() {
   return (
     <BrowserRouter>
@@ -35,6 +40,9 @@ function App() {
         <Route path="/verify/:certificateId" element={<VerifyCertificate />} />
         <Route path="/alumni" element={<Alumni />} />
         <Route path="/scholarship" element={<Scholarship />} />
+        <Route path="/register" element={<Registration />} />
+        <Route path="/registration/complete" element={<PaymentReturn />} />
+        <Route path="/scholarship-payment" element={<ScholarshipPayment />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/lms" caseSensitive element={<LmsDashboard />} />
         <Route

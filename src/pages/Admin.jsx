@@ -48,7 +48,7 @@ const getDateApplied = (app) =>
 const formatCurrency = (amount) => `₦${Number(amount || 0).toLocaleString()}`;
 
 const isEnrolled = (app) =>
-  app.status === "Enrolled" || app.paymentStatus === "Paid";
+  app.status === "Enrolled" || (!app.cohortId && app.paymentStatus === "Paid");
 
 const csvEscape = (item) => `"${String(item || "").replace(/"/g, '""')}"`;
 
@@ -79,6 +79,7 @@ const getApplicationCSVRows = (apps) => {
     "Reason",
     "Status",
     "Payment Status",
+    "Application Type", "Registration Status", "Cohort", "Verified by Paystack", "Payment Reference", "Payment Amount (NGN)",
     "Date Applied",
   ];
 
@@ -95,6 +96,7 @@ const getApplicationCSVRows = (apps) => {
     app.reason,
     app.status,
     app.paymentStatus,
+    app.applicationType || "scholarship", app.registrationStatus || "submitted", app.cohortId, app.paymentVerified ? "Yes" : "No", app.paymentReference, app.paymentAmount,
     getDateApplied(app),
   ]);
 
@@ -115,6 +117,7 @@ const Admin = () => {
   const [selectedReferral, setSelectedReferral] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [typeFilter, setTypeFilter] = useState("All");
   const [trackFilter, setTrackFilter] = useState("All");
   const [learningMethodFilter, setLearningMethodFilter] = useState("All");
   const [monthFilter, setMonthFilter] = useState("All");
@@ -263,6 +266,7 @@ const Admin = () => {
       }
 
       return (
+        (typeFilter === "All" || (app.applicationType || "scholarship") === typeFilter) &&
         matchesSearch &&
         matchesStatus &&
         matchesTrack &&
@@ -282,6 +286,7 @@ const Admin = () => {
     startDate,
     statusFilter,
     trackFilter,
+    typeFilter,
   ]);
 
   const total = applications.length;
@@ -299,7 +304,7 @@ const Admin = () => {
       prev.map((item) => (item.id === id ? { ...item, status } : item)),
     );
 
-    if (status === "Approved") {
+    if (status === "Approved" && app.applicationType !== "tuition") {
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
         import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
@@ -362,7 +367,7 @@ const Admin = () => {
 
   const exportToCSV = () => {
     downloadCSV(
-      "ovtech-scholarship-applications.csv",
+      "ovtech-applications.csv",
       getApplicationCSVRows(filteredApplications),
     );
   };
@@ -375,6 +380,7 @@ const Admin = () => {
     setSearchTerm("");
     setStatusFilter("All");
     setTrackFilter("All");
+    setTypeFilter("All");
     setMonthFilter("All");
     setLearningMethodFilter("All");
     setStartDate("");
@@ -407,6 +413,10 @@ const Admin = () => {
 
   const enrollStudent = async (app) => {
     if (enrollingId) return;
+    if (app.applicationType === "tuition" && (!app.paymentVerified || app.registrationStatus !== "submitted")) {
+      setToast("The learner must verify payment and complete registration before enrollment.");
+      return;
+    }
 
     const enrolledAt = new Date();
     setEnrollingId(app.id);
@@ -450,7 +460,7 @@ const Admin = () => {
           },
           import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
         );
-      } catch {}
+      } catch { /* Enrollment is saved even if its email cannot be sent. */ }
 
       setToast(`${app.fullName} has been enrolled successfully.`);
       setTimeout(() => setToast(""), 3000);
@@ -469,9 +479,9 @@ const Admin = () => {
       <section className="admin-header">
         <div>
           <span>OVTech Admin</span>
-          <h1>Scholarship Applications</h1>
+          <h1>Applications & Registrations</h1>
           <p>
-            Review and manage scholarship applications submitted by learners.
+            Review scholarships, verified full-tuition payments, and learner enrollment.
           </p>
         </div>
 
@@ -699,6 +709,9 @@ const Admin = () => {
       </section>
 
       <div className="admin-filters">
+        <select aria-label="Application type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+          <option value="All">All Application Types</option><option value="scholarship">Scholarship</option><option value="tuition">Full Tuition</option>
+        </select>
         <input
           type="text"
           placeholder="Search name, email, phone or referral code..."
@@ -711,6 +724,7 @@ const Admin = () => {
         >
           <option>All</option>
           <option>Pending</option>
+          <option>Payment Received</option>
           <option>Approved</option>
           <option>Rejected</option>
           <option>Enrolled</option>
@@ -795,6 +809,7 @@ const Admin = () => {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Type / Payment</th>
                 <th>WhatsApp</th>
                 <th>Track</th>
                 <th>Learning Method</th>
@@ -813,6 +828,7 @@ const Admin = () => {
                     <strong>{app.fullName}</strong>
                     <small>{app.email}</small>
                   </td>
+                  <td data-label="Type / Payment">{app.applicationType === "tuition" ? "Full tuition" : "Scholarship"}<small>{app.paymentVerified ? `Paystack verified · ${formatCurrency(app.paymentAmount)}` : "No Paystack verification"}</small>{app.registrationStatus === "awaiting_submission" && <small>Awaiting learner’s final submission</small>}</td>
                   <td data-label="WhatsApp">{app.whatsapp}</td>
                   <td data-label="Track">{normalizeProgrammeName(app.track)}</td>
                   <td data-label="Learning Method">
@@ -983,6 +999,11 @@ const Admin = () => {
             <h2>{selectedApplication.fullName}</h2>
             <p className="admin-modal-email">{selectedApplication.email}</p>
             <div className="admin-details-grid">
+              <div><strong>Application Type</strong><span>{selectedApplication.applicationType === "tuition" ? "Full Tuition" : "Scholarship"}</span></div>
+              <div><strong>Cohort / Registration</strong><span>{selectedApplication.cohortId || "Previous cohort"} · {selectedApplication.registrationStatus || "submitted"}</span></div>
+              <div><strong>Payment Verification</strong><span>{selectedApplication.paymentVerified ? `Verified by Paystack: ${formatCurrency(selectedApplication.paymentAmount)}` : "No automatic verification recorded"}</span></div>
+              <div><strong>Payment Reference</strong><span>{selectedApplication.paymentReference || "—"}</span></div>
+              <div><strong>Full Tuition / Scholarship Fee</strong><span>{selectedApplication.tuition || "—"} / {selectedApplication.scholarshipFee || "—"}</span></div>
               <div>
                 <strong>WhatsApp</strong>
                 <span>{selectedApplication.whatsapp}</span>
@@ -1028,7 +1049,7 @@ const Admin = () => {
                 <button
                   onClick={() => enrollStudent(selectedApplication)}
                   className="admin-enroll-btn"
-                  disabled={enrollingId === selectedApplication.id}
+                  disabled={enrollingId === selectedApplication.id || (selectedApplication.applicationType === "tuition" && selectedApplication.registrationStatus !== "submitted")}
                 >
                   {enrollingId === selectedApplication.id
                     ? "Enrolling Student..."

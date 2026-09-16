@@ -4,7 +4,9 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import courses from "../data/courses";
-import usePricing from "../hooks/usePricing";
+import CourseCard from "../components/CourseCard";
+import CourseOutline from "../components/CourseOutline";
+import { COHORT } from "../data/cohort";
 import "./Home.css";
 
 const featuredCourses = courses
@@ -16,13 +18,7 @@ const Home = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
-  const {
-    tuition,
-    scholarship,
-    scholarshipPercent,
-    studentPaysPercent,
-    fullTuitionPaymentLink,
-  } = usePricing();
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -58,9 +54,7 @@ const Home = () => {
             </h1>
 
             <p>
-              Master Data Analytics, Software Development, and Web
-              Development through practical training, real-world projects, and
-              hands-on learning.
+              Explore Data Analytics, Software Development, Web Development, Cybersecurity, Virtual Assistant, and AI Automation. Learn practical skills and turn them into projects you can show.
             </p>
 
             <div className="ov-hero-actions">
@@ -83,22 +77,13 @@ const Home = () => {
           <div className="ov-hero-right">
             <div className="ov-hero-visual">
               <img
-                src="/ovtimg4.png"
-                alt="OVTech learning experience"
+                src="/images/hero.webp"
+                alt="A learner and mentor working together on a practical technology project"
+                width="1536" height="1024" fetchPriority="high"
                 className="ov-main-hero-image"
               />
 
-              <div className="ov-floating-card ov-card-analytics">
-                📊 Data Analytics
-              </div>
-
-              <div className="ov-floating-card ov-card-software">
-                💻 Software Development
-              </div>
-
-              <div className="ov-floating-card ov-card-web">
-                🌐 Web Development
-              </div>
+              <div className="ov-hero-caption">Six learning paths. One place to begin.</div>
             </div>
           </div>
         </div>
@@ -169,74 +154,7 @@ const Home = () => {
         </div>
 
         <div className="ov-paths-grid">
-          {featuredCourses.map((course) => (
-            <div
-              className={`ov-path-card ${course.featured ? "featured" : ""}`}
-              key={course.id}
-            >
-              <div
-                className={`ov-path-image ${course.imageClass || "ov-icon-card"}`}
-              >
-                {course.image ? (
-                  <img
-                    src={course.image}
-                    alt={course.alt}
-                    className="ov-path-img"
-                  />
-                ) : (
-                  <div className="ov-path-icon" aria-hidden="true">
-                    {course.icon}
-                  </div>
-                )}
-              </div>
-
-              <div className="ov-path-body">
-                <small>{course.label}</small>
-                <h3>{course.title}</h3>
-
-                <p>{course.description}</p>
-
-                <div className="ov-course-meta">
-                  <div>
-                    <strong>Duration</strong>
-                    <span>{course.duration}</span>
-                  </div>
-
-                  <div>
-                    <strong>Course Fee</strong>
-                    <span>{tuition}</span>
-                  </div>
-
-                  <div>
-                    <strong>Certification</strong>
-                    <span>Certificate upon completion</span>
-                  </div>
-                </div>
-
-                <button
-                  className="ov-outline-btn"
-                  onClick={() => setSelectedCourse(course)}
-                >
-                  View Course Outline
-                </button>
-
-                <div className="ov-course-actions">
-                  <a href="/scholarship" className="ov-course-scholarship">
-                    Apply for Scholarship
-                  </a>
-
-                  <a
-                    href={fullTuitionPaymentLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="ov-course-pay"
-                  >
-                    Pay Full Tuition
-                  </a>
-                </div>
-              </div>
-            </div>
-          ))}
+          {featuredCourses.map((course) => <CourseCard key={course.id} course={course} onOutline={setSelectedCourse} />)}
         </div>
 
         <div className="ov-view-all-wrap">
@@ -248,18 +166,16 @@ const Home = () => {
 
       <section className="ov-cohort-banner">
         <div className="ov-cohort-content">
-          <span>🚀 July 2026 Cohort</span>
+          <span>{COHORT.label} Cohort · Starts {COHORT.startDateLabel}</span>
 
           <h2>
-            Applications Are Open.
+            Your next chapter
             <br />
-            Scholarship Available.
+            starts October 5.
           </h2>
 
           <p>
-            Join the next cohort and gain practical skills in Data Analytics,
-            Software Development, or Web Development through project-based
-            learning.
+            Applications are open for all six learning paths. Choose your course, explore scholarship support, and start building practical skills with us.
           </p>
 
           <div className="ov-cohort-actions">
@@ -268,18 +184,16 @@ const Home = () => {
             </a>
 
             <a
-              href={fullTuitionPaymentLink}
-              target="_blank"
-              rel="noreferrer"
+              href="/register"
               className="ov-secondary-btn"
             >
-              Secure Your Slot
+              Register & Pay Full Tuition
             </a>
           </div>
         </div>
 
         <div className="ov-cohort-image">
-          <img src="/flyer.png" alt="OVTech July 2026 Cohort" />
+          <a href="/images/october-cohort.webp" target="_blank" rel="noreferrer" aria-label="Open the October cohort poster"><img src="/images/october-cohort.webp" alt="OVTech Academy October 2026 cohort. Starts October 5, 2026. Six courses and limited scholarships. Apply at ovtechacademy.com." loading="lazy" width="1024" height="1536" /></a>
         </div>
       </section>
 
@@ -405,17 +319,12 @@ const Home = () => {
       <section className="ov-stats-section">
         <div className="ov-stats-wrapper">
           <div>
-            <h3>5</h3>
+            <h3>{courses.length}</h3>
             <p>Career-Focused Learning Paths</p>
           </div>
 
           <div>
-            <h3>12</h3>
-            <p>Weeks of Practical Training</p>
-          </div>
-
-          <div>
-            <h3>{scholarshipPercent}</h3>
+            <h3>Up to 96%</h3>
             <p>Scholarship Support Available</p>
           </div>
 
@@ -447,7 +356,7 @@ const Home = () => {
             },
             {
               q: "How long is each course?",
-              a: "Each learning path runs for approximately 12 weeks with practical assignments and projects.",
+              a: "Data Analytics, Cybersecurity, and AI Automation run for 12 weeks. Web Development and Software Development run for 20 weeks. Virtual Assistant runs for 8 weeks.",
             },
             {
               q: "Will I receive a certificate?",
@@ -455,11 +364,19 @@ const Home = () => {
             },
             {
               q: "Do you offer scholarships?",
-              a: `Yes. OVTech periodically provides scholarship opportunities of up to ${scholarshipPercent} for qualified applicants. Selected learners pay only ${studentPaysPercent}, currently ${scholarship}.`,
+              a: "Yes. Selected applicants pay ₦20,000 for Data Analytics, Cybersecurity, Web Development, Software Development, or AI Automation, and ₦15,000 for Virtual Assistant. This represents 90%–96% scholarship support, depending on the course.",
             },
             {
               q: "Are classes live or self-paced?",
-              a: "Depending on the program, learners may choose live instructor-led sessions or self-paced study options.",
+              a: "Scholarships for Data Analytics, Web Development, and Software Development cover pre-recorded learning only. Full-tuition learners in those courses may choose one-on-one live classes or pre-recorded learning. Cybersecurity, Virtual Assistant, and AI Automation use live group classes.",
+            },
+            {
+              q: "When does the next cohort start?",
+              a: "The October 2026 cohort starts on October 5, 2026. Applications are open now.",
+            },
+            {
+              q: "How do I register with full tuition?",
+              a: "Choose a course and complete your details, pay securely through Paystack, then return to finish registration. We verify your payment before your final submission becomes available.",
             },
             {
               q: "How are classes conducted?",
@@ -473,6 +390,7 @@ const Home = () => {
               <button
                 type="button"
                 className="ov-faq-question"
+                aria-expanded={openFaq === index}
                 onClick={() => setOpenFaq(openFaq === index ? null : index)}
               >
                 <span>{item.q}</span>
@@ -489,81 +407,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* COURSE OUTLINE MODAL */}
-      {selectedCourse && (
-        <div className="ov-course-modal-overlay">
-          <div className="ov-course-modal">
-            <button
-              className="ov-course-modal-close"
-              onClick={() => setSelectedCourse(null)}
-            >
-              ×
-            </button>
-
-            <span>{selectedCourse.label}</span>
-            <h2>{selectedCourse.title}</h2>
-
-            <div className="ov-modal-summary">
-              <div>
-                <strong>Duration</strong>
-                <p>{selectedCourse.duration}</p>
-              </div>
-
-              <div>
-                <strong>Course Fee</strong>
-                <p>{tuition}</p>
-              </div>
-
-              <div>
-                <strong>Certification</strong>
-                <p>Certificate issued upon completion</p>
-              </div>
-            </div>
-
-            <div className="ov-modal-section">
-              <h3>Course Outline</h3>
-              <ul>
-                {selectedCourse.outline.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="ov-modal-section">
-              <h3>Tools You’ll Learn</h3>
-              <div className="ov-tool-tags">
-                {selectedCourse.tools.map((tool) => (
-                  <span key={tool}>{tool}</span>
-                ))}
-              </div>
-            </div>
-
-            <div className="ov-modal-section">
-              <h3>Projects You’ll Build</h3>
-              <ul>
-                {selectedCourse.projects.map((project) => (
-                  <li key={project}>{project}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="ov-modal-actions">
-              <a href="/scholarship" className="ov-course-scholarship">
-                Apply for Scholarship
-              </a>
-
-              <a
-                href={fullTuitionPaymentLink}
-                target="_blank"
-                rel="noreferrer"
-                className="ov-course-pay"
-              >
-                Pay Full Tuition
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
+      {selectedCourse && <CourseOutline course={selectedCourse} onClose={() => setSelectedCourse(null)} />}
 
       {/* WHAT YOU'LL BUILD */}
       <section className="ov-build">
@@ -706,12 +550,12 @@ const Home = () => {
 
           <div className="ov-scholarship-box">
             <div>
-              <h3>{scholarshipPercent}</h3>
+              <h3>Up to 96%</h3>
               <p>Scholarship support available for selected applicants</p>
             </div>
 
             <div>
-              <h3>5</h3>
+              <h3>{courses.length}</h3>
               <p>Career-focused learning paths to choose from</p>
             </div>
 
