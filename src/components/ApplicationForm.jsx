@@ -4,7 +4,9 @@ import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import emailjs from "@emailjs/browser";
 import { db } from "../src/firebase";
 import courses, { findCourse } from "../data/courses";
-import { getCoursePricing } from "../data/pricing";
+import { applicationPricingFields } from "../data/pricing";
+import usePricing from "../hooks/usePricing";
+import PricingStatus from "./PricingStatus";
 import { COHORT } from "../data/cohort";
 import { AGE_RANGES, REFERRALS, emptyRegistration, validateRegistration } from "../data/registration";
 import { paymentRequest, goToCheckout } from "../services/payments";
@@ -21,7 +23,7 @@ export default function ApplicationForm({ type = "scholarship" }) {
   const [accepted, setAccepted] = useState(false);
   const [applicationId] = useState(() => doc(collection(db, "scholarshipApplications")).id);
   const course = findCourse(form.courseId);
-  const fees = getCoursePricing(form.courseId);
+  const fees = usePricing(form.courseId);
   const change = (event) => {
     const { name, value } = event.target;
     setError("");
@@ -37,10 +39,11 @@ export default function ApplicationForm({ type = "scholarship" }) {
     setError("");
     try {
       const clean = validateRegistration(form, type);
+      if (!fees) throw new Error("Please wait for your local fees to load, or retry the fee lookup.");
       if (!accepted) throw new Error("Please confirm the fee and learning format before continuing.");
       setBusy(true);
       if (!scholarship) {
-        const result = await paymentRequest("initialize", { type: "tuition", details: clean });
+        const result = await paymentRequest("initialize", { type: "tuition", details: clean, countryCode: fees.countryCode });
         goToCheckout(result.authorizationUrl);
         return;
       }
@@ -48,10 +51,7 @@ export default function ApplicationForm({ type = "scholarship" }) {
         ...clean, track: course.title, learningMethod: course.scholarshipMethod,
         applicationType: "scholarship", cohortId: COHORT.id, cohortStartDate: COHORT.startDate,
         durationWeeks: course.durationWeeks,
-        detectedCountry: "Nigeria", detectedCountryCode: "NG", currency: "NGN",
-        tuition: fees.tuition, tuitionAmount: course.tuitionAmount,
-        scholarshipFee: fees.scholarship, scholarshipFeeAmount: course.scholarshipAmount,
-        scholarshipPercent: fees.scholarshipPercent, studentPaysPercent: fees.studentPaysPercent,
+        ...applicationPricingFields(fees),
         scholarshipPaymentLink: `${COHORT.website}/scholarship-payment?application=${applicationId}`,
         fullTuitionPaymentLink: `${COHORT.website}/register?course=${course.id}`,
         status: "Pending", createdAt: serverTimestamp(),
@@ -89,8 +89,8 @@ export default function ApplicationForm({ type = "scholarship" }) {
         <h2>2. Your details</h2><div className="academy-form-grid">
           <label>Full name<input name="fullName" value={form.fullName} onChange={change} required maxLength={120} autoComplete="name" /></label>
           <label>Email address<input name="email" type="email" value={form.email} onChange={change} required maxLength={254} autoComplete="email" /></label>
-          <label>WhatsApp number<input name="whatsapp" type="tel" value={form.whatsapp} onChange={change} required maxLength={25} autoComplete="tel" placeholder="e.g. +234 801 234 5678" /></label>
-          <label>City and country<input name="location" value={form.location} onChange={change} required maxLength={180} placeholder="e.g. Lagos, Nigeria" /></label>
+          <label>WhatsApp number<input name="whatsapp" type="tel" value={form.whatsapp} onChange={change} required maxLength={25} autoComplete="tel" placeholder="Include your country code" /></label>
+          <label>City and country<input name="location" value={form.location} onChange={change} required maxLength={180} placeholder="Your city and country" /></label>
           <label>Age range<select name="ageRange" value={form.ageRange} onChange={change} required><option value="">Select your age range</option>{AGE_RANGES.map((item) => <option key={item}>{item}</option>)}</select></label>
           <label>How did you hear about us?<select name="referral" value={form.referral} onChange={change} required><option value="">Select an option</option>{REFERRALS.map((item) => <option key={item}>{item}</option>)}</select></label>
         </div>
@@ -98,12 +98,12 @@ export default function ApplicationForm({ type = "scholarship" }) {
         <label>{scholarship ? "Why are you applying for a scholarship?" : "What would you like to achieve? (optional)"}<textarea name="reason" value={form.reason} onChange={change} required={scholarship} minLength={scholarship ? 10 : undefined} maxLength={2000} rows={4} /></label>
         {fees && <label className="academy-consent"><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} required /><span>{scholarship ? `I understand that, if approved, I will pay ${fees.scholarship} (${fees.studentPaysPercent} of the ${fees.tuition} tuition) and study through ${course.scholarshipMethod.toLowerCase()}.` : `I confirm my course and learning format, and understand that full tuition is ${fees.tuition}. I will return after payment to complete registration.`}</span></label>}
         {error && <p className="academy-error" role="alert">{error}</p>}
-        <button className="academy-button" type="submit" disabled={busy || !course}>{busy ? "Please wait…" : scholarship ? "Submit Scholarship Application" : `Continue to Paystack${fees ? ` · ${fees.tuition}` : ""}`}</button>
+        <button className="academy-button" type="submit" disabled={busy || !course || !fees}>{busy ? "Please wait…" : scholarship ? "Submit Scholarship Application" : `Continue to Paystack${fees ? ` · ${fees.tuition}` : ""}`}</button>
         {!scholarship && <p className="academy-form-help">This saves a payment draft. Your registration is submitted only after Paystack confirms the correct payment and you complete the final step. Already paid? Open your Paystack return link in the same browser or <a target="_blank" rel="noopener noreferrer" href="/contact">contact admissions</a> with your reference before paying again.</p>}
       </form>
       <aside className="academy-registration-summary"><span className="academy-eyebrow">Your learning plan</span><h2>{course?.title || "Your next chapter"}</h2>
-        {course ? <><img src={course.image} alt={course.alt} width="1536" height="1024" /><dl><div><dt>Starts</dt><dd>{COHORT.startDateLabel}</dd></div><div><dt>Duration</dt><dd>{course.duration}</dd></div><div><dt>Full tuition</dt><dd>{fees.tuition}</dd></div>{scholarship && <><div><dt>Scholarship support</dt><dd>{fees.scholarshipPercent}</dd></div><div><dt>You pay if approved</dt><dd>{fees.scholarship} ({fees.studentPaysPercent})</dd></div></>}</dl></> : <p>Pick one of our six courses to see the exact fee, duration, and available class format.</p>}
-        <p>All fees shown are in Nigerian naira (NGN).</p><a target="_blank" rel="noopener noreferrer" href={scholarship ? `/register${course ? `?course=${course.id}` : ""}` : `/scholarship${course ? `?course=${course.id}` : ""}`}>{scholarship ? "Prefer full tuition? Register here →" : "Looking for a scholarship? Apply here →"}</a>
+        {course ? <><img src={course.image} alt={course.alt} width="1536" height="1024" /><dl><div><dt>Starts</dt><dd>{COHORT.startDateLabel}</dd></div><div><dt>Duration</dt><dd>{course.duration}</dd></div><div><dt>Full tuition</dt><dd>{fees ? fees.tuition : <PricingStatus />}</dd></div>{scholarship && fees && <><div><dt>Scholarship support</dt><dd>{fees.scholarshipPercent}</dd></div><div><dt>You pay if approved</dt><dd>{fees.scholarship} ({fees.studentPaysPercent})</dd></div></>}</dl></> : <p>Pick one of our six courses to see the exact fee, duration, and available class format.</p>}
+        <a target="_blank" rel="noopener noreferrer" href={scholarship ? `/register${course ? `?course=${course.id}` : ""}` : `/scholarship${course ? `?course=${course.id}` : ""}`}>{scholarship ? "Prefer full tuition? Register here →" : "Looking for a scholarship? Apply here →"}</a>
       </aside>
     </div>}<Footer />
   </main>;

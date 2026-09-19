@@ -51,7 +51,7 @@ test('all six fees, durations, and scholarship percentages match the cohort', ()
     ['software-development', 20, 500000, 20000], ['virtual-assistance', 8, 150000, 15000],
     ['cyber-security', 12, 400000, 20000], ['ai-automation', 12, 400000, 20000],
   ]);
-  assert.deepEqual(courses.map((c) => [getCoursePricing(c.id).scholarshipPercent, getCoursePricing(c.id).studentPaysPercent]),
+  assert.deepEqual(courses.map((c) => [getCoursePricing(c.id, 'NG').scholarshipPercent, getCoursePricing(c.id, 'NG').studentPaysPercent]),
     [['93.33%', '6.67%'], ['96%', '4%'], ['96%', '4%'], ['90%', '10%'], ['95%', '5%'], ['95%', '5%']]);
 });
 test('scholarships cannot select one-on-one classes; single-format courses do not require a selector', () => {
@@ -67,14 +67,14 @@ test('scholarships cannot select one-on-one classes; single-format courses do no
 });
 test('checkout uses trusted course prices and retains a draft before contacting Paystack', async () => {
   const f = fixture();
-  await f.service.initialize({ type: 'tuition', details, amount: 1, paymentVerified: true }, 'https://ovtechacademy.com');
+  await f.service.initialize({ type: 'tuition', details, amount: 1, paymentVerified: true }, 'https://ovtechacademy.com', 'NG');
   assert.equal(f.initialized().amount, 30000000);
   assert.equal(f.initialized().callback_url, 'https://ovtechacademy.com/registration/complete');
   assert.equal(f.orders.size, 1); assert.equal(f.applications.size, 0);
 });
 test('invalid form data never starts a payment', async () => {
   const f = fixture();
-  await assert.rejects(f.service.initialize({ type: 'tuition', details: { ...details, email: 'invalid' } }, 'https://ovtechacademy.com'), /email/);
+  await assert.rejects(f.service.initialize({ type: 'tuition', details: { ...details, email: 'invalid' } }, 'https://ovtechacademy.com', 'NG'), /email/);
   assert.equal(f.orders.size, 0); assert.equal(f.initialized(), undefined);
 });
 test('payment mismatches and unsuccessful transactions cannot submit a registration', async () => {
@@ -82,12 +82,12 @@ test('payment mismatches and unsuccessful transactions cannot submit a registrat
     { reference: `ovt_${'b'.repeat(32)}` }, { customer: { email: 'someone@example.com' } },
     { metadata: {} }, { metadata: { orderReference: reference, courseId: 'ai-automation', applicationType: 'tuition' } }, { id: null }];
   for (const mismatch of invalid) {
-    const f = fixture(); await f.service.initialize({ type: 'tuition', details }, 'https://ovtechacademy.com'); f.setPayment(mismatch);
+    const f = fixture(); await f.service.initialize({ type: 'tuition', details }, 'https://ovtechacademy.com', 'NG'); f.setPayment(mismatch);
     await assert.rejects(f.service.complete(reference)); assert.equal(f.applications.size, 0);
   }
 });
 test('verified payment creates an admin record, final submission is idempotent and re-verifies payment', async () => {
-  const f = fixture(); await f.service.initialize({ type: 'tuition', details }, 'https://ovtechacademy.com');
+  const f = fixture(); await f.service.initialize({ type: 'tuition', details }, 'https://ovtechacademy.com', 'NG');
   assert.equal((await f.service.verify(reference)).submitted, false);
   assert.equal(f.applications.size, 1);
   assert.equal(f.applications.values().next().value.registrationStatus, 'awaiting_submission');
@@ -100,10 +100,10 @@ test('scholarship payment requires matching email and approval, uses the course 
   const application = { ...details, learningMethod: RECORDED_METHOD, applicationType: 'scholarship', cohortId: 'october-2026', status: 'Pending', scholarshipFeeAmount: 1 };
   f.applications.set('application1', application);
   const input = { type: 'scholarship', applicationId: 'application1', email: details.email };
-  await assert.rejects(f.service.initialize(input, 'https://ovtechacademy.com'), /approved/);
+  await assert.rejects(f.service.initialize(input, 'https://ovtechacademy.com', 'NG'), /approved/);
   application.status = 'Approved';
-  await assert.rejects(f.service.initialize({ ...input, email: 'wrong@example.com' }, 'https://ovtechacademy.com'), /match/);
-  await f.service.initialize(input, 'https://ovtechacademy.com'); assert.equal(f.initialized().amount, 2000000);
+  await assert.rejects(f.service.initialize({ ...input, email: 'wrong@example.com' }, 'https://ovtechacademy.com', 'NG'), /match/);
+  await f.service.initialize(input, 'https://ovtechacademy.com', 'NG'); assert.equal(f.initialized().amount, 2000000);
 });
 
 const env = { PAYSTACK_SECRET_KEY: 'sk_test_mock_only', ENROLLMENT_SITE_URL: 'https://ovtechacademy.com' };
@@ -112,7 +112,7 @@ const request = (body, headers = {}) => new Request('https://ovtechacademy.com/a
 });
 test('HTTP handler is fail-closed without setup and rejects cross-site requests', async () => {
   assert.equal((await handlePaymentRequest(request({ action: 'initialize' }), {})).status, 503);
-  assert.equal((await handlePaymentRequest(request({ action: 'initialize' }, { origin: 'https://attacker.example' }), env, fixture().service)).status, 403);
+  assert.equal((await handlePaymentRequest(request({ action: 'initialize' }, { origin: 'https://attacker.example' }), env, fixture().service, 'NG')).status, 403);
 });
 test('a payment reference alone cannot reveal details or finalize another registration', async () => {
   let called = false; const service = { verify: async () => { called = true; return {}; } };
@@ -122,7 +122,7 @@ test('a payment reference alone cannot reveal details or finalize another regist
   assert.equal(response.status, 200); assert.equal(called, true);
 });
 test('checkout sets an HttpOnly secure session cookie scoped to the payment API', async () => {
-  const response = await handlePaymentRequest(request({ action: 'initialize', type: 'tuition', details }), env, fixture().service);
+  const response = await handlePaymentRequest(request({ action: 'initialize', type: 'tuition', details }), env, fixture().service, 'NG');
   assert.equal(response.status, 200); assert.match(response.headers.get('set-cookie'), /HttpOnly; SameSite=Lax;.*Secure/);
   assert.match(response.headers.get('set-cookie'), /Path=\/api\/payments/);
 });
@@ -138,4 +138,30 @@ test('the transaction must bind to the same course, order, and application type'
   const order = { reference, amount: 300000, details, courseId: 'data-analytics', type: 'tuition' };
   assert.doesNotThrow(() => assertSuccessfulPayment(payment(order), order));
   assert.throws(() => assertSuccessfulPayment(payment(order, { metadata: { orderReference: reference, courseId: 'data-analytics', applicationType: 'scholarship' } }), order), /match/);
+});
+
+
+test('foreign and unknown locations never silently initialize a Nigerian tuition charge', async () => {
+  for (const countryCode of ['GB', 'GH', 'ZA', 'US', null]) {
+    const f = fixture();
+    await assert.rejects(f.service.initialize({type: 'tuition', details}, 'https://ovtechacademy.com', countryCode), /admissions|local fees/);
+    assert.equal(f.orders.size, 0);
+    assert.equal(f.initialized(), undefined);
+  }
+});
+test('server geolocation cannot be overridden by a browser price or country', async () => {
+  const f = fixture();
+  const response = await handlePaymentRequest(request({action: 'initialize', type: 'tuition', details, countryCode: 'NG', amount: 1, currency: 'NGN'}), env, f.service, 'GB');
+  assert.equal(response.status, 409);
+  assert.match((await response.json()).error, /location has changed/);
+  assert.equal(f.initialized(), undefined);
+});
+test('an approved foreign scholarship keeps its saved currency and never becomes a Nigerian charge', async () => {
+  for (const [countryCode, currency, fee] of [['GB', 'GBP', '£20'], ['GH', 'USD', 'US$25'], ['US', 'USD', 'US$30']]) {
+    const f = fixture();
+    f.applications.set('international', {...details, applicationType: 'scholarship', cohortId: 'october-2026', status: 'Approved', detectedCountryCode: countryCode, currency});
+    await assert.rejects(f.service.initialize({type: 'scholarship', applicationId: 'international', email: details.email}, 'https://ovtechacademy.com', 'NG'), (error) => error.message.includes(fee));
+    assert.equal(f.initialized(), undefined);
+    assert.equal(f.orders.size, 0);
+  }
 });

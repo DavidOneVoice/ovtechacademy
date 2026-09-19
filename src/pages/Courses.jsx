@@ -16,7 +16,7 @@ export default function Courses() {
       <p>Six practical learning paths. Clear course fees, hands-on projects, and a next step you can take with confidence.</p>
       <div className="ov-courses-hero-actions"><a target="_blank" rel="noopener noreferrer" href="#all-courses">Explore Courses</a><a target="_blank" rel="noopener noreferrer" href="/scholarship" className="secondary">Apply for Scholarship</a></div>
     </div></section>
-    <section className="ov-courses-intro" id="all-courses"><div className="ov-courses-section-head"><span>All six courses</span><h2>Choose what you want to build next.</h2><p>Fees are shown in Nigerian naira. Scholarship fees and class formats depend on your chosen course.</p></div>
+    <section className="ov-courses-intro" id="all-courses"><div className="ov-courses-section-head"><span>All six courses</span><h2>Choose what you want to build next.</h2><p>Scholarship fees and class formats depend on your chosen course.</p></div>
       <div className="ov-courses-grid">{courses.map((course) => <CourseCard key={course.id} course={course} onOutline={setSelectedCourse} />)}</div>
     </section>
     {selectedCourse && <CourseOutline course={selectedCourse} onClose={() => setSelectedCourse(null)} />}

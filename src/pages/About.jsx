@@ -2,8 +2,12 @@ import "./About.css";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import courses from "../data/courses";
+import { getCoursePricing } from "../data/pricing";
+import { useVisitorCountry } from "../hooks/usePricing";
 
 const About = () => {
+  const { countryCode } = useVisitorCountry();
+  const support = countryCode ? Math.max(...courses.map((course) => Number.parseFloat(getCoursePricing(course.id, countryCode).scholarshipPercent))) : null;
   return (
     <main className="about-page">
       <Navbar />
@@ -123,7 +127,7 @@ const About = () => {
         </div>
 
         <div>
-          <h3>Up to 96%</h3>
+          <h3>{support ? `Up to ${support}%` : "Scholarships"}</h3>
           <p>Scholarship Support</p>
         </div>
       </section>

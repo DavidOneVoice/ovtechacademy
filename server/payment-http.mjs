@@ -42,7 +42,7 @@ function dependencies(env) {
     verify: (reference) => call(`/transaction/verify/${encodeURIComponent(reference)}`),
   } });
 }
-export async function handlePaymentRequest(request, env = process.env, injectedService) {
+export async function handlePaymentRequest(request, env = process.env, injectedService, visitorCountryCode) {
   try {
     if (request.method !== 'POST') return json({ error: 'Use POST.' }, 405, { Allow: 'POST' });
     const origin = new URL(request.url).origin;
@@ -53,7 +53,7 @@ export async function handlePaymentRequest(request, env = process.env, injectedS
     const body = JSON.parse(await readBody(request));
     const service = injectedService || dependencies(env);
     if (body.action === 'initialize') {
-      const result = await service.initialize(body, origin);
+      const result = await service.initialize(body, origin, visitorCountryCode);
       return json(result, 200, { 'Set-Cookie': `ovtech_${result.reference}=${sessionToken(result.reference, env.PAYSTACK_SECRET_KEY)}; Path=/api/payments; HttpOnly; SameSite=Lax; Max-Age=604800${origin.startsWith('https:') ? '; Secure' : ''}` });
     }
     if (!['verify', 'complete'].includes(body.action)) throw new PaymentError('Unknown payment action.');

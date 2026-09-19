@@ -13,7 +13,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import emailjs from "@emailjs/browser";
-import { pricing } from "../data/pricing";
+import { pricing, formatMoney } from "../data/pricing";
 import courses from "../data/courses";
 import { CANONICAL_PROGRAMMES, normalizeProgrammeName } from "../data/programmes";
 import { clearStoredAdminRole } from "../auth/adminRoles";
@@ -81,7 +81,7 @@ const getApplicationCSVRows = (apps) => {
     "Reason",
     "Status",
     "Payment Status",
-    "Application Type", "Registration Status", "Cohort", "Verified by Paystack", "Payment Reference", "Payment Amount (NGN)",
+    "Application Type", "Registration Status", "Cohort", "Verified by Paystack", "Payment Reference", "Payment Amount", "Payment Currency",
     "Date Applied",
   ];
 
@@ -98,7 +98,7 @@ const getApplicationCSVRows = (apps) => {
     app.reason,
     app.status,
     app.paymentStatus,
-    app.applicationType || "scholarship", app.registrationStatus || "submitted", app.cohortId, app.paymentVerified ? "Yes" : "No", app.paymentReference, app.paymentAmount,
+    app.applicationType || "scholarship", app.registrationStatus || "submitted", app.cohortId, app.paymentVerified ? "Yes" : "No", app.paymentReference, app.paymentAmount, app.paymentCurrency || (app.paymentVerified ? "NGN" : ""),
     getDateApplied(app),
   ]);
 
@@ -830,7 +830,7 @@ const Admin = () => {
                     <strong>{app.fullName}</strong>
                     <small>{app.email}</small>
                   </td>
-                  <td data-label="Type / Payment">{app.applicationType === "tuition" ? "Full tuition" : "Scholarship"}<small>{app.paymentVerified ? `Paystack verified · ${formatCurrency(app.paymentAmount)}` : "No Paystack verification"}</small>{app.registrationStatus === "awaiting_submission" && <small>Awaiting learner’s final submission</small>}</td>
+                  <td data-label="Type / Payment">{app.applicationType === "tuition" ? "Full tuition" : "Scholarship"}<small>{app.paymentVerified ? `Paystack verified · ${formatMoney(app.paymentAmount, app.paymentCurrency || "NGN")}` : "No Paystack verification"}</small>{app.registrationStatus === "awaiting_submission" && <small>Awaiting learner’s final submission</small>}</td>
                   <td data-label="WhatsApp">{app.whatsapp}</td>
                   <td data-label="Track">{normalizeProgrammeName(app.track)}</td>
                   <td data-label="Learning Method">
@@ -1003,7 +1003,7 @@ const Admin = () => {
             <div className="admin-details-grid">
               <div><strong>Application Type</strong><span>{selectedApplication.applicationType === "tuition" ? "Full Tuition" : "Scholarship"}</span></div>
               <div><strong>Cohort / Registration</strong><span>{selectedApplication.cohortId || "Previous cohort"} · {selectedApplication.registrationStatus || "submitted"}</span></div>
-              <div><strong>Payment Verification</strong><span>{selectedApplication.paymentVerified ? `Verified by Paystack: ${formatCurrency(selectedApplication.paymentAmount)}` : "No automatic verification recorded"}</span></div>
+              <div><strong>Payment Verification</strong><span>{selectedApplication.paymentVerified ? `Verified by Paystack: ${formatMoney(selectedApplication.paymentAmount, selectedApplication.paymentCurrency || "NGN")}` : "No automatic verification recorded"}</span></div>
               <div><strong>Payment Reference</strong><span>{selectedApplication.paymentReference || "—"}</span></div>
               <div><strong>Full Tuition / Scholarship Fee</strong><span>{selectedApplication.tuition || "—"} / {selectedApplication.scholarshipFee || "—"}</span></div>
               <div>

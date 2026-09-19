@@ -3,4 +3,5 @@ https://ovtechacademy.netlify.app/* https://ovtechacademy.com/:splat 301!
 /student-lms /lms 301
 /api/payments /.netlify/functions/payments 200
 /api/paystack-webhook /.netlify/functions/paystack-webhook 200
+/api/visitor-country /.netlify/functions/visitor-country 200
 /* /index.html 200

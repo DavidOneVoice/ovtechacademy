@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { paymentRequest } from "../services/payments";
-import { formatNaira } from "../data/pricing";
+import { formatMoney } from "../data/pricing";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 export default function PaymentReturn() {
@@ -28,7 +28,7 @@ export default function PaymentReturn() {
     {busy && <p role="status">{result?.verified ? "Saving your registration…" : "Checking with Paystack…"}</p>}
     {error && <div className="academy-error" role="alert"><p>{error}</p><p>If you have already paid, please do not pay again. Keep the reference below and contact admissions if the problem continues.</p></div>}
     {reference && <p className="academy-reference">Payment reference: <strong>{reference}</strong></p>}
-    {result?.verified && <><div className="academy-payment-receipt"><h2>{result.courseTitle}</h2><p>{result.fullName}</p><p>Payment confirmed: <strong>{formatNaira(result.amount)}</strong></p><p>{result.learningMethod}</p></div>
+    {result?.verified && <><div className="academy-payment-receipt"><h2>{result.courseTitle}</h2><p>{result.fullName}</p><p>Payment confirmed: <strong>{formatMoney(result.amount, result.currency || "NGN")}</strong></p><p>{result.learningMethod}</p></div>
       {result.submitted ? <><p>Your registration has been saved and is visible to our admissions team. They will contact you with onboarding details.</p><a target="_blank" rel="noopener noreferrer" className="academy-button" href="/">Back to Home</a></> : <><p>Your payment is confirmed directly with Paystack. No receipt screenshot is needed. Select the button below to submit your registration.</p><button className="academy-button" disabled={busy} onClick={complete}>Complete Registration</button></>}
     </>}
     {!result?.verified && !busy && <button className="academy-button" onClick={() => { setBusy(true); setError(""); setRetry((value) => value + 1); }}>Check Payment Again</button>}

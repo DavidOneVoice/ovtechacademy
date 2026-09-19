@@ -42,7 +42,7 @@ export function firebasePaymentStore(serviceAccount) {
         if (existing?.paymentVerified && existing.paymentReference !== order.reference) throw new PaymentError('This application already has a verified payment.', 409);
         const paymentFields = {
           paymentVerified: true, paymentStatus: 'Paid', paymentReference: order.reference,
-          paymentAmount: order.amount, paymentCurrency: 'NGN',
+          paymentAmount: order.amount, paymentCurrency: order.currency || 'NGN',
           paymentProvider: 'paystack', paymentTransactionId: String(payment.id), paymentVerifiedAt: now(),
         };
         tx.set(receiptRef, { reference: order.reference, verifiedAt: now() });

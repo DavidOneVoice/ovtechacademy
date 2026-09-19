@@ -7,6 +7,8 @@ import courses from "../data/courses";
 import CourseCard from "../components/CourseCard";
 import CourseOutline from "../components/CourseOutline";
 import { COHORT } from "../data/cohort";
+import { getCoursePricing } from "../data/pricing";
+import { useVisitorCountry } from "../hooks/usePricing";
 import "./Home.css";
 
 const featuredCourses = courses
@@ -15,6 +17,8 @@ const featuredCourses = courses
   .slice(0, 3);
 
 const Home = () => {
+  const { countryCode } = useVisitorCountry();
+  const support = countryCode ? Math.max(...courses.map((course) => Number.parseFloat(getCoursePricing(course.id, countryCode).scholarshipPercent))) : null;
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
@@ -324,7 +328,7 @@ const Home = () => {
           </div>
 
           <div>
-            <h3>Up to 96%</h3>
+            <h3>{support ? `Up to ${support}%` : "Scholarships"}</h3>
             <p>Scholarship Support Available</p>
           </div>
 
@@ -364,7 +368,7 @@ const Home = () => {
             },
             {
               q: "Do you offer scholarships?",
-              a: "Yes. Selected applicants pay ₦20,000 for Data Analytics, Cybersecurity, Web Development, Software Development, or AI Automation, and ₦15,000 for Virtual Assistant. This represents 90%–96% scholarship support, depending on the course.",
+              a: "Yes. Each course shows its full tuition, scholarship fee, and scholarship support percentage. Selected applicants pay only the scholarship fee shown for their course after approval.",
             },
             {
               q: "Are classes live or self-paced?",
@@ -550,7 +554,7 @@ const Home = () => {
 
           <div className="ov-scholarship-box">
             <div>
-              <h3>Up to 96%</h3>
+              <h3>{support ? `Up to ${support}%` : "Scholarships"}</h3>
               <p>Scholarship support available for selected applicants</p>
             </div>
 
