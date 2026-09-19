@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import emailjs from "@emailjs/browser";
@@ -7,6 +7,7 @@ import courses, { findCourse } from "../data/courses";
 import { applicationPricingFields } from "../data/pricing";
 import usePricing from "../hooks/usePricing";
 import PricingStatus from "./PricingStatus";
+import ScholarshipConfirmationDialog from "./ScholarshipConfirmationDialog";
 import { COHORT } from "../data/cohort";
 import { AGE_RANGES, REFERRALS, emptyRegistration, validateRegistration } from "../data/registration";
 import { paymentRequest, goToCheckout } from "../services/payments";
@@ -21,6 +22,8 @@ export default function ApplicationForm({ type = "scholarship" }) {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const [pendingApplication, setPendingApplication] = useState(null);
+  const submitting = useRef(false);
   const [applicationId] = useState(() => doc(collection(db, "scholarshipApplications")).id);
   const course = findCourse(form.courseId);
   const fees = usePricing(form.courseId);
@@ -35,18 +38,36 @@ export default function ApplicationForm({ type = "scholarship" }) {
   };
   const submit = async (event) => {
     event.preventDefault();
-    if (busy) return;
+    if (submitting.current || done || pendingApplication) return;
     setError("");
     try {
       const clean = validateRegistration(form, type);
       if (!fees) throw new Error("Please wait for your local fees to load, or retry the fee lookup.");
-      if (!accepted) throw new Error("Please confirm the fee and learning format before continuing.");
-      setBusy(true);
-      if (!scholarship) {
-        const result = await paymentRequest("initialize", { type: "tuition", details: clean, countryCode: fees.countryCode });
-        goToCheckout(result.authorizationUrl);
+      if (scholarship) {
+        setPendingApplication({ details: clean, course, fees });
         return;
       }
+      if (!accepted) throw new Error("Please confirm the fee and learning format before continuing.");
+      submitting.current = true;
+      setBusy(true);
+      const result = await paymentRequest("initialize", { type: "tuition", details: clean, countryCode: fees.countryCode });
+      goToCheckout(result.authorizationUrl);
+    } catch (issue) { setError(issue.message || "We couldn’t continue. Please try again."); }
+    finally { submitting.current = false; setBusy(false); }
+  };
+  const cancelApplication = () => {
+    if (submitting.current) return;
+    setPendingApplication(null);
+    setError("");
+  };
+  const confirmScholarship = async () => {
+    if (!pendingApplication || submitting.current || done) return;
+    // Save the same validated details and regional fee that the learner confirmed.
+    const { details: clean, course, fees } = pendingApplication;
+    submitting.current = true;
+    setBusy(true);
+    setError("");
+    try {
       const application = {
         ...clean, track: course.title, learningMethod: course.scholarshipMethod,
         applicationType: "scholarship", cohortId: COHORT.id, cohortStartDate: COHORT.startDate,
@@ -57,6 +78,7 @@ export default function ApplicationForm({ type = "scholarship" }) {
         status: "Pending", createdAt: serverTimestamp(),
       };
       await setDoc(doc(db, "scholarshipApplications", applicationId), application);
+      setPendingApplication(null);
       setDone(true);
       if (import.meta.env.VITE_EMAILJS_SERVICE_ID && import.meta.env.VITE_EMAILJS_TEMPLATE_ID && import.meta.env.VITE_EMAILJS_PUBLIC_KEY) {
         try { await emailjs.send(import.meta.env.VITE_EMAILJS_SERVICE_ID, import.meta.env.VITE_EMAILJS_TEMPLATE_ID, {
@@ -69,7 +91,7 @@ export default function ApplicationForm({ type = "scholarship" }) {
         catch { /* Submission already succeeded; never ask the learner to submit twice. */ }
       }
     } catch (issue) { setError(issue.message || "We couldn’t save your application. Please try again."); }
-    finally { setBusy(false); }
+    finally { submitting.current = false; setBusy(false); }
   };
   return <main className="academy-registration"><Navbar />
     <header className="academy-registration-heading"><span className="academy-eyebrow">{COHORT.label} cohort · {COHORT.startDateLabel}</span>
@@ -96,8 +118,8 @@ export default function ApplicationForm({ type = "scholarship" }) {
         </div>
         <label>Referral code <span className="academy-optional">(optional)</span><input name="referralCode" value={form.referralCode} onChange={change} maxLength={80} /></label>
         <label>{scholarship ? "Why are you applying for a scholarship?" : "What would you like to achieve? (optional)"}<textarea name="reason" value={form.reason} onChange={change} required={scholarship} minLength={scholarship ? 10 : undefined} maxLength={2000} rows={4} /></label>
-        {fees && <label className="academy-consent"><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} required /><span>{scholarship ? `I understand that, if approved, I will pay ${fees.scholarship} (${fees.studentPaysPercent} of the ${fees.tuition} tuition) and study through ${course.scholarshipMethod.toLowerCase()}.` : `I confirm my course and learning format, and understand that full tuition is ${fees.tuition}. I will return after payment to complete registration.`}</span></label>}
-        {error && <p className="academy-error" role="alert">{error}</p>}
+        {!scholarship && fees && <label className="academy-consent"><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} required /><span>{`I confirm my course and learning format, and understand that full tuition is ${fees.tuition}. I will return after payment to complete registration.`}</span></label>}
+        {error && !pendingApplication && <p className="academy-error" role="alert">{error}</p>}
         <button className="academy-button" type="submit" disabled={busy || !course || !fees}>{busy ? "Please wait…" : scholarship ? "Submit Scholarship Application" : `Continue to Paystack${fees ? ` · ${fees.tuition}` : ""}`}</button>
         {!scholarship && <p className="academy-form-help">This saves a payment draft. Your registration is submitted only after Paystack confirms the correct payment and you complete the final step. Already paid? Open your Paystack return link in the same browser or <a target="_blank" rel="noopener noreferrer" href="/contact">contact admissions</a> with your reference before paying again.</p>}
       </form>
@@ -105,6 +127,8 @@ export default function ApplicationForm({ type = "scholarship" }) {
         {course ? <><img src={course.image} alt={course.alt} width="1536" height="1024" /><dl><div><dt>Starts</dt><dd>{COHORT.startDateLabel}</dd></div><div><dt>Duration</dt><dd>{course.duration}</dd></div><div><dt>Full tuition</dt><dd>{fees ? fees.tuition : <PricingStatus />}</dd></div>{scholarship && fees && <><div><dt>Scholarship support</dt><dd>{fees.scholarshipPercent}</dd></div><div><dt>You pay if approved</dt><dd>{fees.scholarship} ({fees.studentPaysPercent})</dd></div></>}</dl></> : <p>Pick one of our six courses to see the exact fee, duration, and available class format.</p>}
         <a target="_blank" rel="noopener noreferrer" href={scholarship ? `/register${course ? `?course=${course.id}` : ""}` : `/scholarship${course ? `?course=${course.id}` : ""}`}>{scholarship ? "Prefer full tuition? Register here →" : "Looking for a scholarship? Apply here →"}</a>
       </aside>
-    </div>}<Footer />
+    </div>}
+    {pendingApplication && <ScholarshipConfirmationDialog course={pendingApplication.course} fees={pendingApplication.fees} busy={busy} error={error} onConfirm={confirmScholarship} onCancel={cancelApplication} />}
+    <Footer />
   </main>;
 }

@@ -67,6 +67,12 @@
 .academy-tags span { padding: 7px 10px; border-radius: 5px; background: #f0f3f6; font-size: .8rem; }
 .academy-dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
 .academy-course-dialog .academy-mode-note { margin-top: 20px; }
+.academy-scholarship-confirmation { width: min(620px, calc(100% - 28px)); }
+.academy-scholarship-confirmation h2 { font-size: clamp(1.5rem, 4vw, 2rem); }
+.academy-scholarship-commitment-fee { display: grid; gap: 6px; margin: 22px 0; padding: 20px; background: #fff8e8; border: 1px solid #edddaf; border-radius: 8px; font-size: .85rem; }
+.academy-scholarship-commitment-fee strong { font-size: 2rem; letter-spacing: -.035em; }
+.academy-scholarship-confirmation .academy-scholarship-question { color: #12233f; font-weight: 650; }
+.academy-scholarship-confirmation .academy-error { color: #8a2e18; }
 .academy-registration { background: #f7f8fa; min-height: 100vh; }
 .academy-registration-heading { max-width: 860px; padding: 64px 24px 36px; margin: auto; text-align: center; }
 .academy-registration-heading h1 { font-size: clamp(2rem, 4.5vw, 3.3rem); line-height: 1.15; letter-spacing: -.045em; margin: 14px 0 18px; }
