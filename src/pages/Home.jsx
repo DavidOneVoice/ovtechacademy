@@ -18,11 +18,18 @@ const featuredCourses = courses
 
 const Home = () => {
   const { countryCode } = useVisitorCountry();
-  const support = countryCode ? Math.max(...courses.map((course) => Number.parseFloat(getCoursePricing(course.id, countryCode).scholarshipPercent))) : null;
+  const support = countryCode
+    ? Math.max(
+        ...courses.map((course) =>
+          Number.parseFloat(
+            getCoursePricing(course.id, countryCode).scholarshipPercent,
+          ),
+        ),
+      )
+    : null;
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
-
 
   useEffect(() => {
     const handleScroll = () => {
@@ -58,15 +65,27 @@ const Home = () => {
             </h1>
 
             <p>
-              Explore Data Analytics, Software Development, Web Development, Cybersecurity, Virtual Assistant, and AI Automation. Learn practical skills and turn them into projects you can show.
+              Explore Data Analytics, Software Development, Web Development,
+              Cybersecurity, Virtual Assistant, and AI Automation. Learn
+              practical skills and turn them into projects you can show.
             </p>
 
             <div className="ov-hero-actions">
-              <a target="_blank" rel="noopener noreferrer" href="/scholarship" className="ov-primary-btn">
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href="/scholarship"
+                className="ov-primary-btn"
+              >
                 Apply for Scholarship
               </a>
 
-              <a target="_blank" rel="noopener noreferrer" href="#paths" className="ov-secondary-btn">
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href="/courses"
+                className="ov-secondary-btn"
+              >
                 Explore Learning Paths
               </a>
             </div>
@@ -83,11 +102,15 @@ const Home = () => {
               <img
                 src="/images/hero.webp"
                 alt="A learner and mentor working together on a practical technology project"
-                width="1536" height="1024" fetchPriority="high"
+                width="1536"
+                height="1024"
+                fetchPriority="high"
                 className="ov-main-hero-image"
               />
 
-              <div className="ov-hero-caption">Six learning paths. One place to begin.</div>
+              <div className="ov-hero-caption">
+                Six learning paths. One place to begin.
+              </div>
             </div>
           </div>
         </div>
@@ -158,11 +181,22 @@ const Home = () => {
         </div>
 
         <div className="ov-paths-grid">
-          {featuredCourses.map((course) => <CourseCard key={course.id} course={course} onOutline={setSelectedCourse} />)}
+          {featuredCourses.map((course) => (
+            <CourseCard
+              key={course.id}
+              course={course}
+              onOutline={setSelectedCourse}
+            />
+          ))}
         </div>
 
         <div className="ov-view-all-wrap">
-          <a target="_blank" rel="noopener noreferrer" href="/courses" className="ov-view-all-btn">
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="/courses"
+            className="ov-view-all-btn"
+          >
             View All Courses
           </a>
         </div>
@@ -170,7 +204,9 @@ const Home = () => {
 
       <section className="ov-cohort-banner">
         <div className="ov-cohort-content">
-          <span>{COHORT.label} Cohort · Starts {COHORT.startDateLabel}</span>
+          <span>
+            {COHORT.label} Cohort · Starts {COHORT.startDateLabel}
+          </span>
 
           <h2>
             Your next chapter
@@ -179,15 +215,24 @@ const Home = () => {
           </h2>
 
           <p>
-            Applications are open for all six learning paths. Choose your course, explore scholarship support, and start building practical skills with us.
+            Applications are open for all six learning paths. Choose your
+            course, explore scholarship support, and start building practical
+            skills with us.
           </p>
 
           <div className="ov-cohort-actions">
-            <a target="_blank" rel="noopener noreferrer" href="/scholarship" className="ov-primary-btn">
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href="/scholarship"
+              className="ov-primary-btn"
+            >
               Apply For Scholarship
             </a>
 
-            <a target="_blank" rel="noopener noreferrer"
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
               href="/register"
               className="ov-secondary-btn"
             >
@@ -197,7 +242,20 @@ const Home = () => {
         </div>
 
         <div className="ov-cohort-image">
-          <a href="/images/october-cohort.webp" target="_blank" rel="noreferrer noopener" aria-label="Open the October cohort poster"><img src="/images/october-cohort.webp" alt="OVTech Academy October 2026 cohort. Starts October 5, 2026. Six courses and limited scholarships. Apply at ovtechacademy.com." loading="lazy" width="1024" height="1536" /></a>
+          <a
+            href="/images/october-cohort.webp"
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label="Open the October cohort poster"
+          >
+            <img
+              src="/images/october-cohort.webp"
+              alt="OVTech Academy October 2026 cohort. Starts October 5, 2026. Six courses and limited scholarships. Apply at ovtechacademy.com."
+              loading="lazy"
+              width="1024"
+              height="1536"
+            />
+          </a>
         </div>
       </section>
 
@@ -411,7 +469,12 @@ const Home = () => {
         </div>
       </section>
 
-      {selectedCourse && <CourseOutline course={selectedCourse} onClose={() => setSelectedCourse(null)} />}
+      {selectedCourse && (
+        <CourseOutline
+          course={selectedCourse}
+          onClose={() => setSelectedCourse(null)}
+        />
+      )}
 
       {/* WHAT YOU'LL BUILD */}
       <section className="ov-build">
@@ -569,7 +632,12 @@ const Home = () => {
             </div>
           </div>
 
-          <a target="_blank" rel="noopener noreferrer" href="/scholarship" className="ov-scholarship-btn">
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="/scholarship"
+            className="ov-scholarship-btn"
+          >
             Apply for Scholarship
           </a>
         </div>
