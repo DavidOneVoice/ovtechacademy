@@ -1,10 +1,15 @@
 import { getApps, initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { PaymentError } from './payment-core.mjs';
+import { applicationPricingFields } from '../src/data/pricing.js';
 
 export function firebasePaymentStore(serviceAccount) {
   const app = getApps().find((item) => item.name === 'enrollment-payments') || initializeApp({ credential: cert(serviceAccount) }, 'enrollment-payments');
   const db = getFirestore(app);
+  return createFirestorePaymentStore(db);
+}
+
+export function createFirestorePaymentStore(db) {
   const orders = db.collection('paymentOrders');
   const applications = db.collection('scholarshipApplications');
   const now = () => FieldValue.serverTimestamp();
@@ -38,10 +43,14 @@ export function firebasePaymentStore(serviceAccount) {
         const receiptRef = db.collection('paymentReceipts').doc(String(payment.id));
         const receipt = (await tx.get(receiptRef)).data();
         if (receipt && receipt.reference !== order.reference) throw new PaymentError('This transaction is already linked to another registration.', 409);
-        if (latest.status === 'submitted' || latest.status === 'paid') return latest;
-        if (existing?.paymentVerified && existing.paymentReference !== order.reference) throw new PaymentError('This application already has a verified payment.', 409);
+        if (latest.status === 'submitted' || latest.status === 'paid') {
+          if (latest.transactionId !== String(payment.id)) throw new PaymentError('This registration already has a different confirmed payment.', 409);
+          return latest;
+        }
+        const paymentReference = order.checkoutMode === 'hosted' ? payment.reference : order.reference;
+        if (existing?.paymentVerified && existing.paymentReference !== paymentReference) throw new PaymentError('This application already has a verified payment.', 409);
         const paymentFields = {
-          paymentVerified: true, paymentStatus: 'Paid', paymentReference: order.reference,
+          paymentVerified: true, paymentStatus: 'Paid', paymentReference,
           paymentAmount: order.amount, paymentCurrency: order.currency || 'NGN',
           paymentProvider: 'paystack', paymentTransactionId: String(payment.id), paymentVerifiedAt: now(),
         };
@@ -52,10 +61,10 @@ export function firebasePaymentStore(serviceAccount) {
         });
         else {
           if (!existing) throw new PaymentError('Application no longer exists. Contact admissions with your payment reference.', 409);
-          tx.update(appRef, paymentFields);
+          tx.update(appRef, { ...(order.quotedFees ? applicationPricingFields(order.quotedFees) : {}), ...paymentFields });
         }
-        tx.update(ref, { status: 'paid', transactionId: String(payment.id), verifiedAt: now() });
-        return { ...latest, status: 'paid' };
+        tx.update(ref, { status: 'paid', transactionId: String(payment.id), transactionReference: paymentReference, verifiedAt: now() });
+        return { ...latest, status: 'paid', transactionId: String(payment.id), transactionReference: paymentReference };
       });
     },
     async finalize(reference) {

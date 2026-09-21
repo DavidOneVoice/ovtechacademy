@@ -1,6 +1,8 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 import { createPaymentService, PaymentError } from './payment-core.mjs';
 import { firebasePaymentStore } from './payment-store.mjs';
+import { createHostedPaymentService } from './hosted-payments.mjs';
+import { COHORT } from '../src/data/cohort.js';
 
 const MAX_BODY = 32 * 1024;
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
@@ -37,27 +39,39 @@ function dependencies(env) {
     return result.data;
   };
   const store = firebasePaymentStore(JSON.parse(env.FIREBASE_SERVICE_ACCOUNT_JSON));
-  return createPaymentService({ store, gateway: {
+  const gateway = {
     initialize: (body) => call('/transaction/initialize', body),
     verify: (reference) => call(`/transaction/verify/${encodeURIComponent(reference)}`),
-  } });
+    page: (slug) => call(`/page/${encodeURIComponent(slug)}`),
+  };
+  return {
+    ...createPaymentService({ store, gateway }),
+    hosted: createHostedPaymentService({ store, gateway, makeReference: () => `ovt_${randomUUID().replaceAll('-', '')}` }),
+  };
 }
 export async function handlePaymentRequest(request, env = process.env, injectedService, visitorCountryCode) {
   try {
+    if (request.method === 'GET') return json({
+      flow: 'hosted-pages-v1',
+      hostedCheckoutEnabled: env.ENROLLMENT_PAYMENTS_ENABLED === 'true' && Boolean(env.PAYSTACK_SECRET_KEY && env.FIREBASE_SERVICE_ACCOUNT_JSON),
+    });
     if (request.method !== 'POST') return json({ error: 'Use POST.' }, 405, { Allow: 'POST' });
     const origin = new URL(request.url).origin;
     if (request.headers.get('origin') !== origin) throw new PaymentError('Open the payment page on this website and try again.', 403);
     if (!request.headers.get('content-type')?.startsWith('application/json')) throw new PaymentError('Send a JSON request.', 415);
-    const configuredOrigin = new URL(env.ENROLLMENT_SITE_URL || env.DEPLOY_PRIME_URL || env.URL || origin).origin;
+    const configuredOrigin = new URL(env.ENROLLMENT_SITE_URL || COHORT.website).origin;
     if (origin !== configuredOrigin) throw new PaymentError('Use the academy’s configured website to complete payment.', 403);
     const body = JSON.parse(await readBody(request));
     const service = injectedService || dependencies(env);
-    if (body.action === 'initialize') {
-      const result = await service.initialize(body, origin, visitorCountryCode);
+    if (body.action === 'initialize' || body.action === 'prepare-hosted') {
+      const result = body.action === 'initialize'
+        ? await service.initialize(body, origin, visitorCountryCode)
+        : await service.hosted.prepare(body, origin, visitorCountryCode);
       return json(result, 200, { 'Set-Cookie': `ovtech_${result.reference}=${sessionToken(result.reference, env.PAYSTACK_SECRET_KEY)}; Path=/api/payments; HttpOnly; SameSite=Lax; Max-Age=604800${origin.startsWith('https:') ? '; Secure' : ''}` });
     }
-    if (!['verify', 'complete'].includes(body.action)) throw new PaymentError('Unknown payment action.');
+    if (!['verify', 'complete', 'status-hosted', 'verify-hosted', 'complete-hosted'].includes(body.action)) throw new PaymentError('Unknown payment action.');
     if (!hasPaymentSession(request, body.reference, env.PAYSTACK_SECRET_KEY)) throw new PaymentError('Open the return link in the browser where you started payment. If that is unavailable, contact admissions with your reference; please do not pay again.', 403);
+    if (body.action.endsWith('-hosted')) return json(await service.hosted[body.action.replace('-hosted', '')](body.reference, body.paymentReference));
     return json(await service[body.action](body.reference));
   } catch (error) {
     if (error instanceof SyntaxError) return json({ error: 'Invalid request or payment configuration. Please contact admissions.' }, 400);

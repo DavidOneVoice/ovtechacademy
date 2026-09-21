@@ -1,5 +1,6 @@
 import Registration from "./pages/Registration";
 import PaymentReturn from "./pages/PaymentReturn";
+import PaymentReview from "./pages/PaymentReview";
 import ScholarshipPayment from "./pages/ScholarshipPayment";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
@@ -41,6 +42,7 @@ function App() {
         <Route path="/alumni" element={<Alumni />} />
         <Route path="/scholarship" element={<Scholarship />} />
         <Route path="/register" element={<Registration />} />
+        <Route path="/payment-review" element={<PaymentReview />} />
         <Route path="/registration/complete" element={<PaymentReturn />} />
         <Route path="/scholarship-payment" element={<ScholarshipPayment />} />
         <Route path="/courses" element={<Courses />} />

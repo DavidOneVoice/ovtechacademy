@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import emailjs from "@emailjs/browser";
 import { db } from "../src/firebase";
@@ -10,14 +10,18 @@ import PricingStatus from "./PricingStatus";
 import ScholarshipConfirmationDialog from "./ScholarshipConfirmationDialog";
 import { COHORT } from "../data/cohort";
 import { AGE_RANGES, REFERRALS, emptyRegistration, validateRegistration } from "../data/registration";
-import { paymentRequest, goToCheckout } from "../services/payments";
+import { createPaymentDraft, readPaymentDraft, forgetPaymentDraft } from "../services/paymentDrafts";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
 export default function ApplicationForm({ type = "scholarship" }) {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const scholarship = type === "scholarship";
-  const [form, setForm] = useState(() => emptyRegistration(params.get("course")));
+  const [form, setForm] = useState(() => {
+    const saved = !scholarship && readPaymentDraft(params.get("draft"));
+    return saved && !saved.checkoutOpened && !saved.submitted ? saved.details : emptyRegistration(params.get("course"));
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -50,8 +54,10 @@ export default function ApplicationForm({ type = "scholarship" }) {
       if (!accepted) throw new Error("Please confirm the fee and learning format before continuing.");
       submitting.current = true;
       setBusy(true);
-      const result = await paymentRequest("initialize", { type: "tuition", details: clean, countryCode: fees.countryCode });
-      goToCheckout(result.authorizationUrl);
+      const draft = createPaymentDraft({ type: 'tuition', details: clean, countryCode: fees.countryCode, fees });
+      const previous = readPaymentDraft(params.get('draft'));
+      if (previous && !previous.checkoutOpened && !previous.submitted) forgetPaymentDraft(previous.id);
+      navigate(`/payment-review?draft=${draft.id}`);
     } catch (issue) { setError(issue.message || "We couldn’t continue. Please try again."); }
     finally { submitting.current = false; setBusy(false); }
   };
@@ -120,8 +126,8 @@ export default function ApplicationForm({ type = "scholarship" }) {
         <label>{scholarship ? "Why are you applying for a scholarship?" : "What would you like to achieve? (optional)"}<textarea name="reason" value={form.reason} onChange={change} required={scholarship} minLength={scholarship ? 10 : undefined} maxLength={2000} rows={4} /></label>
         {!scholarship && fees && <label className="academy-consent"><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} required /><span>{`I confirm my course and learning format, and understand that full tuition is ${fees.tuition}. I will return after payment to complete registration.`}</span></label>}
         {error && !pendingApplication && <p className="academy-error" role="alert">{error}</p>}
-        <button className="academy-button" type="submit" disabled={busy || !course || !fees}>{busy ? "Please wait…" : scholarship ? "Submit Scholarship Application" : `Continue to Paystack${fees ? ` · ${fees.tuition}` : ""}`}</button>
-        {!scholarship && <p className="academy-form-help">This saves a payment draft. Your registration is submitted only after Paystack confirms the correct payment and you complete the final step. Already paid? Open your Paystack return link in the same browser or <a target="_blank" rel="noopener noreferrer" href="/contact">contact admissions</a> with your reference before paying again.</p>}
+        <button className="academy-button" type="submit" disabled={busy || !course || !fees}>{busy ? "Please wait…" : scholarship ? "Submit Scholarship Application" : `Continue to Payment${fees ? ` · ${fees.tuition}` : ""}`}</button>
+        {!scholarship && <p className="academy-form-help">Next, review your details and open your course’s payment page. Your draft stays in this browser for seven days. After payment, return to complete registration. Already paid? <a target="_blank" rel="noopener noreferrer" href="/payment-success">Check payment and complete registration</a>.</p>}
       </form>
       <aside className="academy-registration-summary"><span className="academy-eyebrow">Your learning plan</span><h2>{course?.title || "Your next chapter"}</h2>
         {course ? <><img src={course.image} alt={course.alt} width="1536" height="1024" /><dl><div><dt>Starts</dt><dd>{COHORT.startDateLabel}</dd></div><div><dt>Duration</dt><dd>{course.duration}</dd></div><div><dt>Full tuition</dt><dd>{fees ? fees.tuition : <PricingStatus />}</dd></div>{scholarship && fees && <><div><dt>Scholarship support</dt><dd>{fees.scholarshipPercent}</dd></div><div><dt>You pay if approved</dt><dd>{fees.scholarship} ({fees.studentPaysPercent})</dd></div></>}</dl></> : <p>Pick one of our six courses to see the exact fee, duration, and available class format.</p>}

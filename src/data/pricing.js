@@ -133,7 +133,7 @@ const regionalCourseFees = {
   },
   AFRICA: {
     "data-analytics": [250, 25], "web-development": [300, 30],
-    "software-development": [300, 30], "virtual-assistance": [100, 20],
+    "software-development": [300, 30], "virtual-assistance": [100, 15],
     "cyber-security": [300, 30], "ai-automation": [300, 30],
   },
   DEFAULT: {

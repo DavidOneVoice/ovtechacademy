@@ -19,7 +19,7 @@ export function assertSuccessfulPayment(payment, order) {
 }
 export function applicationForOrder(order) {
   const course = findCourse(order.courseId);
-  const fees = getCoursePricing(course.id, order.countryCode || 'NG');
+  const fees = order.quotedFees || getCoursePricing(course.id, order.countryCode || 'NG');
   return {
     ...order.details, track: course.title, applicationType: order.type,
     cohortId: COHORT.id, cohortStartDate: COHORT.startDate, durationWeeks: course.durationWeeks,

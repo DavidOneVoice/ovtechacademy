@@ -11,3 +11,15 @@
   [headers.values]
     Referrer-Policy = "no-referrer"
     Cache-Control = "no-store"
+
+[[headers]]
+  for = "/payment-success"
+  [headers.values]
+    Referrer-Policy = "no-referrer"
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/payment-review"
+  [headers.values]
+    Referrer-Policy = "no-referrer"
+    Cache-Control = "no-store"

@@ -147,3 +147,9 @@
   .ov-navbar .ov-nav-links, .ov-navbar .ov-nav-btn { display: none; }
   .ov-navbar .ov-menu-btn { display: block; }
 }
+
+/* Payment review and return share the registration page's light visual style. */
+.academy-payment-review{width:min(820px,calc(100% - 36px));margin:48px auto 80px;padding:clamp(22px,4vw,48px);background:#fff;border:1px solid #e2e8f0;border-radius:24px;box-shadow:0 12px 40px #17304a08}
+.academy-payment-review h1{font-size:clamp(28px,4vw,42px);line-height:1.15;letter-spacing:-.035em;margin:12px 0 24px}.academy-payment-review h2{font-size:23px;margin:24px 0 12px}.academy-payment-review p{line-height:1.7;overflow-wrap:anywhere}.academy-payment-review .academy-button{margin:8px 12px 8px 0}.academy-payment-review .academy-registration-form{padding:0;border:0;box-shadow:none}
+.academy-review-details{display:grid;grid-template-columns:1fr 1fr;gap:0 28px;margin:16px 0 24px}.academy-review-details>div{padding:14px 0;border-bottom:1px solid #e8edf2;min-width:0}.academy-review-details dt{font-size:13px;color:#5c6b7c;margin-bottom:6px}.academy-review-details dd{margin:0;color:#142b43;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere}.academy-payment-instructions{margin-top:28px;padding-top:8px;border-top:1px solid #dce4ec}.academy-button-secondary{background:#eef3f8!important;color:#15324e!important;border:1px solid #cfdae5!important}.academy-text-button{display:block;background:none;border:0;padding:12px 0;color:#536578;text-decoration:underline;cursor:pointer}.academy-draft-choice{display:grid;gap:10px}.academy-draft-choice select{width:100%;padding:12px;border:1px solid #ced8e3;border-radius:10px;background:#fff}
+@media(max-width:560px){.academy-review-details{grid-template-columns:1fr}.academy-payment-review .academy-button{width:100%;text-align:center;margin-right:0}.academy-payment-review{margin-top:24px}}
