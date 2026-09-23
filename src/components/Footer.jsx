@@ -67,6 +67,7 @@ const Footer = () => {
           <h4>Quick Links</h4>
           <a target="_blank" rel="noopener noreferrer" href="/">Home</a>
           <a target="_blank" rel="noopener noreferrer" href="/courses">Courses</a>
+          <a target="_blank" rel="noopener noreferrer" href="/guides">Learning Guides</a>
           <a target="_blank" rel="noopener noreferrer" href="/alumni">Alumni</a>
           <a target="_blank" rel="noopener noreferrer" href="/scholarship">Scholarship</a>
           <a target="_blank" rel="noopener noreferrer" href="/register">Full-Tuition Registration</a>

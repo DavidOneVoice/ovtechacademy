@@ -1,34 +1,31 @@
-import Registration from "./pages/Registration";
-import PaymentReturn from "./pages/PaymentReturn";
-import PaymentReview from "./pages/PaymentReview";
-import ScholarshipPayment from "./pages/ScholarshipPayment";
+import { lazy, Suspense } from "react";
+import { publicPages } from "./seo/publicPages";
+import SeoMetadata from "./seo/SeoMetadata";
+import NotFound from "./pages/NotFound";
+const Registration = lazy(() => import("./pages/Registration"));
+const PaymentReturn = lazy(() => import("./pages/PaymentReturn"));
+const PaymentReview = lazy(() => import("./pages/PaymentReview"));
+const ScholarshipPayment = lazy(() => import("./pages/ScholarshipPayment"));
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
-import Scholarship from "./pages/Scholarship";
-import Admin from "./pages/Admin";
-import AdminLogin from "./pages/AdminLogin";
+const Admin = lazy(() => import("./pages/Admin"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
-import EnrolledStudents from "./pages/EnrolledStudents";
-import GraduatedStudents from "./pages/GraduatedStudents";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import Contact from "./pages/Contact";
-import About from "./pages/About";
-import Courses from "./pages/Courses";
-import CourseDetails from "./pages/CourseDetails";
-import LmsDashboard from "./pages/LmsDashboard";
-import AdminLms from "./pages/AdminLms";
-import AdminLiveSessions from "./pages/AdminLiveSessions";
-import AttendancePage from "./pages/AttendancePage";
-import AdminAssistant from "./pages/AdminAssistant";
-import VerifySearch from "./pages/VerifySearch";
-import VerifyCertificate from "./pages/VerifyCertificate";
-import Alumni from "./pages/Alumni";
+const EnrolledStudents = lazy(() => import("./pages/EnrolledStudents"));
+const GraduatedStudents = lazy(() => import("./pages/GraduatedStudents"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const LmsDashboard = lazy(() => import("./pages/LmsDashboard"));
+const AdminLms = lazy(() => import("./pages/AdminLms"));
+const AdminLiveSessions = lazy(() => import("./pages/AdminLiveSessions"));
+const AttendancePage = lazy(() => import("./pages/AttendancePage"));
+const AdminAssistant = lazy(() => import("./pages/AdminAssistant"));
+const VerifySearch = lazy(() => import("./pages/VerifySearch"));
+const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate"));
 import { ADMIN_ROLES, getStoredAdminRole } from "./auth/adminRoles";
 
 const AdminDashboardRoute = () => (
   getStoredAdminRole() === ADMIN_ROLES.ASSISTANT
     ? <Navigate to="/admin/assistant" replace />
-    : <Admin />
+    : <Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><Admin /></Suspense>
 );
 
 import "./academy.css";
@@ -36,27 +33,25 @@ import "./academy.css";
 function App() {
   return (
     <BrowserRouter>
+      <SeoMetadata />
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/verify" element={<VerifySearch />} />
-        <Route path="/verify/:certificateId" element={<VerifyCertificate />} />
-        <Route path="/alumni" element={<Alumni />} />
-        <Route path="/scholarship" element={<Scholarship />} />
-        <Route path="/register" element={<Registration />} />
-        <Route path="/payment-review" element={<PaymentReview />} />
-        <Route path="/registration/complete" element={<PaymentReturn />} />
-        <Route path="/scholarship-payment" element={<ScholarshipPayment />} />
-        <Route path="/courses" element={<Courses />} />
-        <Route path="/courses/:courseId" element={<CourseDetails />} />
-        <Route path="/lms" caseSensitive element={<LmsDashboard />} />
+        {publicPages.map(({ path, Component }) => <Route key={path} path={path} element={<Component />} />)}
+        <Route path="*" element={<NotFound />} />
+        <Route path="/verify" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><VerifySearch /></Suspense>} />
+        <Route path="/verify/:certificateId" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><VerifyCertificate /></Suspense>} />
+        <Route path="/register" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><Registration /></Suspense>} />
+        <Route path="/payment-review" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><PaymentReview /></Suspense>} />
+        <Route path="/registration/complete" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><PaymentReturn /></Suspense>} />
+        <Route path="/scholarship-payment" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><ScholarshipPayment /></Suspense>} />
+        <Route path="/lms" caseSensitive element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><LmsDashboard /></Suspense>} />
         <Route
           path="/LMS"
           caseSensitive
           element={<Navigate to="/lms" replace />}
         />
         <Route path="/student-lms" element={<Navigate to="/lms" replace />} />
-        <Route path="/admin-login" element={<AdminLogin />} />
-        <Route path="/attendance/:sessionId" element={<AttendancePage />} />
+        <Route path="/admin-login" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><AdminLogin /></Suspense>} />
+        <Route path="/attendance/:sessionId" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><AttendancePage /></Suspense>} />
 
         <Route
           path="/admin"
@@ -64,13 +59,13 @@ function App() {
         />
         <Route
           path="/admin/assistant"
-          element={<ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ASSISTANT]}><AdminAssistant /></ProtectedAdminRoute>}
+          element={<ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ASSISTANT]}><Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><AdminAssistant /></Suspense></ProtectedAdminRoute>}
         />
         <Route
           path="/admin/lms"
           element={
             <ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ADMIN]}>
-              <AdminLms />
+              <Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><AdminLms /></Suspense>
             </ProtectedAdminRoute>
           }
         />
@@ -78,7 +73,7 @@ function App() {
           path="/admin/live-sessions"
           element={
             <ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ADMIN]}>
-              <AdminLiveSessions />
+              <Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><AdminLiveSessions /></Suspense>
             </ProtectedAdminRoute>
           }
         />
@@ -86,7 +81,7 @@ function App() {
           path="/enrolled-students"
           element={
             <ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ADMIN]}>
-              <EnrolledStudents />
+              <Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><EnrolledStudents /></Suspense>
             </ProtectedAdminRoute>
           }
         />
@@ -94,13 +89,11 @@ function App() {
           path="/admin/graduated-students"
           element={
             <ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ADMIN]}>
-              <GraduatedStudents />
+              <Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><GraduatedStudents /></Suspense>
             </ProtectedAdminRoute>
           }
         />
-        <Route path="/payment-success" element={<PaymentSuccess />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/about" element={<About />} />
+        <Route path="/payment-success" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><PaymentSuccess /></Suspense>} />
       </Routes>
     </BrowserRouter>
   );

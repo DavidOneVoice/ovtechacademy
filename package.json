@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --ssr src/entry-server.jsx --outDir dist-ssr && node scripts/prerender.mjs && npm run test:seo",
     "lint": "eslint .",
     "test": "node --test",
+    "test:seo": "node scripts/checkSeo.mjs",
     "preview": "vite preview",
     "seed:curriculum": "node scripts/seedCurriculumFromWorkbook.mjs",
     "reset:attendance": "node scripts/resetAttendanceTestData.mjs",

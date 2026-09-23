@@ -6,6 +6,7 @@ import { listPaymentDrafts, readPaymentDraft, savePaymentDraft } from '../servic
 import { paymentRequest } from '../services/payments';
 import { findCourse } from '../data/courses';
 import { formatMoney } from '../data/pricing';
+import { trackEvent } from '../analytics/events';
 
 export default function PaymentSuccess() {
   const [params] = useSearchParams();
@@ -36,6 +37,9 @@ export default function PaymentSuccess() {
       if (data.verified) {
         const saved = savePaymentDraft({ ...draft, details: data.details, fees: data.fees, paymentReference: data.paymentReference, submitted: data.submitted });
         setDraft(saved);
+        if (action === 'complete-hosted' && data.submitted && !draft.submitted) {
+          trackEvent('registration_complete', { course_id: draft.details.courseId, application_type: draft.type });
+        }
       }
     } catch (issue) { setError(issue.message); }
     finally { lock.current = false; setBusy(false); }

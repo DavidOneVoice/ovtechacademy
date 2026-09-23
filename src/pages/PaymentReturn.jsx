@@ -4,6 +4,8 @@ import { paymentRequest } from "../services/payments";
 import { formatMoney } from "../data/pricing";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { findCourse } from "../data/courses";
+import { trackEvent } from "../analytics/events";
 export default function PaymentReturn() {
   const [params] = useSearchParams();
   const reference = params.get("reference") || params.get("trxref") || "";
@@ -18,7 +20,11 @@ export default function PaymentReturn() {
   }, [reference, retry]);
   const complete = async () => {
     setBusy(true); setError("");
-    try { const data = await paymentRequest("complete", { reference }); setResult((old) => ({ ...old, ...data, submitted: true })); }
+    try {
+      const data = await paymentRequest("complete", { reference });
+      setResult((old) => ({ ...old, ...data, submitted: true }));
+      if (data.submitted && !result?.submitted) trackEvent("registration_complete", { course_id: findCourse(data.courseTitle || result?.courseTitle)?.id, application_type: data.type || result?.type });
+    }
     catch (issue) { setError(issue.message); }
     finally { setBusy(false); }
   };

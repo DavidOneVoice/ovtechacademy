@@ -9,6 +9,7 @@ import usePricing from "../hooks/usePricing";
 import PricingStatus from "./PricingStatus";
 import ScholarshipConfirmationDialog from "./ScholarshipConfirmationDialog";
 import { COHORT } from "../data/cohort";
+import { trackEvent } from "../analytics/events";
 import { AGE_RANGES, REFERRALS, emptyRegistration, validateRegistration } from "../data/registration";
 import { createPaymentDraft, readPaymentDraft, forgetPaymentDraft } from "../services/paymentDrafts";
 import Navbar from "./Navbar";
@@ -28,11 +29,16 @@ export default function ApplicationForm({ type = "scholarship" }) {
   const [accepted, setAccepted] = useState(false);
   const [pendingApplication, setPendingApplication] = useState(null);
   const submitting = useRef(false);
+  const applicationStarted = useRef(false);
   const [applicationId] = useState(() => doc(collection(db, "scholarshipApplications")).id);
   const course = findCourse(form.courseId);
   const fees = usePricing(form.courseId);
   const change = (event) => {
     const { name, value } = event.target;
+    if (!applicationStarted.current) {
+      applicationStarted.current = true;
+      trackEvent("begin_application", { course_id: name === "courseId" ? value : form.courseId, application_type: type });
+    }
     setError("");
     if (name === "courseId") {
       const next = findCourse(value);
@@ -84,6 +90,7 @@ export default function ApplicationForm({ type = "scholarship" }) {
         status: "Pending", createdAt: serverTimestamp(),
       };
       await setDoc(doc(db, "scholarshipApplications", applicationId), application);
+      trackEvent("generate_lead", { course_id: course.id, application_type: "scholarship" });
       setPendingApplication(null);
       setDone(true);
       if (import.meta.env.VITE_EMAILJS_SERVICE_ID && import.meta.env.VITE_EMAILJS_TEMPLATE_ID && import.meta.env.VITE_EMAILJS_PUBLIC_KEY) {

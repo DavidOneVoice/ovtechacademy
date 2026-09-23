@@ -7,6 +7,7 @@ import { paymentRequest } from '../services/payments';
 import { formatMoney } from '../data/pricing';
 import { getPaymentPage } from '../data/paymentPages';
 import { findCourse } from '../data/courses';
+import { trackEvent } from '../analytics/events';
 
 async function checkReview(draft) {
   const result = draft.orderReference
@@ -46,7 +47,10 @@ export default function PaymentReview() {
     return () => { active = false; };
   }, [initialDraft]);
   const openPayment = (event) => {
-    try { const saved = savePaymentDraft({ ...draft, checkoutOpened: true }); setDraft(saved); }
+    try {
+      const saved = savePaymentDraft({ ...draft, checkoutOpened: true }); setDraft(saved);
+      if (!draft.checkoutOpened) trackEvent('begin_checkout', { course_id: draft.details.courseId, application_type: draft.type });
+    }
     catch (issue) { event.preventDefault(); setError(issue.message); }
   };
   const edit = () => navigate(`/register?draft=${draft.id}`);

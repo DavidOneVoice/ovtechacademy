@@ -60,17 +60,7 @@ export default function Alumni() {
   }, []);
 
   useEffect(() => {
-    document.title = "Alumni Directory | OVTech Academy";
-    const meta = document.querySelector('meta[name="description"]');
-    const previous = meta?.getAttribute("content");
-    meta?.setAttribute(
-      "content",
-      "Meet verified OVTech Academy graduates who consented to share their professional profiles and completed programmes.",
-    );
     loadAlumni();
-    return () => {
-      if (meta && previous) meta.setAttribute("content", previous);
-    };
   }, [loadAlumni]);
 
   const programmes = useMemo(
