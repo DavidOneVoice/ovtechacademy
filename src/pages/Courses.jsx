@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import CourseCard from "../components/CourseCard";
@@ -9,6 +10,9 @@ import "./Courses.css";
 
 export default function Courses() {
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const { hash } = useLocation();
+  const linkedCourse = courses.find((course) => course.id === hash.slice(1));
+  if (linkedCourse) return <Navigate replace to={`/courses/${linkedCourse.id}`} />;
   return (
     <main className="ov-courses-page">
       <Navbar />

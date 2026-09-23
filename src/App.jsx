@@ -14,6 +14,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import Contact from "./pages/Contact";
 import About from "./pages/About";
 import Courses from "./pages/Courses";
+import CourseDetails from "./pages/CourseDetails";
 import LmsDashboard from "./pages/LmsDashboard";
 import AdminLms from "./pages/AdminLms";
 import AdminLiveSessions from "./pages/AdminLiveSessions";
@@ -46,6 +47,7 @@ function App() {
         <Route path="/registration/complete" element={<PaymentReturn />} />
         <Route path="/scholarship-payment" element={<ScholarshipPayment />} />
         <Route path="/courses" element={<Courses />} />
+        <Route path="/courses/:courseId" element={<CourseDetails />} />
         <Route path="/lms" caseSensitive element={<LmsDashboard />} />
         <Route
           path="/LMS"

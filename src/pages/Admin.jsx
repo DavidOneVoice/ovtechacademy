@@ -1,3 +1,5 @@
+import AdminWorkspace from "../components/AdminWorkspace";
+import useAdminCohort from "../hooks/useAdminCohort";
 import { useEffect, useMemo, useState } from "react";
 import "./Admin.css";
 import { auth, db } from "../src/firebase";
@@ -14,7 +16,7 @@ import {
 } from "firebase/firestore";
 import emailjs from "@emailjs/browser";
 import { pricing, formatMoney, getCoursePricing } from "../data/pricing";
-import { COHORT } from "../data/cohort";
+import { COHORT, LEGACY_COHORT, recordCohortId } from "../data/cohort";
 import courses from "../data/courses";
 import { CANONICAL_PROGRAMMES, normalizeProgrammeName } from "../data/programmes";
 import { clearStoredAdminRole } from "../auth/adminRoles";
@@ -49,7 +51,7 @@ const getDateApplied = (app) =>
 const formatCurrency = (amount) => `₦${Number(amount || 0).toLocaleString()}`;
 
 const isEnrolled = (app) =>
-  app.status === "Enrolled" || (!app.cohortId && app.paymentStatus === "Paid");
+  app.status === "Enrolled" || (recordCohortId(app) === LEGACY_COHORT.id && app.paymentStatus === "Paid");
 
 const csvEscape = (item) => `"${String(item || "").replace(/"/g, '""')}"`;
 
@@ -99,7 +101,7 @@ const getApplicationCSVRows = (apps) => {
     app.reason,
     app.status,
     app.paymentStatus,
-    app.applicationType || "scholarship", app.registrationStatus || "submitted", app.cohortId, app.paymentVerified ? "Yes" : "No", app.paymentReference, app.paymentAmount, app.paymentCurrency || (app.paymentVerified ? "NGN" : ""),
+    app.applicationType || "scholarship", app.registrationStatus || "submitted", recordCohortId(app), app.paymentVerified ? "Yes" : "No", app.paymentReference, app.paymentAmount, app.paymentCurrency || (app.paymentVerified ? "NGN" : ""),
     getDateApplied(app),
   ]);
 
@@ -115,7 +117,9 @@ const Admin = () => {
     learningMode: "",
     track: "all",
   };
-  const [applications, setApplications] = useState([]);
+  const [allApplications, setApplications] = useState([]);
+  const cohort = useAdminCohort(allApplications);
+  const applications = cohort.scopedRecords;
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [selectedReferral, setSelectedReferral] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -372,13 +376,13 @@ const Admin = () => {
 
   const exportToCSV = () => {
     downloadCSV(
-      "ovtech-applications.csv",
+      `ovtech-${cohort.selectedId}-applications.csv`,
       getApplicationCSVRows(filteredApplications),
     );
   };
 
   const exportReferralToCSV = (summary) => {
-    downloadCSV(`${summary.code}.csv`, getApplicationCSVRows(summary.students));
+    downloadCSV(`${cohort.selectedId}-${summary.code}.csv`, getApplicationCSVRows(summary.students));
   };
 
   const resetFilters = () => {
@@ -478,38 +482,122 @@ const Admin = () => {
   };
 
   return (
-    <main className="admin-page">
+    <AdminWorkspace cohort={{...cohort, setSelectedId: (id) => { setSelectedApplication(null); setSelectedReferral(null); setDeleteTarget(null); resetFilters(); cohort.setSelectedId(id); }}} title="Applications & registrations" description="Every application, one clear view. Review and manage your selected cohort." onLogout={handleLogout}><main className="admin-page">
       {toast && <div className="admin-toast">{toast}</div>}
 
-      <section className="admin-header">
-        <div>
-          <span>OVTech Admin</span>
-          <h1>Applications & Registrations</h1>
-          <p>
-            Review scholarships, verified full-tuition payments, and learner enrollment.
-          </p>
-        </div>
 
-        <div className="admin-header-actions">
-          <a target="_blank" rel="noopener noreferrer" href="/" className="admin-home-btn">
-            Back to Website
-          </a>
-          <a target="_blank" rel="noopener noreferrer" href="/enrolled-students" className="admin-home-btn">
-            Enrolled Students
-          </a>
-          <a target="_blank" rel="noopener noreferrer" href="/admin/graduated-students" className="admin-home-btn">
-            Graduated Students
-          </a>
-          <a target="_blank" rel="noopener noreferrer" href="/admin/live-sessions" className="admin-home-btn">
-            Publish Live Sessions
-          </a>
-          <button onClick={handleLogout} className="admin-logout-btn">
-            Logout
-          </button>
+
+      <section className="admin-stats">
+        <div>
+          <h3>{total}</h3>
+          <p>Total Applications</p>
+        </div>
+        <div>
+          <h3>{pending}</h3>
+          <p>Pending</p>
+        </div>
+        <div>
+          <h3>{approved}</h3>
+          <p>Approved</p>
+        </div>
+        <div>
+          <h3>{rejected}</h3>
+          <p>Rejected</p>
         </div>
       </section>
 
-      <section
+<details className="admin-tool-drawer"><summary>Referral performance <span>{referralSummaries.length} referral sources</span></summary>      <section className="admin-referral-controls">
+        <div className="admin-commission-card">
+          <label htmlFor="commissionPerStudent">
+            Commission Per Enrolled Student
+          </label>
+          <input
+            id="commissionPerStudent"
+            type="number"
+            min="0"
+            value={commissionPerStudent}
+            onChange={(e) => setCommissionPerStudent(e.target.value)}
+          />
+        </div>
+
+        {topReferrer && (
+          <div className="admin-top-referrer">
+            <span>🏆 Top Referrer</span>
+            <h3>{topReferrer.code}</h3>
+            <p>{topReferrer.enrolled} Enrolled Students</p>
+            <strong>Commission {formatCurrency(topReferrer.commission)}</strong>
+          </div>
+        )}
+      </section>
+
+      <section className="admin-referral-performance">
+        <div className="admin-section-heading">
+          <h2>Referral Performance</h2>
+          <p>Track marketer applications, enrollments, and commissions.</p>
+        </div>
+
+        <div className="admin-referral-grid">
+          {referralSummaries.map((summary) => (
+            <article key={summary.code} className="admin-referral-card">
+              <div className="admin-referral-card-head">
+                <button
+                  className="admin-referral-code-btn"
+                  onClick={() => setReferralFilter(summary.code)}
+                >
+                  {summary.code}
+                </button>
+                <button
+                  className="admin-copy-btn"
+                  onClick={() => copyReferralCode(summary.code)}
+                >
+                  Copy
+                </button>
+              </div>
+
+              <div className="admin-referral-metrics">
+                <p>
+                  Applications: <strong>{summary.applications}</strong>
+                </p>
+                <p>
+                  Pending: <strong>{summary.pending}</strong>
+                </p>
+                <p>
+                  Approved: <strong>{summary.approved}</strong>
+                </p>
+                <p>
+                  Rejected: <strong>{summary.rejected}</strong>
+                </p>
+                <p>
+                  Enrolled: <strong>{summary.enrolled}</strong>
+                </p>
+                <p>
+                  Commission:{" "}
+                  <strong>{formatCurrency(summary.commission)}</strong>
+                </p>
+              </div>
+
+              <button
+                className="admin-view-details-btn"
+                onClick={() => setSelectedReferral(summary.code)}
+              >
+                View Details
+              </button>
+            </article>
+          ))}
+        </div>
+
+        {referralSummaries.length === 0 && (
+          <p className="admin-empty">No referral performance data yet.</p>
+        )}
+
+        <div className="admin-total-commission">
+          <span>Total Commission Owed</span>
+          <strong>{formatCurrency(totalCommission)}</strong>
+        </div>
+      </section>
+
+</details>
+<details className="admin-tool-drawer"><summary>Publish a live session <span>Shared learning content</span></summary>      <section
         className="admin-table-card admin-live-quick-card"
         id="live-session-upload"
       >
@@ -604,116 +692,7 @@ const Admin = () => {
         </form>
       </section>
 
-      <section className="admin-stats">
-        <div>
-          <h3>{total}</h3>
-          <p>Total Applications</p>
-        </div>
-        <div>
-          <h3>{pending}</h3>
-          <p>Pending</p>
-        </div>
-        <div>
-          <h3>{approved}</h3>
-          <p>Approved</p>
-        </div>
-        <div>
-          <h3>{rejected}</h3>
-          <p>Rejected</p>
-        </div>
-      </section>
-
-      <section className="admin-referral-controls">
-        <div className="admin-commission-card">
-          <label htmlFor="commissionPerStudent">
-            Commission Per Enrolled Student
-          </label>
-          <input
-            id="commissionPerStudent"
-            type="number"
-            min="0"
-            value={commissionPerStudent}
-            onChange={(e) => setCommissionPerStudent(e.target.value)}
-          />
-        </div>
-
-        {topReferrer && (
-          <div className="admin-top-referrer">
-            <span>🏆 Top Referrer</span>
-            <h3>{topReferrer.code}</h3>
-            <p>{topReferrer.enrolled} Enrolled Students</p>
-            <strong>Commission {formatCurrency(topReferrer.commission)}</strong>
-          </div>
-        )}
-      </section>
-
-      <section className="admin-referral-performance">
-        <div className="admin-section-heading">
-          <h2>Referral Performance</h2>
-          <p>Track marketer applications, enrollments, and commissions.</p>
-        </div>
-
-        <div className="admin-referral-grid">
-          {referralSummaries.map((summary) => (
-            <article key={summary.code} className="admin-referral-card">
-              <div className="admin-referral-card-head">
-                <button
-                  className="admin-referral-code-btn"
-                  onClick={() => setReferralFilter(summary.code)}
-                >
-                  {summary.code}
-                </button>
-                <button
-                  className="admin-copy-btn"
-                  onClick={() => copyReferralCode(summary.code)}
-                >
-                  Copy
-                </button>
-              </div>
-
-              <div className="admin-referral-metrics">
-                <p>
-                  Applications: <strong>{summary.applications}</strong>
-                </p>
-                <p>
-                  Pending: <strong>{summary.pending}</strong>
-                </p>
-                <p>
-                  Approved: <strong>{summary.approved}</strong>
-                </p>
-                <p>
-                  Rejected: <strong>{summary.rejected}</strong>
-                </p>
-                <p>
-                  Enrolled: <strong>{summary.enrolled}</strong>
-                </p>
-                <p>
-                  Commission:{" "}
-                  <strong>{formatCurrency(summary.commission)}</strong>
-                </p>
-              </div>
-
-              <button
-                className="admin-view-details-btn"
-                onClick={() => setSelectedReferral(summary.code)}
-              >
-                View Details
-              </button>
-            </article>
-          ))}
-        </div>
-
-        {referralSummaries.length === 0 && (
-          <p className="admin-empty">No referral performance data yet.</p>
-        )}
-
-        <div className="admin-total-commission">
-          <span>Total Commission Owed</span>
-          <strong>{formatCurrency(totalCommission)}</strong>
-        </div>
-      </section>
-
-      <div className="admin-filters">
+</details>      <div className="admin-filters" aria-label="Application filters">
         <select aria-label="Application type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
           <option value="All">All Application Types</option><option value="scholarship">Scholarship</option><option value="tuition">Full Tuition</option>
         </select>
@@ -880,7 +859,7 @@ const Admin = () => {
             </tbody>
           </table>
           {!loading && filteredApplications.length === 0 && (
-            <p className="admin-empty">No applications match your filters.</p>
+            <p className="admin-empty">{applications.length ? "No applications match your filters." : `No applications for ${cohort.selected.label} yet.`}</p>
           )}
         </div>
       </section>
@@ -1089,7 +1068,7 @@ const Admin = () => {
           </div>
         </div>
       )}
-    </main>
+    </main></AdminWorkspace>
   );
 };
 

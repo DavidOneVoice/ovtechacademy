@@ -7,6 +7,37 @@ service cloud.firestore {
     match /paymentReceipts/{id} { allow read, write: if false; }
     match /scholarshipPaymentLocks/{id} { allow read, write: if false; }
 
+    // OVTECH_ATTENDANCE_PIN_V1
+    // No browser can read PIN hashes, email challenges, rate limits, or migration backups.
+    match /attendanceCredentials/{id} { allow read, write: if false; }
+    match /attendanceChallenges/{id} { allow read, write: if false; }
+    match /attendanceRateLimits/{id} { allow read, write: if false; }
+    match /academyMigrations/{path=**} { allow read, write: if false; }
+    function attendanceTrackSafe(track) {
+      let before = resource.data.get('attendance', {}).get(track, {});
+      let after = request.resource.data.get('attendance', {}).get(track, {});
+      return after.diff(before).affectedKeys().hasOnly(['lectureDays']);
+    }
+    function attendanceCountersSafe() {
+      let before = resource.data.get('attendance', {});
+      let after = request.resource.data.get('attendance', {});
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['attendance']) ||
+        (after.diff(before).affectedKeys().hasOnly(["Data Analytics","Web Development","Software Development","Virtual Assistant","Cybersecurity","AI Automation","Cyber Security","Virtual Assistance","Software Development (Frontend)","Software Development (Front-end)","Frontend Development","Front-end Development","Frontend Software Development","Front-end Software Development"]) &&
+         attendanceTrackSafe("Data Analytics") &&
+         attendanceTrackSafe("Web Development") &&
+         attendanceTrackSafe("Software Development") &&
+         attendanceTrackSafe("Virtual Assistant") &&
+         attendanceTrackSafe("Cybersecurity") &&
+         attendanceTrackSafe("AI Automation") &&
+         attendanceTrackSafe("Cyber Security") &&
+         attendanceTrackSafe("Virtual Assistance") &&
+         attendanceTrackSafe("Software Development (Frontend)") &&
+         attendanceTrackSafe("Software Development (Front-end)") &&
+         attendanceTrackSafe("Frontend Development") &&
+         attendanceTrackSafe("Front-end Development") &&
+         attendanceTrackSafe("Frontend Software Development") &&
+         attendanceTrackSafe("Front-end Software Development"));
+    }
     function protectedPaymentFields() {
       return ['paymentVerified', 'paymentReference', 'paymentAmount',
         'paymentCurrency', 'paymentProvider', 'paymentTransactionId',
@@ -51,6 +82,8 @@ service cloud.firestore {
       // New tuition applications and verified-payment fields are server-only.
       allow create: if validNewScholarship();
       allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(protectedPaymentFields())
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['attendanceMarkedSessions', 'lastAttendanceMarkedAt'])
+        && attendanceCountersSafe()
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(enrollmentFacts())
         && (!('paymentVerified' in resource.data) || resource.data.paymentVerified != true
           || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['paymentStatus']))
@@ -97,18 +130,14 @@ service cloud.firestore {
     }
 
     match /attendanceSessions/{sessionId} {
-      allow read, write: if true;
-
-      match /records/{recordId} {
-        allow read, write: if true;
-      }
+      allow read, create: if true;
+      allow update, delete: if false;
+      match /records/{recordId} { allow read: if true; allow write: if false; }
     }
 
     // Supports collection-group queries over attendance records, regardless of
     // the parent attendance session.
-    match /{path=**}/records/{recordId} {
-      allow read, write: if true;
-    }
+    match /{path=**}/records/{recordId} { allow read: if true; allow write: if false; }
 
     function protectedCertificateFields() {
       return [

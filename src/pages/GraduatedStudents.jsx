@@ -1,3 +1,6 @@
+import { recordCohortId } from "../data/cohort";
+import AdminWorkspace from "../components/AdminWorkspace";
+import useAdminCohort from "../hooks/useAdminCohort";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../src/firebase";
@@ -40,7 +43,9 @@ const progressText = (progress) => {
 };
 
 const GraduatedStudents = () => {
-  const [graduates, setGraduates] = useState([]);
+  const [allGraduates, setGraduates] = useState([]);
+  const cohort = useAdminCohort(allGraduates);
+  const graduates = cohort.scopedRecords;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [search, setSearch] = useState("");
@@ -67,7 +72,7 @@ const GraduatedStudents = () => {
       const applications = new Map(applicationSnapshot.docs.map((item) => [item.id, item.data()]));
       const joined = profileSnapshot.docs
         .filter((item) => normalized(item.data().status) === "approved" && applications.has(item.id))
-        .map((item) => ({ id: item.id, profile: item.data(), application: applications.get(item.id) }));
+        .map((item) => ({ id: item.id, cohortId: recordCohortId(applications.get(item.id)), profile: item.data(), application: applications.get(item.id) }));
       setGraduates(joined);
     } catch (firebaseError) {
       if (import.meta.env.DEV) console.error("Unable to load graduated students:", firebaseError);
@@ -152,9 +157,9 @@ const GraduatedStudents = () => {
   const certificateLink = (graduate) => `/verify/${encodeURIComponent(graduate.profile.certificateId)}`;
   const showRevoke = (graduate) => { setRevocationTarget(graduate); setReason(""); };
 
-  return <main className="admin-page graduates-page">
+  return <AdminWorkspace cohort={{...cohort, setSelectedId: (id) => { setSelected(null); setRevocationTarget(null); setSearch(""); setCourseFilter("All"); setMethodFilter("All"); setAlumniFilter("All"); cohort.setSelectedId(id); }}} title="Graduates" description="Celebrate completion. Manage certificates and alumni visibility by cohort."><main className="admin-page graduates-page">
     {toast && <div className="admin-toast">{toast}</div>}
-    <section className="admin-header"><div><span>OVTech Admin</span><h1>Graduated Students</h1><p>Manage approved certificate holders and their public alumni visibility.</p></div><div className="admin-header-actions"><a target="_blank" rel="noopener noreferrer" href="/admin" className="admin-home-btn">Admin Dashboard</a><a target="_blank" rel="noopener noreferrer" href="/enrolled-students" className="admin-home-btn">Enrolled Students</a></div></section>
+
 
     {!loading && !error && <section className="graduate-summary" aria-label="Graduate summary">
       <article><span>Total Graduates</span><strong>{summary.total}</strong></article>
@@ -191,7 +196,7 @@ const GraduatedStudents = () => {
     </div><div className="admin-certificate-actions">{selected.profile.certificateId && <a className="admin-certificate-link" href={certificateLink(selected)} target="_blank" rel="noreferrer noopener">View Certificate</a>}<button type="button" className="secondary" onClick={() => showRevoke(selected)}>Revoke Certificate</button></div></div></div>}
 
     {revocationTarget && <div className="admin-modal-overlay"><div className="admin-delete-modal admin-certificate-dialog"><h2>Revoke Certificate</h2><form onSubmit={revokeCertificate} className="admin-change-form"><label>Reason for revocation<textarea required value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Explain why this certificate is being revoked." /></label><div className="admin-delete-actions"><button type="button" className="admin-cancel-delete" disabled={saving} onClick={() => setRevocationTarget(null)}>Cancel</button><button type="submit" className="admin-confirm-delete" disabled={saving || !reason.trim()}>{saving ? "Revoking certificate..." : "Confirm Revocation"}</button></div></form></div></div>}
-  </main>;
+  </main></AdminWorkspace>;
 };
 
 export default GraduatedStudents;

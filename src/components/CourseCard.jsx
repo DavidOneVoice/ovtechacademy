@@ -15,6 +15,7 @@ export default function CourseCard({ course, onOutline }) {
       </dl>
       <p className="academy-mode-note">{course.scholarshipRecordedOnly ? "Scholarship: pre-recorded learning. Full tuition also offers one-on-one live classes." : "Live group classes for both scholarship and full-tuition learners."}</p>
       <div className="academy-course-actions">
+        <a target="_blank" rel="noopener noreferrer" className="academy-outline-button" href={`/courses/${course.id}`}>Explore this course ↗</a>
         <button type="button" className="academy-outline-button" onClick={() => onOutline(course)}>View Course Outline <span aria-hidden="true">↗</span></button>
         <a target="_blank" rel="noopener noreferrer" className="academy-button" href={`/scholarship?course=${course.id}`}>Apply for Scholarship</a>
         <a target="_blank" rel="noopener noreferrer" className="academy-button academy-button-secondary" href={`/register?course=${course.id}`}>Register & Pay Full Tuition</a>

@@ -1,3 +1,5 @@
+import AttendancePin from "../components/AttendancePin";
+import { isLiveAttendanceStudent } from "../attendance/model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -1029,6 +1031,7 @@ const LmsDashboard = () => {
           )) : <p className="lms-empty-state">No live sessions have been published for your program yet.</p>}
         </section>
       )}
+      {activePanel === "overview" && isLiveAttendanceStudent(student) && <AttendancePin key={student.id} studentId={student.id} email={student.email} />}
       {activePanel === "overview" && (isLiveOnlyStudent ? (
         <section className="lms-progress-card lms-attendance-card">
           <div className="lms-attendance-header">

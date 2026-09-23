@@ -14,7 +14,8 @@
     "reset:lms": "node scripts/resetLmsProgress.mjs",
     "reset:demo": "node scripts/resetDemoData.mjs",
     "backfill:certificates": "node scripts/backfillPublicCertificates.mjs",
-    "backfill:alumni": "node scripts/backfillPublicAlumni.mjs"
+    "backfill:alumni": "node scripts/backfillPublicAlumni.mjs",
+    "build:production": "npm run build && node scripts/prepareProduction.mjs"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",

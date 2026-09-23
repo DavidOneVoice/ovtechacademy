@@ -1,3 +1,7 @@
+import { generateAttendance } from "../attendance/generate";
+import { isLiveAttendanceStudent } from "../attendance/model";
+import AdminWorkspace from "../components/AdminWorkspace";
+import useAdminCohort from "../hooks/useAdminCohort";
 import { useEffect, useMemo, useState } from "react";
 import { db } from "../src/firebase";
 import {
@@ -5,13 +9,10 @@ import {
   deleteDoc,
   doc,
   getDoc,
-  FieldPath,
   getDocs,
-  increment,
   query,
   runTransaction,
   serverTimestamp,
-  setDoc,
   updateDoc,
   writeBatch,
 } from "firebase/firestore";
@@ -44,13 +45,7 @@ const normalizeLearningMethod = (value) => {
 
 const getReferralCode = (student) => student.referralCode?.trim() || "DIRECT";
 
-const getTodayKey = () => new Date().toISOString().slice(0, 10);
 
-const slugifyTrack = (track) =>
-  String(track || "course")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 
 const getStudentTracks = (student) => [
   student.track,
@@ -100,7 +95,9 @@ const EDITABLE_FIELDS = [
 ];
 
 const EnrolledStudents = () => {
-  const [students, setStudents] = useState([]);
+  const [allStudents, setStudents] = useState([]);
+  const cohort = useAdminCohort(allStudents);
+  const students = cohort.scopedRecords;
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -153,10 +150,8 @@ const EnrolledStudents = () => {
   const courseOptions = CANONICAL_PROGRAMMES;
 
   const attendanceCourses = useMemo(() => courseOptions.map((course) => ({
-    title: course,
-    studentCount: students.filter((student) => getStudentTracks(student)
-      .some((track) => normalizeProgrammeName(track) === course)).length,
-  })).filter((course) => course.studentCount > 0), [courseOptions, students]);
+    title: course, studentCount: students.filter((student) => isLiveAttendanceStudent(student, course)).length,
+  })), [courseOptions, students]);
 
   const filteredStudents = useMemo(() => students.filter((student) => {
     const matchesTrack = trackFilter === "All" || getStudentTracks(student)
@@ -335,44 +330,13 @@ const EnrolledStudents = () => {
 
   const generateAttendanceSession = async () => {
     if (!confirmTrack) return;
-
     setGeneratingAttendance(true);
     try {
-      const dateKey = getTodayKey();
-      const sessionId = `${slugifyTrack(confirmTrack)}-${dateKey}`;
-      const sessionRef = doc(db, "attendanceSessions", sessionId);
-      const sessionSnap = await getDoc(sessionRef);
-
-      if (!sessionSnap.exists()) {
-        await setDoc(sessionRef, {
-          track: confirmTrack,
-          trackSlug: slugifyTrack(confirmTrack),
-          dateKey,
-          createdAt: serverTimestamp(),
-          lectureCount: 1,
-        });
-
-        await Promise.all(
-          students
-            .filter((student) => getStudentTracks(student).includes(confirmTrack))
-            .map((student) => updateDoc(
-              doc(db, "scholarshipApplications", student.id),
-              new FieldPath("attendance", confirmTrack, "lectureDays"),
-              increment(1),
-            )),
-        );
-      }
-
-      const link = `${window.location.origin}/attendance/${sessionId}`;
-      setGeneratedSession({ track: confirmTrack, dateKey, link, reused: sessionSnap.exists() });
-      setConfirmTrack(null);
-      showToast(sessionSnap.exists() ? "Today’s attendance link is ready." : "Lecture day confirmed and attendance link generated.");
-    } catch (error) {
-      console.error("Attendance link generation failed:", error);
-      showToast("Attendance link could not be generated. Please try again.");
-    } finally {
-      setGeneratingAttendance(false);
-    }
+      const generated = await generateAttendance(confirmTrack, cohort.selected, students);
+      setGeneratedSession(generated); setConfirmTrack(null);
+      showToast(generated.reused ? "Today’s link is ready. No extra lecture day was added." : "Attendance link generated for " + cohort.selected.label + ".");
+    } catch (error) { showToast(error.message || "Attendance could not be generated."); }
+    finally { setGeneratingAttendance(false); }
   };
 
   const confirmDelete = async () => {
@@ -392,18 +356,10 @@ const EnrolledStudents = () => {
   };
 
   return (
-    <main className="admin-page">
+    <AdminWorkspace cohort={{...cohort, setSelectedId: (id) => { setSelectedStudent(null); setEditingStudent(null); setDeleteTarget(null); setAttendanceModalOpen(false); setConfirmTrack(null); setGeneratedSession(null); setTrackFilter("All"); setLearningMethodFilter("All"); cohort.setSelectedId(id); }}} title="Enrolled students" description="Support your learners, manage certificates, and take attendance by cohort."><main className="admin-page">
       {toast && <div className="admin-toast">{toast}</div>}
 
-      <section className="admin-header">
-        <div>
-          <span>OVTech Admin</span>
-          <h1>Enrolled Students</h1>
-          <p>
-            Students who have completed registration and have been admitted.
-          </p>
-        </div>
-      </section>
+
 
       <section className="admin-table-card">
         <div className="admin-table-heading">
@@ -495,17 +451,17 @@ const EnrolledStudents = () => {
         <div className="admin-modal-overlay">
           <div className="admin-modal admin-attendance-modal">
             <button className="admin-modal-close" onClick={() => setAttendanceModalOpen(false)}>×</button>
-            <h2>Generate Attendance Link</h2>
+            <h2>Generate Attendance Link</h2><p>{cohort.selected.label} cohort · Live classes only</p>
             <p className="admin-modal-email">Choose the exact course holding today. Each course gets its own daily link.</p>
             <div className="admin-attendance-course-grid">
               {attendanceCourses.map((course) => (
-                <button type="button" key={course.title} onClick={() => setConfirmTrack(course.title)}>
+                <button type="button" key={course.title} disabled={!course.studentCount} onClick={() => setConfirmTrack(course.title)}>
                   <strong>{course.title}</strong>
-                  <span>{course.studentCount} enrolled student{course.studentCount === 1 ? "" : "s"}</span>
+                  <span>{course.studentCount} live-class student{course.studentCount === 1 ? "" : "s"}</span>
                 </button>
               ))}
             </div>
-            {generatedSession && (
+            {generatedSession?.cohortId === cohort.selectedId && (
               <div className="admin-generated-link">
                 <span>{generatedSession.track} • {generatedSession.dateKey}</span>
                 <input readOnly value={generatedSession.link} onFocus={(event) => event.target.select()} />
@@ -521,7 +477,7 @@ const EnrolledStudents = () => {
         <div className="admin-modal-overlay">
           <div className="admin-delete-modal">
             <h2>Confirm Lecture Held?</h2>
-            <p>Did <strong>{confirmTrack}</strong> hold today? Clicking yes records today as one lecture day for enrolled students and creates today’s unique attendance link.</p>
+            <p>Did <strong>{confirmTrack}</strong> hold today? Clicking yes records today as one lecture day for this cohort’s live-class students and creates today’s unique attendance link.</p>
             <div className="admin-delete-actions">
               <button onClick={() => setConfirmTrack(null)} className="admin-cancel-delete">No, Cancel</button>
               <button onClick={generateAttendanceSession} className="admin-confirm-attendance" disabled={generatingAttendance}>
@@ -676,7 +632,7 @@ const EnrolledStudents = () => {
           </div>
         </div>
       )}
-    </main>
+    </main></AdminWorkspace>
   );
 };
 

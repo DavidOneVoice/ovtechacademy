@@ -77,7 +77,7 @@ const Footer = () => {
 
         <div className="ov-footer-links">
           <h4>Programs</h4>
-          {courses.map((course) => <a target="_blank" rel="noopener noreferrer" key={course.id} href={`/courses#${course.id}`}>{course.title}</a>)}
+          {courses.map((course) => <a target="_blank" rel="noopener noreferrer" key={course.id} href={`/courses/${course.id}`}>{course.title}</a>)}
         </div>
 
         <div className="ov-footer-links">
