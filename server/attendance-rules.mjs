@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { CANONICAL_PROGRAMMES } from '../src/data/programmes.js';
 const marker = '// OVTECH_ATTENDANCE_PIN_V1';
 // Historical course spellings remain valid for old counters, but only lectureDays
@@ -8,7 +9,10 @@ export function attendanceRules(source) {
   const recordBlock = /match \/attendanceSessions\/\{sessionId\} \{\s*allow read, write: if true;\s*match \/records\/\{recordId\} \{\s*allow read, write: if true;\s*\}\s*\}/;
   const groupBlock = /match \/\{path=\*\*\}\/records\/\{recordId\} \{\s*allow read, write: if true;\s*\}/;
   const updateStart = 'allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(protectedPaymentFields())';
-  if (!recordBlock.test(source) || !groupBlock.test(source) || !source.includes(updateStart) || /match\s+\/\{\w+=\*\*\}\s*\{\s*allow/.test(source)) throw new Error('Live Firestore rules differ from the reviewed rules. No rules were changed.');
+  const legacyApp = /match \/scholarshipApplications\/\{documentId\} \{\s*allow create: if true;\s*allow read, update, delete: if true;\s*\}/;
+  const fingerprint = createHash('sha256').update(source.replace(/\/\/[^\n]*/g, '').replace(/\s+/g, '')).digest('hex');
+  const reviewedLegacy = fingerprint === 'fe628ade52e6b76bed181ec9f491ef0476fd63071bd900569caf1a34fbbb0cc5' && legacyApp.test(source);
+  if (!recordBlock.test(source) || !groupBlock.test(source) || (!source.includes(updateStart) && !reviewedLegacy) || /match\s+\/\{\w+=\*\*\}\s*\{\s*allow/.test(source)) throw new Error('Live Firestore rules differ from the reviewed rules. No rules were changed.');
   const helpers = `${marker}
     // No browser can read PIN hashes, email challenges, rate limits, or migration backups.
     match /attendanceCredentials/{id} { allow read, write: if false; }
@@ -28,8 +32,20 @@ export function attendanceRules(source) {
          ${tracks.map((track) => `attendanceTrackSafe(${JSON.stringify(track)})`).join(' &&\n         ')});
     }
     `;
-  return source.replace('function protectedPaymentFields()', `${helpers}function protectedPaymentFields()`)
-    .replace(updateStart, `${updateStart}\n        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['attendanceMarkedSessions', 'lastAttendanceMarkedAt'])\n        && attendanceCountersSafe()`)
+  let updated;
+  if (reviewedLegacy) {
+    updated = source.replace(legacyApp, `${helpers}match /scholarshipApplications/{documentId} {
+      allow create: if request.resource.data.cohortId == 'october-2026'
+        && !request.resource.data.keys().hasAny(['attendance', 'attendanceMarkedSessions', 'lastAttendanceMarkedAt']);
+      allow read, delete: if true;
+      allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(['email', 'cohortId', 'attendanceMarkedSessions', 'lastAttendanceMarkedAt'])
+        && attendanceCountersSafe();
+    }`);
+  } else {
+    updated = source.replace('function protectedPaymentFields()', `${helpers}function protectedPaymentFields()`)
+      .replace(updateStart, `${updateStart}\n        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['attendanceMarkedSessions', 'lastAttendanceMarkedAt'])\n        && attendanceCountersSafe()`);
+  }
+  return updated
     .replace(recordBlock, `match /attendanceSessions/{sessionId} {
       allow read, create: if true;
       allow update, delete: if false;

@@ -1,0 +1,280 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Public application submissions and the browser-based administration
+    // screens both use this collection. A read rule also permits collection
+    // queries/listing used by the enrolled-students page.
+    match /scholarshipApplications/{documentId} {
+      allow create: if true;
+      allow read, update, delete: if true;
+    }
+
+    // LMS content is read by students and maintained through the current
+    // browser-based admin interface (which does not use Firebase Auth).
+    match /curriculum/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /lmsResources/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /liveSessions/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /lmsSettings/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /settings/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /platformSettings/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /studentProgress/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /progress/{documentId} {
+      allow read, write: if true;
+    }
+
+    match /attendanceSessions/{sessionId} {
+      allow read, write: if true;
+
+      match /records/{recordId} {
+        allow read, write: if true;
+      }
+    }
+
+    // Supports collection-group queries over attendance records, regardless of
+    // the parent attendance session.
+    match /{path=**}/records/{recordId} {
+      allow read, write: if true;
+    }
+
+    function protectedCertificateFields() {
+      return [
+        'approvedAt', 'approvedBy', 'certificateId', 'completionDate',
+        'revokedAt', 'revokedBy', 'revocationReason', 'previousCertificateId'
+      ];
+    }
+
+    function studentProfileFields() {
+      return [
+        'studentId', 'course', 'track', 'photoUrl', 'displayName', 'email',
+        'professionalEmail', 'phone', 'whatsapp',
+        'linkedin', 'facebook', 'instagram', 'twitter', 'tiktok', 'status',
+        'updatedAt', 'submittedAt', 'adminMessage', 'showInAlumniDirectory',
+        'revokedAt', 'revokedBy', 'revocationReason', 'previousCertificateId'
+      ];
+    }
+
+    function isStudentCreate(studentId) {
+      return request.resource.data.keys().hasOnly(studentProfileFields())
+        && request.resource.data.studentId == studentId
+        && request.resource.data.status == 'Pending'
+        && request.resource.data.adminMessage == null
+        && request.resource.data.submittedAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && !request.resource.data.keys().hasAny(protectedCertificateFields());
+    }
+
+    function isStudentUpdate(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status in ['Pending', 'Changes Requested']
+        && request.resource.data.status == 'Pending'
+        && request.resource.data.adminMessage == null
+        && request.resource.data.submittedAt == resource.data.submittedAt
+        && request.resource.data.updatedAt == request.time
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(protectedCertificateFields());
+    }
+
+    function isChangesRequest(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status in ['Pending', 'Revoked']
+        && request.resource.data.status == 'Changes Requested'
+        && request.resource.data.adminMessage is string
+        && request.resource.data.adminMessage.size() > 0
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'adminMessage', 'updatedAt']);
+    }
+
+    function isRevocation(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status == 'Approved'
+        && request.resource.data.status == 'Revoked'
+        && request.resource.data.revokedAt == request.time
+        && request.resource.data.revokedBy == 'admin'
+        && request.resource.data.revocationReason is string
+        && request.resource.data.revocationReason.size() > 0
+        && request.resource.data.previousCertificateId == resource.data.certificateId
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'revokedAt', 'revokedBy', 'revocationReason',
+          'previousCertificateId', 'updatedAt'
+        ]);
+    }
+
+    function isReapproval(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status == 'Revoked'
+        && request.resource.data.status == 'Approved'
+        && request.resource.data.approvedAt == request.time
+        && request.resource.data.approvedBy == 'admin'
+        && request.resource.data.completionDate == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.certificateId is string
+        && request.resource.data.certificateId != resource.data.previousCertificateId
+        && request.resource.data.certificateId.matches('^OVT-[A-Z]{1,4}-[0-9]{4}-[0-9]{6}$')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'approvedAt', 'approvedBy', 'completionDate',
+          'certificateId', 'updatedAt'
+        ]);
+    }
+
+    function isApproval(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status == 'Pending'
+        && request.resource.data.status == 'Approved'
+        && request.resource.data.approvedAt == request.time
+        && request.resource.data.completionDate == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.approvedBy in ['admin', 'assistant']
+        && request.resource.data.certificateId is string
+        && request.resource.data.certificateId.matches('^OVT-[A-Z]{1,4}-[0-9]{4}-[0-9]{6}$')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'approvedAt', 'approvedBy', 'completionDate',
+          'certificateId', 'updatedAt'
+        ]);
+    }
+
+    function isApprovedConsentChange(studentId) {
+      return resource.data.studentId == studentId
+        && request.resource.data.studentId == studentId
+        && resource.data.status == 'Approved'
+        && request.resource.data.status == 'Approved'
+        && request.resource.data.showInAlumniDirectory is bool
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['showInAlumniDirectory', 'updatedAt']);
+    }
+
+   match /certificateProfile/{studentId} {
+  // Temporary until Firebase Authentication replaces the current localStorage authentication.
+  // The admin dashboard queries the certificateProfile collection, so collection listing
+  // must be allowed for the current browser-based admin interface.
+  allow get, list: if true;
+
+  allow create: if isStudentCreate(studentId);
+
+  allow update: if isStudentUpdate(studentId)
+    || isChangesRequest(studentId)
+    || isApproval(studentId)
+    || isRevocation(studentId)
+    || isReapproval(studentId)
+    || isApprovedConsentChange(studentId);
+
+  allow delete: if false;
+}
+
+    match /publicCertificates/{certificateId} {
+      // Public verification permits a direct document lookup, never collection
+      // enumeration. Browser writes are schema-constrained because this legacy
+      // application has no Firebase Auth identity; move approval to a trusted
+      // backend before treating browser-side admin authorization as secure.
+      allow get: if true;
+      allow list: if false;
+      allow delete: if true;
+      allow create, update: if request.resource.data.keys().hasOnly([
+          'certificateId', 'studentName', 'courseOrTrack', 'completionDate',
+          'issuedAt', 'status', 'issuerName', 'issuerBusinessName',
+          'registrationNumber', 'verificationPath', 'photoUrl', 'socialLinks'
+        ])
+        && request.resource.data.keys().hasAll([
+          'certificateId', 'studentName', 'courseOrTrack', 'completionDate',
+          'issuedAt', 'status', 'issuerName', 'issuerBusinessName',
+          'registrationNumber', 'verificationPath'
+        ])
+        && request.resource.data.certificateId == certificateId
+        && certificateId.matches('^OVT-[A-Z0-9]+-[0-9]{4}-[0-9]{6}$')
+        && request.resource.data.status == 'approved'
+        && request.resource.data.issuerName == 'OVTech Academy'
+        && request.resource.data.issuerBusinessName == 'ONE VOICE TECH SOLUTIONS'
+        && request.resource.data.registrationNumber == '9664153'
+        && request.resource.data.verificationPath == '/verify/' + certificateId
+        && request.resource.data.studentName is string
+        && request.resource.data.studentName.size() > 0
+        && request.resource.data.courseOrTrack is string
+        && request.resource.data.courseOrTrack.size() > 0
+        && request.resource.data.completionDate is timestamp
+        && request.resource.data.issuedAt is timestamp;
+    }
+
+    match /publicAlumni/{certificateId} {
+      function hasSafeAlumniSchema() {
+        return request.resource.data.keys().hasOnly([
+            'certificateId', 'studentName', 'courseOrTrack', 'completionDate',
+            'photoUrl', 'professionalEmail', 'phone', 'linkedin', 'facebook', 'instagram', 'twitter',
+            'tiktok', 'verificationPath', 'profileCreatedAt', 'status'
+          ])
+          && request.resource.data.keys().hasAll([
+            'certificateId', 'studentName', 'courseOrTrack', 'completionDate',
+            'photoUrl', 'verificationPath', 'profileCreatedAt', 'status'
+          ])
+          && request.resource.data.certificateId == certificateId
+          && request.resource.data.status == 'active'
+          && request.resource.data.verificationPath == '/verify/' + certificateId
+          && request.resource.data.studentName is string
+          && request.resource.data.studentName.size() > 0
+          && request.resource.data.courseOrTrack is string
+          && request.resource.data.courseOrTrack.size() > 0
+          && request.resource.data.photoUrl is string
+          && request.resource.data.completionDate is timestamp
+          && request.resource.data.profileCreatedAt is timestamp
+          && existsAfter(/databases/$(database)/documents/publicCertificates/$(certificateId));
+      }
+
+      // Active profiles are deliberately listable for the consent-only public directory.
+      // Every public client query must include where('status', '==', 'active').
+      allow get, list: if resource.data.status == 'active';
+
+      // This legacy app has no Firebase Auth (see certificateProfile comment).
+      // Writes are therefore limited to the exact public schema and an existing
+      // approved certificate. Firebase Auth/custom claims are required to make
+      // the browser's student/admin distinction cryptographically enforceable.
+      allow create, update: if request.resource.data.status == 'active'
+        && hasSafeAlumniSchema();
+      allow delete: if true;
+    }
+
+    match /certificateCounters/{counterId} {
+      // Needed by the existing browser-side admin transaction. This cannot be
+      // made admin-only until the localStorage admin login is replaced by an
+      // identity visible to Firestore.
+      allow get: if true;
+      allow list, delete: if false;
+      allow create: if request.resource.data.value == 1
+        && request.resource.data.year is int
+        && request.resource.data.courseCode is string
+        && request.resource.data.updatedAt == request.time;
+      allow update: if request.resource.data.value == resource.data.value + 1
+        && request.resource.data.year == resource.data.year
+        && request.resource.data.courseCode == resource.data.courseCode
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['value', 'updatedAt']);
+    }
+  }
+}

@@ -98,3 +98,13 @@ test('graduates cannot verify or use an earlier attendance grant after completio
   await assert.rejects(f.service.mark({ grant: verified.grant }, 'ip'));
   await assert.rejects(f.service.verify({ sessionId: 'session', email: student.email, pin: '584927' }, 'ip'));
 });
+
+test('the reviewed legacy deployment gets attendance guards without replacing alumni or portal rules', () => {
+  const old = fs.readFileSync('test-support/legacy-firestore.rules', 'utf8');
+  const patched = attendanceRules(old.replaceAll('\n', '\r\n'));
+  assert.match(patched, /attendanceCountersSafe/);
+  assert.match(patched, /allow read, delete: if true/);
+  assert.equal(patched.slice(patched.indexOf('function protectedCertificateFields()')), old.replaceAll('\n', '\r\n').slice(old.replaceAll('\n', '\r\n').indexOf('function protectedCertificateFields()')));
+  assert.equal(attendanceRules(patched), patched);
+  assert.throws(() => attendanceRules(old.replace('allow create: if true;', 'allow create: if false;')), /differ/);
+});
