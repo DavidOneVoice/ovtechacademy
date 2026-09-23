@@ -6,9 +6,9 @@ import {
   collection,
   doc,
   getDoc,
+  getDocFromServer,
   getDocs,
   getDocsFromServer,
-  limit,
   orderBy,
   query,
   serverTimestamp,
@@ -35,6 +35,16 @@ import {
 } from "../lms/content";
 import { resolveStudentCurriculumGroup } from "../lms/tracks";
 import { normalizeProgrammeName } from "../data/programmes";
+import { cohortLabel, recordCohortId } from "../data/cohort";
+import {
+  getStudentLogin,
+  isPaidOrEnrolled,
+  lookupStudents,
+  normalizePhone,
+  restoreStudentEnrollment,
+  STUDENT_EMAIL_FIELDS,
+  STUDENT_PHONE_FIELDS,
+} from "../lms/enrollment";
 import {
   getStudentProgramDay,
   isItemUnlocked,
@@ -56,7 +66,6 @@ const normalize = (value) =>
   String(value || "")
     .trim()
     .toLowerCase();
-const normalizePhone = (value) => String(value || "").replace(/\D/g, "");
 const hasValue = (value) => String(value || "").trim().length > 0;
 
 const slugifyTrack = (track) =>
@@ -65,16 +74,6 @@ const slugifyTrack = (track) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
-const STUDENT_EMAIL_FIELDS = ["email", "emailAddress", "studentEmail"];
-const STUDENT_PHONE_FIELDS = [
-  "whatsapp",
-  "whatsApp",
-  "whatsappNumber",
-  "phone",
-  "phoneNumber",
-  "mobile",
-  "mobileNumber",
-];
 const ENROLLMENT_PACKAGE_FIELDS = [
   "learningMethod",
   "package",
@@ -123,24 +122,6 @@ const getEnrollmentPackage = (student) =>
     .filter(Boolean)
     .join(" ");
 
-const isPaidOrEnrolled = (student) => {
-  if (student?.cohortId === 'october-2026') {
-    return student.status === 'Enrolled' && (student.applicationType !== 'tuition' ||
-      (student.paymentVerified === true && student.registrationStatus === 'submitted'));
-  }
-  const statusText = normalize(
-    [student?.status, student?.paymentStatus, student?.enrollmentStatus]
-      .filter(Boolean)
-      .join(" "),
-  );
-  return (
-    statusText.includes("enrolled") ||
-    statusText.includes("paid") ||
-    statusText.includes("approved") ||
-    statusText.includes("successful")
-  );
-};
-
 const isSelfPacedStudent = (student) =>
   student &&
   isPaidOrEnrolled(student) &&
@@ -159,87 +140,14 @@ const hasUnselectedLearningMethod = (student) =>
 const isInstructorLedStudent = (student) =>
   isLiveClassStudent(student) || hasUnselectedLearningMethod(student);
 
-const isEligibleStudent = (student) => isPaidOrEnrolled(student);
-
-const fieldMatches = (student, fields, target, normalizer = normalize) =>
-  fields.some(
-    (field) =>
-      hasValue(student?.[field]) && normalizer(student[field]) === target,
-  );
-
-const findEligibleStudent = (docs, login) => {
-  const email = normalize(login.email);
-  const phone = normalizePhone(login.whatsapp);
-
-  return docs
-    .map((item) => ({ id: item.id, ...item.data() }))
-    .find((item) => {
-      const emailMatches =
-        email && fieldMatches(item, STUDENT_EMAIL_FIELDS, email, normalize);
-      const phoneMatches =
-        phone &&
-        fieldMatches(item, STUDENT_PHONE_FIELDS, phone, normalizePhone);
-      return (emailMatches || phoneMatches) && isEligibleStudent(item);
-    });
-};
-
-const uniqueDocs = (snapshots) => {
-  const docsById = new Map();
-  snapshots.forEach((snapshot) =>
-    snapshot.docs.forEach((item) => docsById.set(item.id, item)),
-  );
-  return [...docsById.values()];
-};
-
-const buildLoginQueries = (login) => {
-  const email = login.email.trim();
-  const normalizedEmail = normalize(email);
-  const rawPhone = login.whatsapp.trim();
-  const digitsPhone = normalizePhone(rawPhone);
-  const queries = [];
-
-  if (email) {
-    STUDENT_EMAIL_FIELDS.forEach((field) => {
-      queries.push(
-        query(
-          collection(db, "scholarshipApplications"),
-          where(field, "==", email),
-          limit(1),
-        ),
-      );
-      if (normalizedEmail !== email)
-        queries.push(
-          query(
-            collection(db, "scholarshipApplications"),
-            where(field, "==", normalizedEmail),
-            limit(1),
-          ),
-        );
-    });
-  }
-
-  if (rawPhone) {
-    STUDENT_PHONE_FIELDS.forEach((field) => {
-      queries.push(
-        query(
-          collection(db, "scholarshipApplications"),
-          where(field, "==", rawPhone),
-          limit(1),
-        ),
-      );
-      if (digitsPhone !== rawPhone)
-        queries.push(
-          query(
-            collection(db, "scholarshipApplications"),
-            where(field, "==", digitsPhone),
-            limit(1),
-          ),
-        );
-    });
-  }
-
-  return queries;
-};
+const loadStudentEnrollments = (login) => lookupStudents(login, async (field, value) => {
+  // Read every exact contact match before checking enrollment; a first-result
+  // limit can hide the enrolled record behind an older scholarship application.
+  const snapshot = await getDocsFromServer(query(
+    collection(db, "scholarshipApplications"), where(field, "==", value),
+  ));
+  return snapshot.docs.map((item) => ({ ...item.data(), id: item.id }));
+});
 
 const buildAttendanceSummary = (student, attendanceRecords = []) => {
   const attendance = student?.attendance || {};
@@ -327,6 +235,8 @@ const LmsDashboard = () => {
   const playerRef = useRef(null);
   const [student, setStudent] = useState(null);
   const [login, setLogin] = useState({ email: "", whatsapp: "" });
+  const [enrollmentChoices, setEnrollmentChoices] = useState([]);
+  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState("");
   const [lessons, setLessons] = useState([]);
   const [resources, setResources] = useState([]);
   const [lmsSettings, setLmsSettings] = useState({});
@@ -361,30 +271,42 @@ const LmsDashboard = () => {
   const [alumniVisibilityMessage, setAlumniVisibilityMessage] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) setStudent(JSON.parse(saved));
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (!student?.id) return;
-
-    const refreshStudent = async () => {
+    let cancelled = false;
+    const restoreSession = async () => {
       try {
-        const studentSnap = await getDoc(
-          doc(db, "scholarshipApplications", student.id),
-        );
-        if (!studentSnap.exists()) return;
-        const latestStudent = { id: studentSnap.id, ...studentSnap.data() };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(latestStudent));
-        setStudent(latestStudent);
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved?.id) return;
+        const studentSnap = await getDocFromServer(doc(db, "scholarshipApplications", saved.id));
+        if (cancelled) return;
+        if (!studentSnap.exists()) {
+          localStorage.removeItem(STORAGE_KEY);
+          return;
+        }
+        const current = { ...studentSnap.data(), id: studentSnap.id };
+        const matches = await restoreStudentEnrollment(current, loadStudentEnrollments);
+        if (cancelled) return;
+        if (matches.length === 1) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(matches[0]));
+          setStudent(matches[0]);
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+          setLogin(getStudentLogin(current));
+          setEnrollmentChoices(matches);
+          setAuthError(matches.length ? "Choose the enrollment you want to open." :
+            "Please sign in with the email or phone number on your enrolled application.");
+        }
       } catch (error) {
-        console.error("Unable to refresh student profile:", error);
+        if (!cancelled) {
+          console.error("Unable to restore student enrollment:", error);
+          setAuthError("We could not refresh your enrollment. Please sign in again.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
-
-    refreshStudent();
-  }, [student?.id]);
+    restoreSession();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!student?.id) return;
@@ -675,19 +597,28 @@ const LmsDashboard = () => {
         return;
       }
 
-      const snapshots = await Promise.all(
-        buildLoginQueries(login).map((loginQuery) => getDocs(loginQuery)),
-      );
-      const match = findEligibleStudent(uniqueDocs(snapshots), login);
-
-      if (!match) {
+      const matches = await loadStudentEnrollments(login);
+      if (!matches.length) {
+        setEnrollmentChoices([]);
+        setSelectedEnrollmentId("");
         setAuthError(
-          "No enrolled student was found with that email or WhatsApp/phone number.",
+          "No enrollment was found. Use the email or WhatsApp/phone number on your enrolled application.",
         );
         return;
       }
 
+      const match = matches.length === 1 ? matches[0] :
+        matches.find((item) => item.id === selectedEnrollmentId);
+      if (!match) {
+        setEnrollmentChoices(matches);
+        setSelectedEnrollmentId("");
+        setAuthError("Choose the enrollment you want to open.");
+        return;
+      }
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(match));
+      setEnrollmentChoices([]);
+      setSelectedEnrollmentId("");
       setStudent(match);
       navigate("/lms", { replace: true });
     } catch (error) {
@@ -713,6 +644,8 @@ const LmsDashboard = () => {
 
   const logout = () => {
     localStorage.removeItem(STORAGE_KEY);
+    setEnrollmentChoices([]);
+    setSelectedEnrollmentId("");
     setCertificateProfile(null);
     setStudent(null);
     navigate("/lms", { replace: true });
@@ -869,9 +802,12 @@ const LmsDashboard = () => {
                 <input
                   type="email"
                   value={login.email}
-                  onChange={(e) =>
-                    setLogin((prev) => ({ ...prev, email: e.target.value }))
-                  }
+                  disabled={loading}
+                  onChange={(e) => {
+                    setLogin((prev) => ({ ...prev, email: e.target.value }));
+                    setEnrollmentChoices([]);
+                    setSelectedEnrollmentId("");
+                  }}
                 />
               </label>
               <label>
@@ -879,11 +815,28 @@ const LmsDashboard = () => {
                 <input
                   type="tel"
                   value={login.whatsapp}
-                  onChange={(e) =>
-                    setLogin((prev) => ({ ...prev, whatsapp: e.target.value }))
-                  }
+                  disabled={loading}
+                  onChange={(e) => {
+                    setLogin((prev) => ({ ...prev, whatsapp: e.target.value }));
+                    setEnrollmentChoices([]);
+                    setSelectedEnrollmentId("");
+                  }}
                 />
               </label>
+              {enrollmentChoices.length > 1 && (
+                <label>
+                  Your enrollment
+                  <select value={selectedEnrollmentId} disabled={loading} required
+                    onChange={(event) => setSelectedEnrollmentId(event.target.value)}>
+                    <option value="">Choose a course and cohort</option>
+                    {enrollmentChoices.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {getStudentName(item)} · {getStudentCourse(item)} · {cohortLabel(recordCohortId(item))}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               {authError && <p className="lms-error">{authError}</p>}
               <button type="submit" disabled={loading}>
                 {loading ? "Checking..." : "Enter LMS"}
