@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { publicPages } from "./seo/publicPages";
 import SeoMetadata from "./seo/SeoMetadata";
+import AnalyticsConsent from "./analytics/AnalyticsConsent";
 import NotFound from "./pages/NotFound";
 const Registration = lazy(() => import("./pages/Registration"));
 const PaymentReturn = lazy(() => import("./pages/PaymentReturn"));
@@ -34,6 +35,7 @@ function App() {
   return (
     <BrowserRouter>
       <SeoMetadata />
+      <AnalyticsConsent />
       <Suspense fallback={<p role="status" className="route-loading">Loading…</p>}>
       <Routes>
         {publicPages.map(({ path, Component }) => <Route key={path} path={path} element={<Component />} />)}

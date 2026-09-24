@@ -74,6 +74,7 @@ const Footer = () => {
           <a target="_blank" rel="noopener noreferrer" href="/lms">Student Portal</a>
           <a target="_blank" rel="noopener noreferrer" href="/about">About</a>
           <a target="_blank" rel="noopener noreferrer" href="/contact">Contact</a>
+          <a target="_blank" rel="noopener noreferrer" href="/analytics-and-cookies">Analytics & cookies</a>
         </div>
 
         <div className="ov-footer-links">

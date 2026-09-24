@@ -1,0 +1,18 @@
+import { useSyncExternalStore } from "react";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import { readConsent, subscribeConsent, serverConsent, changeConsent } from "../analytics/consent.js";
+import "../analytics/AnalyticsConsent.css";
+import "./LearningGuides.css";
+
+export default function AnalyticsPrivacy() {
+  const choice = useSyncExternalStore(subscribeConsent, readConsent, serverConsent);
+  const status = choice === "granted" ? "Analytics is allowed in this browser." : choice === "denied" ? "Analytics is off in this browser." : "Analytics stays off until you choose to allow it.";
+  return <main className="learning-guides"><Navbar /><article className="analytics-notice"><span className="academy-eyebrow">Your website preferences</span><h1>Analytics and cookies</h1>
+    <section className="analytics-preferences" aria-labelledby="analytics-preferences-title"><h2 id="analytics-preferences-title">Your choice</h2><p role="status">{status}</p><button type="button" onClick={() => changeConsent("denied")}>Use essential only</button><button type="button" onClick={() => changeConsent("granted")}>Allow analytics</button><p>You can change your choice here at any time. It applies to this browser and is remembered for up to six months.</p></section>
+    <h2>Why we use analytics</h2><p>OVTech Academy uses Google Analytics to understand which public pages and courses people explore and whether they start or complete an application. These reports help us improve the website and understand how people find our courses.</p>
+    <h2>What is measured after you agree</h2><p>Google Analytics receives the page name, course identifier where relevant, and milestones such as starting an application, submitting a scholarship application or completing a registration. It also processes standard visit information, including a cookie-based browser identifier, browser and device information, visit timing, and approximate location. This is not anonymous data.</p><p>We send fixed page addresses without query strings, payment references or application IDs. Recognised referral services may be reported without the referring page's path or search terms. Names, email addresses, phone numbers, form answers and payment details are not included in our analytics events.</p>
+    <h2>Your choices and cookies</h2><p>Before you allow analytics, we do not load Google's analytics script or set analytics cookies. If you agree, Google may set cookies whose names begin with <code>_ga</code>. We configure their lifetime to a maximum of 180 days without extending it on every visit. Choosing essential only stops our analytics events and removes these cookies from this website.</p><p>We store your preference locally so we can honour it on future visits. Essential website functions may still use browser storage or cookies for saved application drafts, payment verification, security and portal sessions. Declining analytics does not prevent you from applying or studying.</p>
+    <h2>Where analytics is used</h2><p>Analytics covers public website pages and the admissions process. It is not loaded on student portals, administration pages, attendance pages or certificate verification pages. Automatic form tracking and advertising personalisation are turned off for this connection.</p><p>Google processes analytics information for us. Read <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">how Google uses information from websites that use its services</a>. For questions about OVTech's website data, email <a href="mailto:onevoicetech2023@gmail.com" target="_blank" rel="noopener noreferrer">onevoicetech2023@gmail.com</a>.</p>
+  </article><Footer /></main>;
+}

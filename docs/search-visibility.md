@@ -9,7 +9,7 @@ and validates the output before deployment. Netlify runs this through the existi
 `build:production` command. This keeps course content readable before JavaScript
 runs. Regional fees still come from the visitor's location in the browser.
 
-`src/seo/metadata.js` defines the 18 indexable paths, unique titles/descriptions,
+`src/seo/metadata.js` defines the 19 indexable paths, unique titles/descriptions,
 self-referencing canonical URLs, social sharing text and structured data.
 Organization, Course, course ItemList, BreadcrumbList and Article data use the
 published course catalogue and guide content. Structured data does not guarantee
@@ -48,8 +48,8 @@ Guide and course detail URLs are generated from their data automatically. Run
 
 Completed on 24 September 2026 for `https://ovtechacademy.com/`: ownership verified,
 the sitemap successfully processed with 16 discovered pages at that time, and
-the homepage confirmed indexed. The sitemap now includes 18 public pages after
-adding the Cybersecurity and AI Automation guides. Discovery of those additions
+the homepage confirmed indexed. The sitemap now includes 19 public pages after
+adding the Cybersecurity and AI Automation guides and the analytics notice. Discovery of those additions
 and indexing of individual pages still depend on Google's next crawl.
 
 The academy owner's public HTML verification tag is committed in `index.html`
@@ -75,7 +75,7 @@ If the property ever needs reconnecting:
 Publishing the sitemap alone is not the same as submitting it through a verified
 Search Console account. Crawling, indexing and rankings remain Google's decisions.
 
-## Measurement groundwork
+## Google Analytics measurement
 
 `src/analytics/events.js` emits local `ovtech:conversion` CustomEvents for course
 views, first application edits, successful scholarship applications, first
@@ -83,20 +83,47 @@ checkout opening and confirmed registration completion. Only real catalogue
 course IDs and scholarship/tuition types are allowed. Names, contact details,
 payment references, application IDs and page URLs are excluded.
 
-These hooks do **not** send data anywhere, load Google tags, store visitor IDs or
-create an analytics dashboard. They are preparation for a separately configured
-destination and visitor-consent flow. An actual GA4 property/Ads account and its
-real IDs are needed before activation. Keep measurement off student/admin/payment
-URLs unless explicitly designed to exclude all private URL/query data. Disable
-automatic form capture and never pass personal form fields to advertising tags.
+Configured on 24 September 2026 in the owner's existing `ovtechacad` property
+(`541559075`), matching this website's Firebase project. The web stream is
+`OVTech Academy website`, URL `https://ovtechacademy.com`, stream `15069934018`,
+measurement ID `G-EK7YNYFWJV`. These are public configuration identifiers, not
+credentials. Other Firebase app properties were not changed.
 
-As of 24 September 2026, Google Analytics is accessible in the owner's Google
-session, but its initial email-communications prompt requires an owner choice
-before setup can continue. The visible existing property is for a separate
-Firebase app, not confirmed as an academy website property. No property was
-repurposed and no website measurement ID has been installed. Continue by checking
-the property picker, configuring the academy's own web stream, turning off
-automatic form measurement, adding visitor consent and testing the safe events.
+`src/analytics/google.js` forwards the allowed events only after the visitor
+chooses Allow analytics. The Google script is absent before that choice. Consent
+is remembered for up to 180 days; Analytics cookies use the same maximum lifetime
+without extending it on every visit. The footer links to `/analytics-and-cookies`
+where visitors can change their choice. Essential only stops measurement and
+removes Analytics cookies without removing application drafts or portal sessions.
+
+Measurement runs only on the production domain, public pages and explicitly
+allowed admissions pages. Page locations and titles come from fixed definitions;
+query strings, fragments, payment references and private routes cannot become
+event data. Referral information is limited to recognised service domains, never
+their paths or query strings. Student, admin, attendance and certificate routes
+and preview environments are excluded. Cookie and storage blocking must not
+prevent applications or portal access.
+
+Enhanced measurement is off in the stream, including automatic form and browser
+history tracking. Advertising consent, Google signals and ad personalisation are
+off in the website tag. Email redaction is active, with URL redaction for
+`reference`, `trxref`, `draft`, `application`, `email`, `phone`, `whatsapp`,
+`fullname`, `name`, `location`, `referralcode`, `token` and `code` as a further
+backstop. Do not enable automatic capture or send personal form values to tags.
+
+`generate_lead` (saved scholarship application) and `registration_complete`
+(confirmed registration completion) are key events, counted once per event with
+no assigned monetary value. Ordinary course views and application starts are not
+completed applications. Event-scoped custom dimensions `Course` (`course_id`)
+and `Application type` (`application_type`) provide course and admissions-path
+breakdowns. Counts depend on visitor consent, browser blockers and
+successful delivery; they are not the authoritative enrolment or payment ledger.
+
+Regression tests cover consent, withdrawal, private routes, query stripping,
+allowed event parameters and blocked browser storage. Validate actual page and
+course visits in Realtime after deploying; never create fake live applications
+or payments merely to test Analytics. Standard reports and custom definitions
+can take time to populate.
 
 ## Promotion still needing owner input
 

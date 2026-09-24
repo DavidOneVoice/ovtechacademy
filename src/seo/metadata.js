@@ -10,6 +10,7 @@ const organization = {
   sameAs: ["https://web.facebook.com/61559488910917/", "https://www.youtube.com/@D-OVTech", "https://www.tiktok.com/@onevoicetech"],
 };
 const definitions = [
+  ["/analytics-and-cookies", "Analytics & Cookie Choices | OVTech Academy", "Learn how OVTech Academy measures website visits and applications. Choose whether to allow analytics cookies or use essential website functions only."],
   ["/", "Online Tech Courses & Practical Training | OVTech Academy", "Learn data analytics, coding, cybersecurity, virtual assistance and AI automation online. Explore practical projects, class formats and scholarship options."],
   ["/courses", "Online Tech Courses & Learning Paths | OVTech Academy", "Compare six online tech courses: curriculum, practical projects, duration, learning format and regional fees. Choose your learning path at OVTech Academy."],
   ["/about", "About OVTech Academy | Online Technology Education", "Meet OVTech Academy and founder Badru Olumide David. Learn about our approach to practical tech training, projects, mentorship and online learning."],
