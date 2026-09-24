@@ -9,7 +9,7 @@ const ScholarshipPayment = lazy(() => import("./pages/ScholarshipPayment"));
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
-import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
+const ProtectedAdminRoute = lazy(() => import("./components/ProtectedAdminRoute"));
 const EnrolledStudents = lazy(() => import("./pages/EnrolledStudents"));
 const GraduatedStudents = lazy(() => import("./pages/GraduatedStudents"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
@@ -34,6 +34,7 @@ function App() {
   return (
     <BrowserRouter>
       <SeoMetadata />
+      <Suspense fallback={<p role="status" className="route-loading">Loading…</p>}>
       <Routes>
         {publicPages.map(({ path, Component }) => <Route key={path} path={path} element={<Component />} />)}
         <Route path="*" element={<NotFound />} />
@@ -95,6 +96,7 @@ function App() {
         />
         <Route path="/payment-success" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><PaymentSuccess /></Suspense>} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

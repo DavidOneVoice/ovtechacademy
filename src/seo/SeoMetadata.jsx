@@ -15,9 +15,11 @@ export default function SeoMetadata() {
     };
     setMeta("name", "description", page.description);
     setMeta("name", "robots", page.robots);
-    for (const [name, value] of Object.entries({ "og:title": page.title, "og:description": page.description, "og:type": page.guide ? "article" : "website", "og:url": page.canonical })) setMeta("property", name, value);
+    for (const [name, value] of Object.entries({ "og:title": page.title, "og:description": page.description, "og:type": page.guide ? "article" : "website", "og:url": page.canonical, "og:image": page.image, "og:image:alt": page.imageAlt, "og:image:width": page.image ? "1536" : null, "og:image:height": page.image ? "1024" : null })) setMeta("property", name, value);
     setMeta("name", "twitter:title", page.title);
     setMeta("name", "twitter:description", page.description);
+    setMeta("name", "twitter:image", page.image);
+    setMeta("name", "twitter:image:alt", page.imageAlt);
     let canonical = document.head.querySelector('link[rel="canonical"]');
     if (page.canonical) {
       if (!canonical) { canonical = document.createElement("link"); canonical.rel = "canonical"; document.head.append(canonical); }

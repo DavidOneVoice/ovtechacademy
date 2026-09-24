@@ -12,7 +12,7 @@ const Footer = () => {
       <div className="ov-footer-top">
         <div className="ov-footer-brand">
           <div className="ov-footer-logo">
-            <img src="/ovlogo2.png" alt="OVTech Logo" />
+            <img src="/ovlogo2.png" alt="OVTech Logo" loading="lazy" decoding="async" />
           </div>
 
           <h3>OVTech Academy</h3>

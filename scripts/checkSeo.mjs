@@ -15,6 +15,11 @@ for (const path of PUBLIC_PATHS) {
   assert.ok(html.includes(`href="${page.canonical}"`), `${path}: correct canonical`);
   assert.match(html, /<div id="root" data-prerendered="true">/);
   assert.match(html, /<h1[ >]/, `${path}: real page heading before JavaScript`);
+  assert.doesNotMatch(html, /class="route-loading"|<!--\$!-->/, `${path}: lazy route finished rendering`);
+  assert.equal((html.match(/property="og:image"/g) || []).length, 1, `${path}: one share image`);
+  assert.ok(html.includes(`content="${page.image}"`), `${path}: relevant share image`);
+  for (const [, asset] of html.matchAll(/(?:href|src)="\/(assets\/[^"?]+)"/g)) await read(asset);
+  if (path === "/" || path.startsWith("/guides")) assert.doesNotMatch(html, /(?:href|src)="\/assets\/(?:firebase|ApplicationForm|Admin|LmsDashboard)-/, `${path}: no unrelated application preloads`);
   assert.doesNotMatch(html, /name="robots" content="noindex/);
   const schema = html.match(/<script id="ovtech-structured-data" type="application\/ld\+json">(.*?)<\/script>/s);
   assert.deepEqual(JSON.parse(schema[1]), page.structuredData);

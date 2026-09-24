@@ -1,11 +1,28 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { render } from "../dist-ssr/entry-server.js";
+import { render, pageModuleForPath } from "../dist-ssr/entry-server.js";
 import { PUBLIC_PATHS, PRIVATE_PATHS, SITE_URL, metadataForPath, renderMetadata, escapeHtml } from "../src/seo/metadata.js";
 
 const directory = join(process.cwd(), "dist");
 const template = await readFile(join(directory, "index.html"), "utf8");
 const verification = process.env.GOOGLE_SITE_VERIFICATION || "";
+const manifest = JSON.parse(await readFile(join(directory, ".vite/manifest.json"), "utf8"));
+function routeAssets(path) {
+  const assets = new Set();
+  const seen = new Set();
+  function visit(key) {
+    if (seen.has(key)) return;
+    seen.add(key);
+    const chunk = manifest[key];
+    if (!chunk) throw new Error(`Missing route asset ${key}`);
+    for (const dependency of chunk.imports || []) visit(dependency);
+    for (const css of chunk.css || []) assets.add(`<link rel="stylesheet" crossorigin href="/${css}">`);
+    if (chunk.file.endsWith(".js")) assets.add(`<link rel="modulepreload" crossorigin href="/${chunk.file}">`);
+  }
+  const module = pageModuleForPath(path);
+  if (module) visit(module);
+  return [...assets].filter((tag) => !template.includes(tag)).join("\n");
+}
 const head = (page) => template.replace(/<!--seo:start-->[\s\S]*?<!--seo:end-->/, `<!--seo:start-->\n${renderMetadata(page, verification)}\n<!--seo:end-->`);
 if (!template.includes('<!--seo:start-->') || !template.includes('<div id="root"></div>')) throw new Error("Prerender template markers are missing.");
 
@@ -15,12 +32,12 @@ await writeFile(join(directory, "app.html"), head(metadataForPath("/lms")));
 for (const path of PUBLIC_PATHS) {
   const filename = join(directory, path === "/" ? "index.html" : `${path.slice(1)}.html`);
   await mkdir(dirname(filename), { recursive: true });
-  const body = render(path);
+  const body = await render(path);
   if (!body.includes("<h1")) throw new Error(`Public page ${path} did not render its content.`);
-  const html = head(metadataForPath(path)).replace('<div id="root"></div>', `<div id="root" data-prerendered="true">${body}</div>`);
+  const html = head(metadataForPath(path)).replace('</head>', `${routeAssets(path)}\n</head>`).replace('<div id="root"></div>', `<div id="root" data-prerendered="true">${body}</div>`);
   await writeFile(filename, html);
 }
-await writeFile(join(directory, "404.html"), head({ ...metadataForPath("/not-found"), title: "Page not found | OVTech Academy" }).replace('<div id="root"></div>', `<div id="root">${render("/not-found")}</div>`));
+await writeFile(join(directory, "404.html"), head({ ...metadataForPath("/not-found"), title: "Page not found | OVTech Academy" }).replace('<div id="root"></div>', `<div id="root">${await render("/not-found")}</div>`));
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${PUBLIC_PATHS.map((path) => `  <url><loc>${escapeHtml(`${SITE_URL}${path}`)}</loc></url>`).join("\n")}\n</urlset>\n`;
 await writeFile(join(directory, "sitemap.xml"), sitemap);

@@ -9,11 +9,18 @@ and validates the output before deployment. Netlify runs this through the existi
 `build:production` command. This keeps course content readable before JavaScript
 runs. Regional fees still come from the visitor's location in the browser.
 
-`src/seo/metadata.js` defines the 16 indexable paths, unique titles/descriptions,
+`src/seo/metadata.js` defines the 18 indexable paths, unique titles/descriptions,
 self-referencing canonical URLs, social sharing text and structured data.
 Organization, Course, course ItemList, BreadcrumbList and Article data use the
 published course catalogue and guide content. Structured data does not guarantee
 special search appearances.
+
+Public routes load their own JavaScript on demand. React's static renderer waits
+for each route before writing its HTML; the Vite manifest supplies the matching
+CSS and module preloads so the rendered page is styled immediately. The homepage
+and guides do not preload Firebase, application forms or portal bundles. Large
+project screenshots below the homepage introduction load lazily. Course and
+guide sharing previews use the relevant course image rather than a dated flyer.
 
 The build generates `/sitemap.xml` and `/robots.txt`. Public routes serve their
 own HTML, known application routes serve a separate noindex shell, and unknown
@@ -27,23 +34,31 @@ paths and a slash-only redirect can loop. Preserve the API rewrites when changin
 
 ## Content maintenance
 
-The three starter guides are in `src/data/guides.js`; course FAQs and preparation
+The five starter guides are in `src/data/guides.js`; course FAQs and preparation
 advice are in `src/data/courseGuidance.js`. Add genuinely useful material based on
 the actual syllabus, student questions and approved examples. Keep course dates,
 formats, curriculum and fees accurate. Use real publication/update dates, and do
 not add fake reviews, job guarantees, locations or keyword-filled duplicate pages.
 
-Add public routes to both `src/seo/publicPages.jsx` and the metadata definitions.
+Add public routes to both `src/seo/publicPages.js` and the metadata definitions.
 Guide and course detail URLs are generated from their data automatically. Run
 `npm test` and `npm run build` before publishing; the build includes `test:seo`.
 
 ## Google Search Console setup
+
+Completed on 24 September 2026 for `https://ovtechacademy.com/`: ownership verified,
+the sitemap successfully processed with 16 discovered pages at that time, and
+the homepage confirmed indexed. The sitemap now includes 18 public pages after
+adding the Cybersecurity and AI Automation guides. Discovery of those additions
+and indexing of individual pages still depend on Google's next crawl.
 
 The academy owner's public HTML verification tag is committed in `index.html`
 outside the generated SEO block. Keep it in place after ownership verification.
 It was provided by Search Console for `https://ovtechacademy.com/`; it is intended
 to be public and is not a login credential. The build environment option below
 can supply an additional Google-provided tag if another verification is needed.
+
+If the property ever needs reconnecting:
 
 1. Sign in at https://search.google.com/search-console with the academy's account.
 2. Add URL-prefix property `https://ovtechacademy.com/` (or use a domain property
@@ -74,6 +89,14 @@ destination and visitor-consent flow. An actual GA4 property/Ads account and its
 real IDs are needed before activation. Keep measurement off student/admin/payment
 URLs unless explicitly designed to exclude all private URL/query data. Disable
 automatic form capture and never pass personal form fields to advertising tags.
+
+As of 24 September 2026, Google Analytics is accessible in the owner's Google
+session, but its initial email-communications prompt requires an owner choice
+before setup can continue. The visible existing property is for a separate
+Firebase app, not confirmed as an academy website property. No property was
+repurposed and no website measurement ID has been installed. Continue by checking
+the property picker, configuring the academy's own web stream, turning off
+automatic form measurement, adding visitor consent and testing the safe events.
 
 ## Promotion still needing owner input
 

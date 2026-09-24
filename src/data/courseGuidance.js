@@ -32,12 +32,14 @@ export const courseGuidance = {
     preparation: "Build familiarity with your computer's settings and basic networking terms. Security exercises belong in your own lab or an environment where you have explicit permission to practise.",
     question: "Is the cybersecurity course focused on practical work?",
     answer: "The curriculum includes authorised defensive exercises, with planned projects such as a home lab network review, log investigation report, and incident response plan. Practice must stay within the scope of the authorised environment.",
+    guide: "how-to-start-learning-cybersecurity",
   },
   "ai-automation": {
     audience: "For learners who want to reduce repetitive business work using automation tools and AI. You will map processes, connect apps, test workflows, and add human review where it is needed.",
     preparation: "Think of a repeated task you would like to improve, such as organising enquiries or preparing a report. Use sample information while learning and check outputs before relying on an automated workflow.",
     question: "Which tools and workflows does AI Automation cover?",
     answer: "The curriculum includes AI assistants, Make, n8n, Google Workspace, APIs, and webhooks. Planned projects include lead follow-up, document summaries, reporting, and a business automation capstone.",
+    guide: "what-is-ai-automation",
   },
 };
 

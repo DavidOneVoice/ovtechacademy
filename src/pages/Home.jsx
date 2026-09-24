@@ -498,6 +498,10 @@ const Home = () => {
             <div className="ov-project-image">
               <img
                 src="/ovtimg2.png"
+                loading="lazy"
+                decoding="async"
+                width="1536"
+                height="1024"
                 alt="Business Analytics Dashboard"
                 className="ov-project-img"
               />
@@ -516,6 +520,10 @@ const Home = () => {
             <div className="ov-project-image">
               <img
                 src="/ovtimg3.png"
+                loading="lazy"
+                decoding="async"
+                width="1536"
+                height="1024"
                 alt="Modern React Application"
                 className="ov-project-img"
               />
@@ -534,6 +542,10 @@ const Home = () => {
             <div className="ov-project-image">
               <img
                 src="/portfolio-website.png"
+                loading="lazy"
+                decoding="async"
+                width="1536"
+                height="1024"
                 alt="Professional Portfolio Website"
                 className="ov-project-img"
               />
@@ -554,6 +566,10 @@ const Home = () => {
             <div className="ov-project-image">
               <img
                 src="/gvadminpage.png"
+                loading="lazy"
+                decoding="async"
+                width="1908"
+                height="854"
                 alt="School Management Platform"
                 className="ov-project-img"
               />
@@ -569,6 +585,10 @@ const Home = () => {
             <div className="ov-project-image">
               <img
                 src="/ecommerce-website.png"
+                loading="lazy"
+                decoding="async"
+                width="1536"
+                height="1024"
                 alt="E-commerce Website"
                 className="ov-project-img"
               />
@@ -586,6 +606,10 @@ const Home = () => {
             <div className="ov-project-image">
               <img
                 src="/business-website.png"
+                loading="lazy"
+                decoding="async"
+                width="1536"
+                height="1024"
                 alt="Business Website"
                 className="ov-project-img"
               />

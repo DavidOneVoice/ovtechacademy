@@ -16,7 +16,7 @@ const definitions = [
   ["/contact", "Contact Admissions | OVTech Academy", "Ask OVTech Academy about courses, scholarships, learning formats and registration. Contact the admissions team by email, WhatsApp or the enquiry form."],
   ["/scholarship", "Apply for a Tech Course Scholarship | OVTech Academy", "Apply for scholarship support on an OVTech online tech course. Choose your learning path and review its format. Scholarship fees are paid only after approval."],
   ["/alumni", "Alumni Directory | OVTech Academy", "Meet verified OVTech Academy graduates who have chosen to share their professional profiles, completed courses and projects."],
-  ["/guides", "Tech Learning Guides for Beginners | OVTech Academy", "Practical guides to data analytics, virtual assistance, web development and software development. Understand the skills and choose your next learning step."],
+  ["/guides", "Tech Learning Guides for Beginners | OVTech Academy", "Explore beginner guides to coding, data analytics, cybersecurity, virtual assistance and AI automation. Try a practical project and choose your learning path."],
 ];
 
 export const PUBLIC_METADATA = Object.fromEntries(definitions.map(([path, title, description]) => [path, { path, title, description }]));
@@ -45,13 +45,16 @@ export function metadataForPath(pathname) {
   const path = normalizePath(pathname);
   const page = PUBLIC_METADATA[path];
   if (!page) return { path, title: "OVTech Academy", description: "OVTech Academy student, admissions and verification services.", robots: "noindex, nofollow", canonical: null, structuredData: null };
+  const imageCourse = page.course || courses.find((course) => page.guide?.courseIds.includes(course.id));
+  const image = `${SITE_URL}${imageCourse?.image || "/images/hero.webp"}`;
+  const imageAlt = imageCourse?.alt || "A learner and mentor working together on a practical technology project";
   const nodes = [];
   if (path === "/") nodes.push(organization, { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: SITE_NAME, alternateName: "One Voice Tech", url: `${SITE_URL}/` });
   if (path !== "/") nodes.push(breadcrumb(path, page.course?.title || page.guide?.title || page.title.split(" | ")[0]));
   if (path === "/courses") nodes.push({ "@type": "ItemList", itemListElement: courses.map((course, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE_URL}/courses/${course.id}` })) });
   if (page.course) nodes.push({ "@type": "Course", "@id": `${SITE_URL}${path}#course`, name: page.course.title, description: page.course.description, url: `${SITE_URL}${path}`, provider, inLanguage: "en", teaches: page.course.outline, timeRequired: `P${page.course.durationWeeks}W` });
-  if (page.guide) nodes.push({ "@type": "Article", headline: page.guide.title, description: page.guide.description, datePublished: page.guide.published, dateModified: page.guide.published, author: { "@type": "Organization", name: SITE_NAME, url: `${SITE_URL}/about` }, publisher: provider, mainEntityOfPage: `${SITE_URL}${path}`, inLanguage: "en" });
-  return { ...page, canonical: `${SITE_URL}${path}`, robots: "index, follow, max-image-preview:large", structuredData: nodes.length ? { "@context": "https://schema.org", "@graph": nodes } : null };
+  if (page.guide) nodes.push({ "@type": "Article", headline: page.guide.title, description: page.guide.description, image: [image], datePublished: page.guide.published, dateModified: page.guide.published, author: { "@type": "Organization", name: SITE_NAME, url: `${SITE_URL}/about` }, publisher: provider, mainEntityOfPage: `${SITE_URL}${path}`, inLanguage: "en" });
+  return { ...page, image, imageAlt, canonical: `${SITE_URL}${path}`, robots: "index, follow, max-image-preview:large", structuredData: nodes.length ? { "@context": "https://schema.org", "@graph": nodes } : null };
 }
 
 export const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
@@ -69,6 +72,14 @@ export function renderMetadata(page, verification = "") {
     ...(page.canonical ? [`<meta property="og:url" content="${escapeHtml(page.canonical)}" />`] : []),
     `<meta name="twitter:title" content="${escapeHtml(page.title)}" />`,
     `<meta name="twitter:description" content="${escapeHtml(page.description)}" />`,
+    ...(page.image ? [
+      `<meta property="og:image" content="${escapeHtml(page.image)}" />`,
+      `<meta property="og:image:alt" content="${escapeHtml(page.imageAlt)}" />`,
+      `<meta property="og:image:width" content="1536" />`,
+      `<meta property="og:image:height" content="1024" />`,
+      `<meta name="twitter:image" content="${escapeHtml(page.image)}" />`,
+      `<meta name="twitter:image:alt" content="${escapeHtml(page.imageAlt)}" />`,
+    ] : []),
     ...(verification ? [`<meta name="google-site-verification" content="${escapeHtml(verification)}" />`] : []),
     ...(page.structuredData ? [`<script id="ovtech-structured-data" type="application/ld+json">${safeJson(page.structuredData)}</script>`] : []),
   ];
