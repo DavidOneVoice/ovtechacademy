@@ -39,6 +39,12 @@ Guide and course detail URLs are generated from their data automatically. Run
 
 ## Google Search Console setup
 
+The academy owner's public HTML verification tag is committed in `index.html`
+outside the generated SEO block. Keep it in place after ownership verification.
+It was provided by Search Console for `https://ovtechacademy.com/`; it is intended
+to be public and is not a login credential. The build environment option below
+can supply an additional Google-provided tag if another verification is needed.
+
 1. Sign in at https://search.google.com/search-console with the academy's account.
 2. Add URL-prefix property `https://ovtechacademy.com/` (or use a domain property
    if the owner can add Google's exact TXT record in the DNS account).
