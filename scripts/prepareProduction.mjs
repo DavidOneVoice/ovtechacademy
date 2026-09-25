@@ -2,6 +2,7 @@ import { getSecurityRules } from 'firebase-admin/security-rules';
 import { academyApp, academyDb } from '../server/academy-db.mjs';
 import { migrateCohorts } from '../server/cohort-migration.mjs';
 import { attendanceRules } from '../server/attendance-rules.mjs';
+import { migrateDataAnalyticsDay39 } from '../server/data-analytics-day39-migration.mjs';
 
 if (process.env.CONTEXT !== 'production' || process.env.BRANCH !== 'master') {
   console.log('Database preparation skipped outside the production master deployment.');
@@ -24,4 +25,6 @@ if (process.env.CONTEXT !== 'production' || process.env.BRANCH !== 'master') {
   }
   const counts = await migrateCohorts(db);
   console.log(JSON.stringify({ cohortMigration: counts }));
+  const curriculum = await migrateDataAnalyticsDay39(db);
+  console.log(JSON.stringify({ dataAnalyticsDay39: curriculum }));
 }
