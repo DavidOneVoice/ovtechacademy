@@ -3,6 +3,7 @@ import { academyApp, academyDb } from '../server/academy-db.mjs';
 import { migrateCohorts } from '../server/cohort-migration.mjs';
 import { attendanceRules } from '../server/attendance-rules.mjs';
 import { migrateDataAnalyticsDay39 } from '../server/data-analytics-day39-migration.mjs';
+import { scholarshipPhoneRules } from '../server/phone-rules.mjs';
 
 if (process.env.CONTEXT !== 'production' || process.env.BRANCH !== 'master') {
   console.log('Database preparation skipped outside the production master deployment.');
@@ -22,6 +23,21 @@ if (process.env.CONTEXT !== 'production' || process.env.BRANCH !== 'master') {
     await rules.releaseFirestoreRulesetFromSource(updated);
     await backup.update({ deployedAt: new Date() });
     console.log('Attendance verification rules deployed; previous rules saved.');
+  }
+  // Restrict new applications only. Existing applications can still be managed
+  // without inventing country details for phone numbers collected previously.
+  const phonePrevious = await rules.getFirestoreRuleset();
+  const phoneSource = phonePrevious.source[0]?.content;
+  if (!phoneSource) throw new Error('Could not read current Firestore rules for phone validation.');
+  const phoneUpdated = scholarshipPhoneRules(phoneSource);
+  if (phoneUpdated !== phoneSource) {
+    const backup = db.collection('academyMigrations').doc('new-applicant-international-phone-rules-v1');
+    await db.runTransaction(async (tx) => {
+      if (!(await tx.get(backup)).exists) tx.create(backup, { ruleset: phonePrevious.name, source: phoneSource, savedAt: new Date() });
+    });
+    await rules.releaseFirestoreRulesetFromSource(phoneUpdated);
+    await backup.update({ deployedAt: new Date() });
+    console.log('New-application international phone rules deployed; previous rules saved.');
   }
   const counts = await migrateCohorts(db);
   console.log(JSON.stringify({ cohortMigration: counts }));

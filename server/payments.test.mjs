@@ -9,7 +9,7 @@ import { handlePaymentRequest, handlePaystackWebhook, sessionToken } from './pay
 
 const reference = `ovt_${'a'.repeat(32)}`;
 const details = {
-  fullName: 'Test Learner', email: 'learner@example.com', whatsapp: '+234 801 234 5678',
+  fullName: 'Test Learner', email: 'learner@example.com', whatsapp: '+234 801 234 5678', phoneCountry: 'NG',
   location: 'Lagos, Nigeria', ageRange: '25 - 34', referral: 'Other', reason: 'I want to build useful projects.',
   courseId: 'data-analytics', learningMethod: ONE_TO_ONE_METHOD, referralCode: '',
 };
@@ -77,6 +77,39 @@ test('invalid form data never starts a payment', async () => {
   await assert.rejects(f.service.initialize({ type: 'tuition', details: { ...details, email: 'invalid' } }, 'https://ovtechacademy.com', 'NG'), /email/);
   assert.equal(f.orders.size, 0); assert.equal(f.initialized(), undefined);
 });
+test('new tuition requires a selected phone country and valid number before checkout begins', async () => {
+  const invalidPhones = [
+    { phoneCountry: '', whatsapp: '+2348012345678' },
+    { phoneCountry: 'ZZ', whatsapp: '8012345678' },
+    { phoneCountry: 'NG', whatsapp: '801234567' },
+    { phoneCountry: 'NG', whatsapp: '80123456789' },
+    { phoneCountry: 'UG', whatsapp: '71234567' },
+    { phoneCountry: 'NG', whatsapp: '+256712345678' },
+  ];
+  for (const invalid of invalidPhones) {
+    const f = fixture();
+    await assert.rejects(f.service.initialize({ type: 'tuition', details: { ...details, ...invalid } }, 'https://ovtechacademy.com', 'NG'), /country|number|WhatsApp/i);
+    assert.equal(f.orders.size, 0, 'invalid contact details must not reserve a payment');
+    assert.equal(f.initialized(), undefined, 'invalid contact details must not reach Paystack');
+  }
+});
+test('a Ugandan phone is canonicalized and retained without changing trusted Nigerian fees', async () => {
+  const f = fixture();
+  await f.service.initialize({ type: 'tuition', details: { ...details, phoneCountry: 'UG', whatsapp: '712345678' } }, 'https://ovtechacademy.com', 'NG');
+  const order = f.orders.get(reference);
+  assert.equal(order.details.whatsapp, '+256712345678');
+  assert.equal(order.details.phoneCountry, 'UG');
+  assert.equal(order.details.phoneCallingCode, '+256');
+  assert.equal(order.details.phoneNationalNumber, '712345678');
+  assert.equal(order.countryCode, 'NG');
+  assert.equal(order.currency, 'NGN');
+  assert.equal(order.amount, 300000);
+  assert.equal(f.initialized().amount, 30000000);
+  await f.service.complete(reference);
+  const saved = f.applications.get(order.applicationId);
+  assert.equal(saved.whatsapp, '+256712345678');
+  assert.equal(saved.phoneCountry, 'UG');
+});
 test('payment mismatches and unsuccessful transactions cannot submit a registration', async () => {
   const invalid = [{ status: 'pending' }, { status: 'failed' }, { amount: 2000000 }, { currency: 'USD' },
     { reference: `ovt_${'b'.repeat(32)}` }, { customer: { email: 'someone@example.com' } },
@@ -104,6 +137,36 @@ test('scholarship payment requires matching email and approval, uses the course 
   application.status = 'Approved';
   await assert.rejects(f.service.initialize({ ...input, email: 'wrong@example.com' }, 'https://ovtechacademy.com', 'NG'), /match/);
   await f.service.initialize(input, 'https://ovtechacademy.com', 'NG'); assert.equal(f.initialized().amount, 2000000);
+});
+test('an existing approved local-number scholarship can still pay without inferring its phone country', async () => {
+  const f = fixture();
+  const application = { ...details, whatsapp: '08012345678', learningMethod: RECORDED_METHOD, applicationType: 'scholarship', cohortId: 'october-2026', status: 'Approved' };
+  delete application.phoneCountry;
+  f.applications.set('legacy-approved', application);
+  await f.service.initialize({ type: 'scholarship', applicationId: 'legacy-approved', email: details.email }, 'https://ovtechacademy.com', 'NG');
+  assert.equal(f.orders.get(reference).details.whatsapp, application.whatsapp);
+  assert.equal(f.initialized().amount, 2000000);
+  assert.equal(application.phoneCountry, undefined, 'legacy applications must not be rewritten');
+});
+test('the legacy scholarship allowance does not accept an invalid number with a selected country', async () => {
+  const f = fixture();
+  f.applications.set('invalid-marked', { ...details, whatsapp: '801234567', learningMethod: RECORDED_METHOD, applicationType: 'scholarship', cohortId: 'october-2026', status: 'Approved' });
+  await assert.rejects(f.service.initialize({ type: 'scholarship', applicationId: 'invalid-marked', email: details.email }, 'https://ovtechacademy.com', 'NG'), /number|WhatsApp/i);
+  assert.equal(f.orders.size, 0);
+  assert.equal(f.initialized(), undefined);
+});
+test('a saved tuition order with a legacy local phone can still verify and complete', async () => {
+  const f = fixture();
+  const oldDetails = { ...details, whatsapp: '08012345678' };
+  delete oldDetails.phoneCountry;
+  f.orders.set(reference, {
+    reference, type: 'tuition', details: oldDetails, courseId: oldDetails.courseId,
+    currency: 'NGN', countryCode: 'NG', amount: 300000, applicationId: 'legacy-tuition', status: 'pending',
+    applicationDetails: { ...oldDetails, applicationType: 'tuition', cohortId: 'october-2026' },
+  });
+  assert.equal((await f.service.complete(reference)).submitted, true);
+  assert.equal(f.applications.get('legacy-tuition').whatsapp, '08012345678');
+  assert.equal(f.applications.get('legacy-tuition').phoneCountry, undefined);
 });
 
 const env = { PAYSTACK_SECRET_KEY: 'sk_test_mock_only', ENROLLMENT_SITE_URL: 'https://ovtechacademy.com' };

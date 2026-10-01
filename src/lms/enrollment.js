@@ -33,11 +33,15 @@ export const getStudentLogin = (student) => ({
 export function getStudentLookupFilters(login) {
   const email = String(login.email || "").trim();
   const phone = String(login.whatsapp || "").trim();
+  const phoneDigits = normalizePhone(phone);
+  // New applications store E.164, while older records may store local numbers
+  // or digits without a plus. Query exact variants without guessing a country.
+  const phoneCandidates = [...new Set([phone, phoneDigits, phoneDigits ? `+${phoneDigits}` : ""])].filter(Boolean);
   return [
     ...STUDENT_EMAIL_FIELDS.flatMap((field) => [...new Set([email, normalize(email)])]
       .filter(Boolean).map((value) => ({ field, value }))),
-    ...STUDENT_PHONE_FIELDS.flatMap((field) => [...new Set([phone, normalizePhone(phone)])]
-      .filter(Boolean).map((value) => ({ field, value }))),
+    ...STUDENT_PHONE_FIELDS.flatMap((field) => phoneCandidates
+      .map((value) => ({ field, value }))),
   ];
 }
 

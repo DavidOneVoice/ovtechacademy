@@ -10,7 +10,8 @@ import PricingStatus from "./PricingStatus";
 import ScholarshipConfirmationDialog from "./ScholarshipConfirmationDialog";
 import { COHORT } from "../data/cohort";
 import { trackEvent } from "../analytics/events";
-import { AGE_RANGES, REFERRALS, emptyRegistration, validateRegistration } from "../data/registration";
+import { AGE_RANGES, REFERRALS, emptyRegistration, registrationFormFromDraft, validateRegistration } from "../data/registration";
+import PhoneNumberField from "./PhoneNumberField";
 import { createPaymentDraft, readPaymentDraft, forgetPaymentDraft } from "../services/paymentDrafts";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
@@ -21,7 +22,7 @@ export default function ApplicationForm({ type = "scholarship" }) {
   const scholarship = type === "scholarship";
   const [form, setForm] = useState(() => {
     const saved = !scholarship && readPaymentDraft(params.get("draft"));
-    return saved && !saved.checkoutOpened && !saved.submitted ? saved.details : emptyRegistration(params.get("course"));
+    return saved && !saved.checkoutOpened && !saved.submitted ? registrationFormFromDraft(saved.details) : emptyRegistration(params.get("course"));
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -124,7 +125,7 @@ export default function ApplicationForm({ type = "scholarship" }) {
         <h2>2. Your details</h2><div className="academy-form-grid">
           <label>Full name<input name="fullName" value={form.fullName} onChange={change} required maxLength={120} autoComplete="name" /></label>
           <label>Email address<input name="email" type="email" value={form.email} onChange={change} required maxLength={254} autoComplete="email" /></label>
-          <label>WhatsApp number<input name="whatsapp" type="tel" value={form.whatsapp} onChange={change} required maxLength={25} autoComplete="tel" placeholder="Include your country code" /></label>
+          <PhoneNumberField phoneCountry={form.phoneCountry} whatsapp={form.whatsapp} onChange={change} disabled={busy} />
           <label>City and country<input name="location" value={form.location} onChange={change} required maxLength={180} placeholder="Your city and country" /></label>
           <label>Age range<select name="ageRange" value={form.ageRange} onChange={change} required><option value="">Select your age range</option>{AGE_RANGES.map((item) => <option key={item}>{item}</option>)}</select></label>
           <label>How did you hear about us?<select name="referral" value={form.referral} onChange={change} required><option value="">Select an option</option>{REFERRALS.map((item) => <option key={item}>{item}</option>)}</select></label>

@@ -87,6 +87,23 @@
 .academy-registration-form .academy-consent { display: flex; align-items: flex-start; gap: 12px; font-weight: 400; font-size: .83rem; }
 .academy-consent input { width: 20px; height: 20px; flex: 0 0 20px; margin-top: 3px; accent-color: #12233f; }
 .academy-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+.academy-phone-field { grid-column: 1 / -1; border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
+.academy-phone-field legend { font-size: .84rem; font-weight: 650; line-height: 1.6; margin-bottom: 8px; }
+.academy-required { color: #526071; font-weight: 400; }
+.academy-phone-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.academy-phone-controls label { min-width: 0; margin-bottom: 0; }
+.academy-phone-input { display: flex; align-items: stretch; margin-top: 7px; border: 1px solid #afb9c8; border-radius: 6px; overflow: hidden; }
+.academy-phone-prefix { display: flex; align-items: center; padding: 0 12px; border-right: 1px solid #dce1e6; background: #f7f8fa; font-size: 16px; font-weight: 500; }
+.academy-phone-input input:not([type=checkbox]) { border: 0; border-radius: 0; margin: 0; min-width: 0; }
+.academy-phone-input:focus-within { outline: 3px solid #087b78; outline-offset: 4px; }
+.academy-phone-input input:focus-visible { outline: none; }
+.academy-phone-input input:disabled { background: #f7f8fa; color: #687587; }
+.academy-phone-help, .academy-phone-error, .academy-phone-preview { font-size: .79rem; line-height: 1.7; margin: 8px 0 0; overflow-wrap: anywhere; }
+.academy-phone-help { color: #526071; }
+.academy-phone-error { color: #8a2e18; }
+.academy-phone-preview { color: #126967; }
+.academy-phone-input:has(input[aria-invalid=true]) { border-color: #b84225; }
+@media (max-width: 480px) { .academy-phone-controls { grid-template-columns: 1fr; gap: 12px; } }
 .academy-optional { color: #687587; font-weight: 400; }
 .academy-learning-rule { background: #fff7dc; border-left: 3px solid #e9b82f; padding: 18px; margin: 20px 0 26px; font-size: .88rem; line-height: 1.7; }
 .academy-learning-rule label { margin: 12px 0 0; }

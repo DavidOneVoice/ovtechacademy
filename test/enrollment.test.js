@@ -68,6 +68,25 @@ test("legacy aliases, paid enrollment, and exact status checks work without subs
   assert.equal(isPaidOrEnrolled({ paymentStatus: "Unpaid" }), false);
 });
 
+test("new international phone records are found with or without a plus, including formatted input", async () => {
+  const international = { ...enrolled, whatsapp: "+256712345678", phoneCountry: "UG" };
+  for (const phone of ["+256712345678", "256712345678", "+256 712 345 678"]) {
+    const matches = await lookupStudents({ whatsapp: phone }, async (field, value) =>
+      [international].filter((student) => student[field] === value));
+    assert.deepEqual(matches, [international]);
+  }
+});
+
+test("phone lookup preserves legacy exact contacts and does not guess a country from local digits", async () => {
+  const international = { ...enrolled, id: "international", whatsapp: "+2348012345678" };
+  const local = { ...enrolled, id: "local", whatsapp: "08012345678" };
+  const records = [international, local];
+  const find = async (field, value) => records.filter((student) => student[field] === value);
+  assert.deepEqual(await lookupStudents({ whatsapp: "08012345678" }, find), [local]);
+  assert.deepEqual(await lookupStudents({ whatsapp: "8012345678" }, find), []);
+  assert.deepEqual(await lookupStudents({ whatsapp: "+2348012345678" }, find), [international]);
+});
+
 test("October tuition still requires enrollment, verified payment, and completed registration", () => {
   const tuition = { ...enrolled, cohortId: "october-2026", applicationType: "tuition" };
   assert.equal(isPaidOrEnrolled(tuition), false);

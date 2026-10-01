@@ -8,7 +8,7 @@ import { handlePaymentRequest, sessionToken } from './payment-http.mjs';
 
 const reference = `ovt_${'a'.repeat(32)}`;
 const now = Date.parse('2026-09-21T12:00:00Z');
-const details = { fullName: 'Test Learner', email: 'learner@example.com', whatsapp: '+2348012345678', location: 'Test city', ageRange: '25 - 34', referral: 'Other', reason: 'I want to develop practical skills.', courseId: 'data-analytics', learningMethod: ONE_TO_ONE_METHOD };
+const details = { fullName: 'Test Learner', email: 'learner@example.com', whatsapp: '+2348012345678', phoneCountry: 'NG', location: 'Test city', ageRange: '25 - 34', referral: 'Other', reason: 'I want to develop practical skills.', courseId: 'data-analytics', learningMethod: ONE_TO_ONE_METHOD };
 function fixture() {
   const orders = new Map(), applications = new Map();
   let pageOverride = {}, paymentOverride = {}, counter = 0;
@@ -59,6 +59,35 @@ test('hosted checkout uses trusted geography, keeps the GBP quote and reads NGN 
   await assert.rejects(f.service.prepare({ type: 'tuition', details, countryCode: 'NG' }, '', 'GB'), /location has changed/);
   await assert.rejects(f.service.prepare({ type: 'tuition', details }, '', null), /local fees/);
 });
+test('hosted tuition refuses missing country selection and invalid national numbers before any provider call', async () => {
+  for (const invalid of [
+    { phoneCountry: '', whatsapp: '+2348012345678' },
+    { phoneCountry: 'ZZ', whatsapp: '8012345678' },
+    { phoneCountry: 'NG', whatsapp: '801234567' },
+    { phoneCountry: 'UG', whatsapp: '71234567' },
+    { phoneCountry: 'NG', whatsapp: '+256712345678' },
+  ]) {
+    const f = fixture();
+    await assert.rejects(f.service.prepare({ type: 'tuition', details: { ...details, ...invalid } }, '', 'NG'), /country|number|WhatsApp/i);
+    assert.equal(f.orders.size, 0);
+    assert.equal(f.slug(), undefined, 'invalid contact details must not reach Paystack');
+  }
+});
+test('hosted checkout keeps a canonical Ugandan phone separate from trusted Nigerian fee geography', async () => {
+  const f = fixture();
+  const result = await f.service.prepare({ type: 'tuition', details: { ...details, phoneCountry: 'UG', whatsapp: '712345678' } }, '', 'NG');
+  assert.equal(result.details.whatsapp, '+256712345678');
+  assert.equal(result.details.phoneCountry, 'UG');
+  assert.equal(result.details.phoneCallingCode, '+256');
+  assert.equal(result.details.phoneNationalNumber, '712345678');
+  assert.equal(result.fees.countryCode, 'NG');
+  assert.equal(result.fees.currency, 'NGN');
+  assert.equal(result.amount, 300000);
+  await f.service.complete(reference, 'test-receipt-123');
+  const saved = f.applications.get(result.applicationId);
+  assert.equal(saved.whatsapp, '+256712345678');
+  assert.equal(saved.phoneCountry, 'UG');
+});
 test('wrong Nigerian amount, inactive, variable, test-mode, recurring and non-NGN pages cannot start checkout', async () => {
   for (const bad of [{amount:2000000}, {amount:0}, {amount:3.5}, {active:false}, {published:false}, {fixed_amount:false}, {domain:'test'}, {currency:'USD'}, {type:'subscription'}, {slug:'wrong-page'}, {id:null}]) {
     const f = fixture(); f.setPage(bad);
@@ -80,6 +109,40 @@ test('scholarship requires approval and matching email, and keeps the applicatio
   assert.equal(result.amount, 22500); assert.equal(result.fees.countryCode, 'GH');
   app.paymentVerified = true;
   await assert.rejects(f.service.prepare(input, '', 'NG'), /already paid/);
+});
+test('hosted payment preserves access for an existing approved scholarship with a local phone number', async () => {
+  const f = fixture();
+  f.setPage({ amount: 2000000 });
+  const application = { ...details, whatsapp: '08012345678', applicationType: 'scholarship', cohortId: 'october-2026', detectedCountryCode: 'NG', status: 'Approved' };
+  delete application.phoneCountry;
+  f.applications.set('legacy-approved', application);
+  const result = await f.service.prepare({ type: 'scholarship', applicationId: 'legacy-approved', email: details.email }, '', 'NG');
+  assert.equal(result.details.whatsapp, '08012345678');
+  assert.equal(result.amount, 20000);
+  assert.equal(application.phoneCountry, undefined, 'legacy applications must not be rewritten');
+});
+test('hosted scholarship compatibility does not relax validation for a selected phone country', async () => {
+  const f = fixture();
+  f.applications.set('invalid-marked', { ...details, whatsapp: '801234567', applicationType: 'scholarship', cohortId: 'october-2026', detectedCountryCode: 'NG', status: 'Approved' });
+  await assert.rejects(f.service.prepare({ type: 'scholarship', applicationId: 'invalid-marked', email: details.email }, '', 'NG'), /number|WhatsApp/i);
+  assert.equal(f.orders.size, 0);
+  assert.equal(f.slug(), undefined);
+});
+test('a preexisting hosted tuition order with a legacy local number can complete', async () => {
+  const f = fixture();
+  const oldDetails = { ...details, whatsapp: '08012345678' };
+  delete oldDetails.phoneCountry;
+  f.orders.set(reference, {
+    reference, type: 'tuition', details: oldDetails, courseId: oldDetails.courseId,
+    checkoutMode: 'hosted', currency: 'NGN', countryCode: 'NG', amount: 300000,
+    applicationId: 'legacy-tuition', status: 'pending', createdAtMs: now,
+    quotedFees: getCoursePricing(oldDetails.courseId, 'NG'),
+    paymentUrl: getPaymentPage(getCoursePricing(oldDetails.courseId, 'NG'), 'tuition').url,
+    applicationDetails: { ...oldDetails, applicationType: 'tuition', cohortId: 'october-2026' },
+  });
+  assert.equal((await f.service.complete(reference, 'test-receipt-123')).submitted, true);
+  assert.equal(f.applications.get('legacy-tuition').whatsapp, '08012345678');
+  assert.equal(f.applications.get('legacy-tuition').phoneCountry, undefined);
 });
 test('failed, wrong-amount, wrong-email, test-mode and old hosted receipts cannot verify or complete', async () => {
   for (const bad of [{status:'failed'}, {amount:1}, {currency:'USD'}, {customer:{email:'wrong@example.com'}}, {domain:'test'}, {paid_at:new Date(now-60000).toISOString()}, {paid_at:'invalid'}, {id:null}, {reference:'different-reference'}]) {

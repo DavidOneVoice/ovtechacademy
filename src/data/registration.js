@@ -1,18 +1,30 @@
 import { findCourse } from "./courses.js";
+import { validateWhatsAppNumber } from "./phoneNumbers.js";
 export const AGE_RANGES = ["Below 18", "18 - 24", "25 - 34", "35 - 44", "45+"];
 export const REFERRALS = ["Facebook", "Instagram", "WhatsApp", "LinkedIn", "Friend / Referral", "Other"];
 export const emptyRegistration = (courseId = "") => ({
-  fullName: "", email: "", whatsapp: "", location: "", ageRange: "",
+  fullName: "", email: "", whatsapp: "", phoneCountry: "", location: "", ageRange: "",
   courseId: findCourse(courseId)?.id || "", learningMethod: "", reason: "", referral: "", referralCode: "",
 });
-export function validateRegistration(input, type = "tuition") {
+export function registrationFormFromDraft(details = {}) {
+  return {
+    ...emptyRegistration(details.courseId), ...details,
+    phoneCountry: details.phoneCountry || "",
+    whatsapp: details.phoneCountry && details.phoneNationalNumber ? details.phoneNationalNumber : details.whatsapp || "",
+  };
+}
+export function validateRegistration(input, type = "tuition", { allowLegacyPhone = false } = {}) {
   const form = Object.fromEntries(Object.keys(emptyRegistration()).map((key) => [key, typeof input?.[key] === "string" ? input[key].trim() : ""]));
   const course = findCourse(form.courseId);
   if (!course) throw new Error("Please select a course.");
   if (form.fullName.length < 2 || form.fullName.length > 120) throw new Error("Enter your full name (2–120 characters).");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) || form.email.length > 254) throw new Error("Enter a valid email address.");
   form.email = form.email.toLowerCase();
-  if (!/^\+?[0-9][0-9 ()-]{7,24}$/.test(form.whatsapp)) throw new Error("Enter a valid WhatsApp number, including your country code if outside Nigeria.");
+  // This exception is used only by server checkout for stored, approved legacy
+  // applications. Every new scholarship or tuition submission requires selection.
+  if (allowLegacyPhone && !form.phoneCountry) {
+    if (!/^\+?[0-9][0-9 ()-]{7,24}$/.test(form.whatsapp)) throw new Error("Enter a valid WhatsApp number.");
+  } else Object.assign(form, validateWhatsAppNumber(form));
   if (form.location.length < 2 || form.location.length > 180) throw new Error("Enter your city and country.");
   if (!AGE_RANGES.includes(form.ageRange)) throw new Error("Select your age range.");
   if (!REFERRALS.includes(form.referral)) throw new Error("Select how you heard about us.");

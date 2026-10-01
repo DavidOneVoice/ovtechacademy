@@ -49,7 +49,9 @@ export function createPaymentService({ store, gateway, makeReference = () => `ov
       if (application.applicationType !== 'scholarship' || application.cohortId !== COHORT.id) throw new PaymentError('Please use the payment instructions in your original approval email or contact admissions.');
       if (application.paymentVerified || application.paymentStatus === 'Paid') throw new PaymentError('This application is already paid. Contact admissions for onboarding.', 409);
       if (application.status !== 'Approved') throw new PaymentError('Your scholarship must be approved before payment.', 409);
-      details = validateRegistration(application, 'scholarship');
+      // Existing approved applications predate mandatory phone-country selection.
+      // This compatibility allowance applies only to the trusted stored record.
+      details = validateRegistration(application, 'scholarship', { allowLegacyPhone: true });
       applicationId = input.applicationId;
     } else throw new PaymentError('Choose full tuition or an approved scholarship.');
     const course = findCourse(details.courseId);

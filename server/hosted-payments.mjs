@@ -42,7 +42,9 @@ export function createHostedPaymentService({ store, gateway, makeReference, now 
       if (application.applicationType !== 'scholarship' || application.cohortId !== COHORT.id) throw new PaymentError('Contact admissions for the payment instructions for your original cohort.');
       if (application.status !== 'Approved') throw new PaymentError('Your scholarship must be approved before payment.', 409);
       if (application.paymentVerified || application.paymentStatus === 'Paid') throw new PaymentError('This application is already paid. Contact admissions for onboarding.', 409);
-      details = validateRegistration(application, 'scholarship');
+      // Preserve payment access for approved applications saved before the new
+      // phone requirement, while still validating records with a selected country.
+      details = validateRegistration(application, 'scholarship', { allowLegacyPhone: true });
     } else throw new PaymentError('Choose full tuition or an approved scholarship.');
     const countryCode = application ? application.detectedCountryCode || (application.currency === 'NGN' ? 'NG' : null) : visitorCountryCode;
     const fees = getCoursePricing(details.courseId, countryCode);
