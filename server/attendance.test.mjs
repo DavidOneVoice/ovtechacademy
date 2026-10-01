@@ -7,6 +7,7 @@ import { hashPin, verifyPin, grantToken, readGrant, validPin } from './attendanc
 import { isLiveAttendanceStudent, eligibleForSession, attendanceSessionId } from '../src/attendance/model.js';
 import { handleAttendance } from '../netlify/functions/attendance.mjs';
 import { attendanceRules } from './attendance-rules.mjs';
+import { createAttendanceEmailSender } from './attendance-email.mjs';
 const NOW = Date.parse('2026-10-06T12:00:00Z');
 const student = { fullName: 'Test learner', email: 'learner@example.test', status: 'Enrolled', track: 'Data Analytics', learningMethod: 'One-on-One Live Classes', cohortId: 'october-2026', attendance: { 'Data Analytics': { lectureDays: 1, attendedDays: 0 } } };
 const session = { track: 'Data Analytics', cohortId: 'october-2026', dateKey: '2026-10-06' };
@@ -77,6 +78,26 @@ test('email failure and expired challenge fail closed; unregistered recipients r
   await assert.rejects(f.service.setPin({ challenge: response.challenge, code: f.emails[0].code, pin: '584927' }, 'ip'));
   const unavailable = createAttendanceService({ db: f.db, secret: 'x', now: () => NOW, sendCode: async () => { throw new Error('unavailable'); } });
   await assert.rejects(unavailable.requestPin({ email: student.email, studentId: 'oct' }, 'other-ip'), /could not be sent/);
+});
+test('failed reset delivery removes only its new challenge and preserves an existing PIN and usable challenge', async () => {
+  const f = fixture();
+  const pending = await f.service.requestPin({ email: student.email, studentId: 'oct' }, 'first-ip');
+  const challengePath = `attendanceChallenges/${pending.challenge}`;
+  const existingChallenge = structuredClone(f.docs.get(challengePath));
+  const credential = { ...await hashPin('584927'), version: 'existing-version' };
+  f.docs.set('attendanceCredentials/oct', credential);
+  let providerCalls = 0;
+  const failedSender = createAttendanceEmailSender({ env: {}, report: () => {}, fetchImpl: async () => { providerCalls++; throw new Error('Missing config must not fetch'); } });
+  const unavailable = createAttendanceService({ db: f.db, secret: 'test-secret', now: () => NOW, sendCode: failedSender });
+  await assert.rejects(unavailable.requestPin({ email: student.email, studentId: 'oct' }, 'second-ip'), /could not be sent/);
+  assert.equal(providerCalls, 0);
+  assert.deepEqual([...f.docs.keys()].filter((path) => path.startsWith('attendanceChallenges/')), [challengePath]);
+  assert.deepEqual(f.docs.get(challengePath), existingChallenge);
+  assert.deepEqual(f.docs.get('attendanceCredentials/oct'), credential);
+  assert.equal(await verifyPin('584927', f.docs.get('attendanceCredentials/oct')), true);
+  assert.equal(f.docs.get('scholarshipApplications/oct').attendance['Data Analytics'].attendedDays, 0);
+  await f.service.setPin({ challenge: pending.challenge, code: f.emails[0].code, pin: '684927' }, 'first-ip');
+  assert.equal(await verifyPin('684927', f.docs.get('attendanceCredentials/oct')), true);
 });
 test('HTTP rejects cross-origin and large requests and does not expose server exceptions', async () => {
   const make = (body, origin = 'https://ovtechacademy.com') => new Request('https://ovtechacademy.com/api/attendance', { method: 'POST', headers: { origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
