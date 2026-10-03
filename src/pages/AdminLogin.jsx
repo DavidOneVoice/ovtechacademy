@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ADMIN_ROLES, setStoredAdminRole } from "../auth/adminRoles";
 import "./AdminLogin.css";
 
@@ -47,39 +47,58 @@ const AdminLogin = () => {
 
   return (
     <main className="admin-login-page">
-      <form className="admin-login-card" onSubmit={handleLogin}>
-        <span>OVTech Admin</span>
-        <h1>Admin Login</h1>
-        <p>Sign in to manage scholarship applications.</p>
+      <div className="admin-login-shell">
+        <aside className="admin-login-brand" aria-label="OVTech Academy administration">
+          <div className="admin-login-brand-identity">
+            <img src="/ovlogo2.png" alt="OVTech Academy" />
+            <div>OVTech Academy<small>Academy workspace</small></div>
+          </div>
+          <div className="admin-login-brand-message">
+            <span className="admin-login-eyebrow">People. Progress. Possibility.</span>
+            <h2>Support every student’s next step.</h2>
+            <p>Manage applications, student progress and the learning experience in one place.</p>
+          </div>
+          <p className="admin-login-brand-footer">Your academy, thoughtfully organised.</p>
+        </aside>
+        <form className="admin-login-card" onSubmit={handleLogin}>
+          <span className="admin-login-eyebrow">Administration</span>
+          <h1>Welcome back</h1>
+          <p>Sign in to your academy workspace.</p>
 
-        {error && <div className="admin-login-error">{error}</div>}
+          {error && <div className="admin-login-error" role="alert">{error}</div>}
 
-        <label>
-          Email Address
-          <input
-            type="email"
-            name="email"
-            required
-            value={loginData.email}
-            onChange={handleChange}
-            placeholder="admin@ovtechacademy.com"
-          />
-        </label>
+          <label htmlFor="admin-email">
+            Email address
+            <input
+              id="admin-email"
+              type="email"
+              name="email"
+              autoComplete="username"
+              required
+              value={loginData.email}
+              onChange={handleChange}
+              placeholder="admin@ovtechacademy.com"
+            />
+          </label>
 
-        <label>
-          Password
-          <input
-            type="password"
-            name="password"
-            required
-            value={loginData.password}
-            onChange={handleChange}
-            placeholder="Enter admin password"
-          />
-        </label>
+          <label htmlFor="admin-password">
+            Password
+            <input
+              id="admin-password"
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              required
+              value={loginData.password}
+              onChange={handleChange}
+              placeholder="Enter admin password"
+            />
+          </label>
 
-        <button type="submit">Login</button>
-      </form>
+          <button type="submit">Sign in <span aria-hidden="true">→</span></button>
+          <Link className="admin-login-back" to="/">Back to the academy website</Link>
+        </form>
+      </div>
     </main>
   );
 };

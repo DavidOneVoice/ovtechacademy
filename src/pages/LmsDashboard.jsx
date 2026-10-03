@@ -1,12 +1,11 @@
-import AttendancePin from "../components/AttendancePin";
-import { isLiveAttendanceStudent } from "../attendance/model";
-import { useEffect, useMemo, useRef, useState } from "react";
+import PortalLogin from "../components/PortalLogin";
+import PortalProfile from "../components/PortalProfile";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
   doc,
   getDoc,
-  getDocFromServer,
   getDocs,
   getDocsFromServer,
   orderBy,
@@ -35,7 +34,7 @@ import {
 } from "../lms/content";
 import { resolveStudentCurriculumGroup } from "../lms/tracks";
 import { normalizeProgrammeName } from "../data/programmes";
-import { cohortLabel, recordCohortId } from "../data/cohort";
+import { recordCohortId } from "../data/cohort";
 import {
   buildAttendanceSummary,
   deduplicateAttendanceRecords,
@@ -43,14 +42,13 @@ import {
   liveSessionMatchesProgramme,
 } from "../lms/programmeViews";
 import {
-  getStudentLogin,
   isPaidOrEnrolled,
-  lookupStudents,
-  normalizePhone,
-  restoreStudentEnrollment,
   STUDENT_EMAIL_FIELDS,
   STUDENT_PHONE_FIELDS,
 } from "../lms/enrollment";
+import { portalRequest, requirePortalStudent } from "../lms/portalClient";
+import { portalIdentifierForStudent } from "../lms/portalProfile";
+import { createPortalSessionScope, recheckPortalSession } from "../lms/portalSession";
 import {
   getStudentProgramDay,
   isItemUnlocked,
@@ -63,10 +61,14 @@ import {
 } from "../lms/progress";
 import "./LmsDashboard.css";
 
-const STORAGE_KEY = "ovtech_lms_student";
+const LEGACY_STORAGE_KEY = "ovtech_lms_student";
 const CERTIFICATE_PROFILE_COLLECTION = "certificateProfile";
 const PRE_RECORDED_ACCESS_TEXT = "pre-recorded videos";
 const LIVE_CLASS_ACCESS_TEXT = "live";
+const emptyCertificateForm = () => ({
+  displayName: "", professionalEmail: "", phone: "", linkedin: "", facebook: "",
+  instagram: "", twitter: "", tiktok: "", photoUrl: "", showInAlumniDirectory: true,
+});
 
 const normalize = (value) =>
   String(value || "")
@@ -132,15 +134,6 @@ const hasUnselectedLearningMethod = (student) =>
 const isInstructorLedStudent = (student) =>
   isLiveClassStudent(student) || hasUnselectedLearningMethod(student);
 
-const loadStudentEnrollments = (login) => lookupStudents(login, async (field, value) => {
-  // Read every exact contact match before checking enrollment; a first-result
-  // limit can hide the enrolled record behind an older scholarship application.
-  const snapshot = await getDocsFromServer(query(
-    collection(db, "scholarshipApplications"), where(field, "==", value),
-  ));
-  return snapshot.docs.map((item) => ({ ...item.data(), id: item.id }));
-});
-
 const groupItemsByCourseAndSection = groupCurriculumItems;
 
 const getLessonId = (lesson) => lesson.lessonId || lesson.id;
@@ -170,10 +163,12 @@ const liveSessionMatchesStudent = (session, student) => {
 const LmsDashboard = () => {
   const navigate = useNavigate();
   const playerRef = useRef(null);
+  const portalScope = useRef(null);
+  if (portalScope.current === null) portalScope.current = createPortalSessionScope();
   const [student, setStudent] = useState(null);
-  const [login, setLogin] = useState({ email: "", whatsapp: "" });
-  const [enrollmentChoices, setEnrollmentChoices] = useState([]);
-  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState("");
+  const [pinRequired, setPinRequired] = useState(false);
+  const [authHint, setAuthHint] = useState({ identifier: "", message: "" });
+  const [authBusy, setAuthBusy] = useState(false);
   const [lessons, setLessons] = useState([]);
   const [resources, setResources] = useState([]);
   const [lmsSettings, setLmsSettings] = useState({});
@@ -187,18 +182,7 @@ const LmsDashboard = () => {
   const [authError, setAuthError] = useState("");
   const [dataError, setDataError] = useState("");
   const [certificateProfile, setCertificateProfile] = useState(null);
-  const [certificateForm, setCertificateForm] = useState({
-    displayName: "",
-    professionalEmail: "",
-    phone: "",
-    linkedin: "",
-    facebook: "",
-    instagram: "",
-    twitter: "",
-    tiktok: "",
-    photoUrl: "",
-    showInAlumniDirectory: true,
-  });
+  const [certificateForm, setCertificateForm] = useState(emptyCertificateForm);
   const [certificateLoading, setCertificateLoading] = useState(false);
   const [certificateUploading, setCertificateUploading] = useState(false);
   const [certificateError, setCertificateError] = useState("");
@@ -207,46 +191,90 @@ const LmsDashboard = () => {
   const [alumniVisibilitySaving, setAlumniVisibilitySaving] = useState(false);
   const [alumniVisibilityMessage, setAlumniVisibilityMessage] = useState("");
 
+  const resetStudentData = useCallback(() => {
+    setCertificateProfile(null); setCertificateForm(emptyCertificateForm());
+    setCertificateLoading(false); setCertificateUploading(false); setCertificateError("");
+    setCertificateSaveMessage(""); setEditingCertificate(false);
+    setAlumniVisibilitySaving(false); setAlumniVisibilityMessage("");
+    setLessons([]); setResources([]); setLmsSettings({}); setCompletedLessonIds([]);
+    setAttendanceRecords([]); setLiveSessions([]); setIsAttendanceHistoryOpen(false);
+    setSelectedLessonId(""); setDataError(""); setAuthBusy(false);
+  }, []);
+
+  const clearPortal = useCallback((hint = { identifier: "", message: "" }) => {
+    portalScope.current.invalidate();
+    try { localStorage.removeItem(LEGACY_STORAGE_KEY); } catch { /* Storage may be disabled. */ }
+    resetStudentData();
+    setStudent(null); setPinRequired(false); setAuthHint(hint); setAuthError("");
+    setLoading(false); setActivePanel("overview");
+    navigate("/lms", { replace: true });
+  }, [navigate, resetStudentData]);
+
+  useEffect(() => () => portalScope.current.invalidate(), []);
+
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const restoreSession = async () => {
       try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-        if (!saved?.id) return;
-        const studentSnap = await getDocFromServer(doc(db, "scholarshipApplications", saved.id));
-        if (cancelled) return;
-        if (!studentSnap.exists()) {
-          localStorage.removeItem(STORAGE_KEY);
-          return;
-        }
-        const current = { ...studentSnap.data(), id: studentSnap.id };
-        const matches = await restoreStudentEnrollment(current, loadStudentEnrollments);
-        if (cancelled) return;
-        if (matches.length === 1) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(matches[0]));
-          setStudent(matches[0]);
-        } else {
-          localStorage.removeItem(STORAGE_KEY);
-          setLogin(getStudentLogin(current));
-          setEnrollmentChoices(matches);
-          setAuthError(matches.length ? "Choose the enrollment you want to open." :
-            "Please sign in with the email or phone number on your enrolled application.");
-        }
+        // A saved browser object is never authentication. Only the server can
+        // restore its cookie session and re-check the current PIN version.
+        try { localStorage.removeItem(LEGACY_STORAGE_KEY); } catch { /* Storage may be disabled. */ }
+        const session = requirePortalStudent(await portalRequest("restore", {}, controller.signal));
+        if (controller.signal.aborted) return;
+        portalScope.current.invalidate();
+        resetStudentData();
+        setStudent(session.student); setPinRequired(session.pinRequired);
       } catch (error) {
-        if (!cancelled) {
-          console.error("Unable to restore student enrollment:", error);
-          setAuthError("We could not refresh your enrollment. Please sign in again.");
+        if (!controller.signal.aborted && error.status !== 401) {
+          setAuthError(error.message || "We could not refresh your portal session. Please sign in again.");
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
     restoreSession();
-    return () => { cancelled = true; };
-  }, []);
+    return () => controller.abort();
+  }, [resetStudentData]);
+
+  useEffect(() => {
+    if (!student) return;
+    let cancelled = false;
+    let controller;
+    let checking = false;
+    const currentSession = portalScope.current.capture();
+    const isCurrent = () => !cancelled && currentSession();
+    const recheck = async () => {
+      if (checking || document.visibilityState === "hidden" || !isCurrent()) return;
+      checking = true;
+      controller = new AbortController();
+      const outcome = await recheckPortalSession({ student, pinRequired, signal: controller.signal, isCurrent });
+      if (!isCurrent()) return;
+      checking = false;
+      if (outcome.stage === "expired") {
+        clearPortal({ identifier: portalIdentifierForStudent(student), message: outcome.message });
+      } else if (outcome.stage === "error") {
+        setAuthError(outcome.message);
+      } else if (outcome.stage !== "stale") {
+        setAuthError("");
+        if (outcome.stage === "updated") {
+          setStudent(outcome.session.student); setPinRequired(outcome.session.pinRequired);
+        }
+      }
+    };
+    window.addEventListener("focus", recheck);
+    document.addEventListener("visibilitychange", recheck);
+    return () => {
+      cancelled = true; controller?.abort();
+      window.removeEventListener("focus", recheck);
+      document.removeEventListener("visibilitychange", recheck);
+    };
+  }, [student, pinRequired, clearPortal]);
 
   useEffect(() => {
     if (!student?.id) return;
+    let cancelled = false;
+    const currentSession = portalScope.current.capture();
+    const isCurrent = () => !cancelled && currentSession();
 
     const loadCertificateProfile = async () => {
       const profileRef = doc(
@@ -254,10 +282,10 @@ const LmsDashboard = () => {
         CERTIFICATE_PROFILE_COLLECTION,
         student.id,
       );
-      // The LMS session is localStorage-based, so this ID must remain the
-      // scholarshipApplications document ID saved by the student login flow.
+      // Keep the original enrollment document ID returned by the portal server.
       try {
         const profileSnapshot = await getDoc(profileRef);
+        if (!isCurrent()) return;
         if (profileSnapshot.exists()) {
           setCertificateProfile({
             id: profileSnapshot.id,
@@ -272,24 +300,29 @@ const LmsDashboard = () => {
           }));
         }
       } catch (error) {
-        console.error("Unable to load certificate profile:", error);
+        if (isCurrent()) console.error("Unable to load certificate profile:", error);
       }
     };
 
     loadCertificateProfile();
-  }, [student?.id]);
+    return () => { cancelled = true; };
+  }, [student]);
 
   useEffect(() => {
     if (!student?.id || !isInstructorLedStudent(student)) {
       setAttendanceRecords([]);
       return;
     }
+    let cancelled = false;
+    const currentSession = portalScope.current.capture();
+    const isCurrent = () => !cancelled && currentSession();
 
     const fetchAttendanceRecords = async () => {
       try {
         const sessionSnapshot = await getDocs(
           collection(db, "attendanceSessions"),
         );
+        if (!isCurrent()) return;
         const allRecords = [];
 
         for (const sessionDoc of sessionSnapshot.docs) {
@@ -297,6 +330,7 @@ const LmsDashboard = () => {
           const recordsSnapshot = await getDocs(
             collection(db, "attendanceSessions", sessionDoc.id, "records"),
           );
+          if (!isCurrent()) return;
 
           recordsSnapshot.docs.forEach((recordDoc) => {
             const record = recordDoc.data();
@@ -323,23 +357,29 @@ const LmsDashboard = () => {
           ),
         );
       } catch (error) {
+        if (!isCurrent()) return;
         console.error("Unable to load attendance records:", error);
         setAttendanceRecords([]);
       }
     };
 
     fetchAttendanceRecords();
+    return () => { cancelled = true; };
   }, [student]);
 
 
   useEffect(() => {
     if (!student) return;
+    let cancelled = false;
+    const currentSession = portalScope.current.capture();
+    const isCurrent = () => !cancelled && currentSession();
 
     const fetchLiveSessions = async () => {
       try {
         const liveSnapshot = await getDocs(
           query(collection(db, "liveSessions"), where("isPublished", "==", true)),
         );
+        if (!isCurrent()) return;
         setLiveSessions(
           liveSnapshot.docs
             .map((item) => ({ id: item.id, ...item.data() }))
@@ -347,12 +387,14 @@ const LmsDashboard = () => {
             .sort((a, b) => String(b.sessionDate || "").localeCompare(String(a.sessionDate || ""))),
         );
       } catch (error) {
+        if (!isCurrent()) return;
         console.error("Unable to load live sessions:", error);
         setLiveSessions([]);
       }
     };
 
     fetchLiveSessions();
+    return () => { cancelled = true; };
   }, [student]);
 
   useEffect(() => {
@@ -366,6 +408,9 @@ const LmsDashboard = () => {
       setLoading(false);
       return;
     }
+    let cancelled = false;
+    const currentSession = portalScope.current.capture();
+    const isCurrent = () => !cancelled && currentSession();
 
     const fetchLmsData = async () => {
       setLoading(true);
@@ -394,6 +439,7 @@ const LmsDashboard = () => {
         getDoc(doc(db, "lmsSettings", "selfPacedStartDates")),
         getDoc(doc(db, "lmsSettings", "selfPaced")),
       ]);
+      if (!isCurrent()) return;
 
       let canonicalResourceSnapshot = resourceSnapshot;
       if (import.meta.env.DEV) {
@@ -411,6 +457,7 @@ const LmsDashboard = () => {
           console.warn("Student resource server diagnostic unavailable:", error);
         }
       }
+      if (!isCurrent()) return;
 
       const lessonData = curriculumGroup
         ? filterItemsForCurriculumGroup(
@@ -477,12 +524,14 @@ const LmsDashboard = () => {
     };
 
     fetchLmsData().catch((error) => {
+      if (!isCurrent()) return;
       console.error(error);
       setDataError(
         "Unable to load LMS curriculum right now. Please refresh or contact support.",
       );
       setLoading(false);
     });
+    return () => { cancelled = true; };
   }, [student]);
 
   const items = useMemo(
@@ -529,72 +578,43 @@ const LmsDashboard = () => {
     percentage: 0,
   };
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
-    setAuthError("");
-    setLoading(true);
-
-    try {
-      if (!login.email.trim() && !normalizePhone(login.whatsapp)) {
-        setAuthError(
-          "Enter your enrollment email or WhatsApp/phone number to continue.",
-        );
-        return;
-      }
-
-      const matches = await loadStudentEnrollments(login);
-      if (!matches.length) {
-        setEnrollmentChoices([]);
-        setSelectedEnrollmentId("");
-        setAuthError(
-          "No enrollment was found. Use the email or WhatsApp/phone number on your enrolled application.",
-        );
-        return;
-      }
-
-      const match = matches.length === 1 ? matches[0] :
-        matches.find((item) => item.id === selectedEnrollmentId);
-      if (!match) {
-        setEnrollmentChoices(matches);
-        setSelectedEnrollmentId("");
-        setAuthError("Choose the enrollment you want to open.");
-        return;
-      }
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(match));
-      setEnrollmentChoices([]);
-      setSelectedEnrollmentId("");
-      setStudent(match);
-      navigate("/lms", { replace: true });
-    } catch (error) {
-      console.error(error);
-      setAuthError("Unable to sign in right now. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+  const signedIn = (session) => {
+    portalScope.current.invalidate();
+    resetStudentData();
+    setAuthError(""); setAuthHint({ identifier: "", message: "" });
+    setStudent(session.student); setPinRequired(session.pinRequired);
+    setActivePanel("overview"); setLoading(false);
+    navigate("/lms", { replace: true });
   };
 
   const handleComplete = async (lesson) => {
+    if (!student?.id) return;
+    const isCurrent = portalScope.current.capture();
     const lessonId = getLessonId(lesson);
     const updatedCompleted = [...new Set([...completedLessonIds, lessonId])];
     setCompletedLessonIds(updatedCompleted);
-    await saveStudentProgress({
-      db,
-      student,
-      completedLessonIds: updatedCompleted,
-      lastWatchedLessonId: lessonId,
-      lessons,
-    });
+    try {
+      await saveStudentProgress({
+        db, student, completedLessonIds: updatedCompleted,
+        lastWatchedLessonId: lessonId, lessons,
+      });
+    } catch {
+      if (isCurrent()) setDataError("We could not save your lesson progress. Please try again.");
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setEnrollmentChoices([]);
-    setSelectedEnrollmentId("");
-    setCertificateProfile(null);
-    setStudent(null);
-    navigate("/lms", { replace: true });
+  const logout = async () => {
+    const isCurrent = portalScope.current.capture();
+    setAuthBusy(true); setAuthError("");
+    try { await portalRequest("logout"); if (isCurrent()) clearPortal(); }
+    catch (error) { if (isCurrent()) setAuthError(error.message || "We could not sign you out. Please try again."); }
+    finally { if (isCurrent()) setAuthBusy(false); }
   };
+
+  const pinSaved = () => clearPortal({
+    identifier: portalIdentifierForStudent(student),
+    message: "Your PIN is saved. Continue with your registered email or phone, then enter your new PIN to sign in.",
+  });
 
   const handleCertificateField = (event) => {
     const { checked, name, type, value } = event.target;
@@ -602,6 +622,8 @@ const LmsDashboard = () => {
   };
 
   const handleCertificatePhoto = async (event) => {
+    if (!student?.id) return;
+    const isCurrent = portalScope.current.capture();
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -616,17 +638,18 @@ const LmsDashboard = () => {
     setCertificateError("");
     try {
       const photoUrl = await uploadImageToCloudinary(file);
-      setCertificateForm((current) => ({ ...current, photoUrl }));
+      if (isCurrent()) setCertificateForm((current) => ({ ...current, photoUrl }));
     } catch (error) {
-      setCertificateError(error.message || "Unable to upload this photo.");
+      if (isCurrent()) setCertificateError(error.message || "Unable to upload this photo.");
     } finally {
-      setCertificateUploading(false);
+      if (isCurrent()) setCertificateUploading(false);
     }
   };
 
   const handleCertificateSubmit = async (event) => {
     event.preventDefault();
-    if (!certificateForm.displayName.trim() || !certificateForm.photoUrl) return;
+    if (!student?.id || !certificateForm.displayName.trim() || !certificateForm.photoUrl) return;
+    const isCurrent = portalScope.current.capture();
 
     setCertificateLoading(true);
     setCertificateError("");
@@ -659,20 +682,23 @@ const LmsDashboard = () => {
       );
       if (isResubmission) {
         await setDoc(profileRef, profile, { merge: true });
+        if (!isCurrent()) return;
         setCertificateProfile((current) => ({ ...current, ...profile }));
       } else {
         const newProfile = { ...profile, submittedAt: serverTimestamp() };
         await setDoc(profileRef, newProfile);
+        if (!isCurrent()) return;
         setCertificateProfile(newProfile);
       }
       setEditingCertificate(false);
       setCertificateSaveMessage("Your certificate application and alumni profile preferences were saved.");
     } catch (error) {
+      if (!isCurrent()) return;
       console.error("Unable to submit certificate application:", error);
       setCertificateError("Unable to submit your application. Please try again.");
       setCertificateSaveMessage("");
     } finally {
-      setCertificateLoading(false);
+      if (isCurrent()) setCertificateLoading(false);
     }
   };
 
@@ -692,7 +718,8 @@ const LmsDashboard = () => {
 
   const updateAlumniVisibility = async (event) => {
     const consent = event.target.checked;
-    if (certificateProfile?.status !== "Approved" || !certificateProfile.certificateId) return;
+    if (!student?.id || certificateProfile?.status !== "Approved" || !certificateProfile.certificateId) return;
+    const isCurrent = portalScope.current.capture();
     const previousConsent = certificateProfile.showInAlumniDirectory === true;
     setAlumniVisibilitySaving(true);
     setCertificateProfile((current) => ({ ...current, showInAlumniDirectory: consent }));
@@ -705,12 +732,14 @@ const LmsDashboard = () => {
       if (consent) batch.set(alumniRef, createPublicAlumniRecord({ profile: certificateProfile, certificateId: certificateProfile.certificateId }));
       else batch.delete(alumniRef);
       await batch.commit();
+      if (!isCurrent()) return;
       setAlumniVisibilityMessage("Your alumni directory visibility has been updated.");
     } catch (error) {
+      if (!isCurrent()) return;
       console.error("Unable to update alumni directory visibility:", error);
       setCertificateProfile((current) => ({ ...current, showInAlumniDirectory: previousConsent }));
       setAlumniVisibilityMessage("We could not update your alumni directory visibility. Please try again.");
-    } finally { setAlumniVisibilitySaving(false); }
+    } finally { if (isCurrent()) setAlumniVisibilitySaving(false); }
   };
 
   if (!student) {
@@ -734,66 +763,9 @@ const LmsDashboard = () => {
               <span>Career-ready curriculum</span>
             </div>
           </div>
-          <div className="lms-login-card">
-            <span>Student Portal</span>
-            <h1>Welcome back to OVTech Academy</h1>
-            <p>
-              Sign in with the email address or WhatsApp/phone number used for
-              enrollment to continue your learning journey.
-            </p>
-            <form onSubmit={handleLogin}>
-              <label>
-                Email address
-                <input
-                  type="email"
-                  value={login.email}
-                  disabled={loading}
-                  onChange={(e) => {
-                    setLogin((prev) => ({ ...prev, email: e.target.value }));
-                    setEnrollmentChoices([]);
-                    setSelectedEnrollmentId("");
-                  }}
-                />
-              </label>
-              <label>
-                WhatsApp/phone number
-                <input
-                  type="tel"
-                  value={login.whatsapp}
-                  disabled={loading}
-                  onChange={(e) => {
-                    setLogin((prev) => ({ ...prev, whatsapp: e.target.value }));
-                    setEnrollmentChoices([]);
-                    setSelectedEnrollmentId("");
-                  }}
-                />
-              </label>
-              {enrollmentChoices.length > 1 && (
-                <label>
-                  Your enrollment
-                  <select value={selectedEnrollmentId} disabled={loading} required
-                    onChange={(event) => setSelectedEnrollmentId(event.target.value)}>
-                    <option value="">Choose a course and cohort</option>
-                    {enrollmentChoices.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {getStudentName(item)} · {getStudentCourse(item)} · {cohortLabel(recordCohortId(item))}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              {authError && <p className="lms-error">{authError}</p>}
-              <button type="submit" disabled={loading}>
-                {loading ? "Checking..." : "Enter LMS"}
-              </button>
-            </form>
-            <div className="lms-login-support">
-              <strong>Need help?</strong>
-              <span>
-                Contact support if your enrollment details have changed.
-              </span>
-            </div>
-          </div>
+          <PortalLogin key={loading ? "restoring" : "ready"} restoring={loading}
+            initialIdentifier={authHint.identifier} initialMessage={authHint.message}
+            initialError={authError} onSignedIn={signedIn} />
         </section>
         <Footer />
       </main>
@@ -811,7 +783,8 @@ const LmsDashboard = () => {
           {!isLiveOnlyStudent && <button className={activePanel === "lessons" ? "active" : ""} onClick={() => setActivePanel("lessons")}>Curriculum</button>}
           <button onClick={() => setIsAttendanceHistoryOpen(true)}>Attendance history</button>
           <button className={activePanel === "certificate" ? "active" : ""} onClick={() => setActivePanel("certificate")}>Certificate</button>
-          <button className="lms-sidebar-logout" onClick={logout}>Logout</button>
+          <button className={activePanel === "profile" ? "active" : ""} onClick={() => setActivePanel("profile")}>My profile</button>
+          <button className="lms-sidebar-logout" disabled={authBusy} onClick={logout}>{authBusy ? "Signing out…" : "Logout"}</button>
         </aside>
         <div className="lms-main-panel">
       <section className="lms-hero">
@@ -823,8 +796,12 @@ const LmsDashboard = () => {
             {!isLiveOnlyStudent && ` • Day ${programDay}`}
           </p>
         </div>
-        <button onClick={logout}>Logout</button>
+        <button disabled={authBusy} onClick={logout}>{authBusy ? "Signing out…" : "Logout"}</button>
       </section>
+      {authError && <p className="lms-error" role="alert">{authError}</p>}
+      {activePanel === "profile" && <PortalProfile key={student.id} student={student} pinRequired={pinRequired}
+        onUpdated={(session) => { setStudent(session.student); setPinRequired(session.pinRequired); }} onPinSaved={pinSaved} />}
+      {activePanel === "overview" && <section className="portal-profile-reminder"><div><strong>{pinRequired ? "Keep your enrollment details correct" : "Create your student PIN"}</strong><p>{pinRequired ? "Update your name, email or WhatsApp number and manage your student PIN in My profile." : "Check your name, email and WhatsApp number, then create a PIN for signing in to your student portal."}</p></div><button type="button" onClick={() => setActivePanel("profile")}>{pinRequired ? "Open my profile" : "Check profile & create PIN"}</button></section>}
       {activePanel === "certificate" && (
         <section className="certificate-page">
           {certificateProfile?.status === "Approved" && !editingCertificate ? (<>
@@ -929,7 +906,6 @@ const LmsDashboard = () => {
           )) : <p className="lms-empty-state">No live sessions have been published for your program yet.</p>}
         </section>
       )}
-      {activePanel === "overview" && isLiveAttendanceStudent(student) && <AttendancePin key={student.id} studentId={student.id} email={student.email} />}
       {activePanel === "overview" && (isLiveOnlyStudent ? (
         <section className="lms-progress-card lms-attendance-card">
           <div className="lms-attendance-header">

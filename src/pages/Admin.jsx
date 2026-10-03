@@ -483,7 +483,7 @@ const Admin = () => {
 
   return (
     <AdminWorkspace cohort={{...cohort, setSelectedId: (id) => { setSelectedApplication(null); setSelectedReferral(null); setDeleteTarget(null); resetFilters(); cohort.setSelectedId(id); }}} title="Applications & registrations" description="Every application, one clear view. Review and manage your selected cohort." onLogout={handleLogout}><main className="admin-page">
-      {toast && <div className="admin-toast">{toast}</div>}
+      {toast && <div className="admin-toast" role="status">{toast}</div>}
 
 
 
@@ -692,18 +692,21 @@ const Admin = () => {
         </form>
       </section>
 
-</details>      <div className="admin-filters" aria-label="Application filters">
+</details>
+      <section className="admin-filter-panel" aria-label="Application filters">
+        <div className="admin-section-heading"><h2>Find applications</h2><p>Search your selected cohort and narrow the list before reviewing or exporting.</p></div>
+        <div className="admin-filters">
         <select aria-label="Application type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
           <option value="All">All Application Types</option><option value="scholarship">Scholarship</option><option value="tuition">Full Tuition</option>
         </select>
         <input
           type="text"
           placeholder="Search name, email, phone or referral code..."
-          value={searchTerm}
+          aria-label="Search applications" value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         <select
-          value={statusFilter}
+          aria-label="Application status" value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
           <option>All</option>
@@ -714,7 +717,7 @@ const Admin = () => {
           <option>Enrolled</option>
         </select>
         <select
-          value={trackFilter}
+          aria-label="Course" value={trackFilter}
           onChange={(e) => setTrackFilter(e.target.value)}
         >
           <option value="All">All Courses</option>
@@ -725,7 +728,7 @@ const Admin = () => {
           ))}
         </select>
         <select
-          value={learningMethodFilter}
+          aria-label="Learning method" value={learningMethodFilter}
           onChange={(e) => setLearningMethodFilter(e.target.value)}
         >
           {LEARNING_METHOD_FILTERS.map((method) => (
@@ -735,7 +738,7 @@ const Admin = () => {
           ))}
         </select>
         <select
-          value={monthFilter}
+          aria-label="Application month" value={monthFilter}
           onChange={(e) => setMonthFilter(e.target.value)}
         >
           <option value="All">All Months</option>
@@ -754,16 +757,16 @@ const Admin = () => {
         </select>
         <input
           type="date"
-          value={startDate}
+          aria-label="Applied from date" value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
         <input
           type="date"
-          value={endDate}
+          aria-label="Applied through date" value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
         <select
-          value={referralFilter}
+          aria-label="Referral code" value={referralFilter}
           onChange={(e) => setReferralFilter(e.target.value)}
         >
           <option value="All">All Referral Codes</option>
@@ -784,11 +787,12 @@ const Admin = () => {
         </button>
       </div>
 
+      </section>
       <section className="admin-table-card">
-        <h2>Recent Applications</h2>
+        <div className="admin-table-heading"><div><h2>Applications</h2><p>{filteredApplications.length} matching applications · {cohort.selected.label}</p></div></div>
         {loading && <p className="admin-loading">Loading applications...</p>}
         {loadError && <p className="admin-empty">{loadError}</p>}
-        <div className="admin-table-wrap">
+        <div className="admin-table-wrap" tabIndex={0} role="region" aria-label="Applications table">
           <table>
             <thead>
               <tr>
@@ -821,7 +825,7 @@ const Admin = () => {
                   <td data-label="Referral Code">{getReferralCode(app)}</td>
                   <td data-label="Location">{app.location}</td>
                   <td data-label="Status">
-                    <span className="admin-status">{app.status}</span>
+                    <span className="admin-status" data-status={app.status}>{app.status}</span>
                   </td>
                   <td data-label="Actions">
                     <div className="admin-actions">
@@ -868,7 +872,7 @@ const Admin = () => {
         <div className="admin-modal-overlay">
           <div className="admin-modal admin-referral-modal">
             <button
-              className="admin-modal-close"
+              className="admin-modal-close" aria-label="Close dialog"
               onClick={() => setSelectedReferral(null)}
             >
               ×
@@ -922,7 +926,7 @@ const Admin = () => {
               Export This Referral
             </button>
 
-            <div className="admin-table-wrap">
+            <div className="admin-table-wrap" tabIndex={0} role="region" aria-label="Referral applications table">
               <table>
                 <thead>
                   <tr>
@@ -975,7 +979,7 @@ const Admin = () => {
         <div className="admin-modal-overlay">
           <div className="admin-modal">
             <button
-              className="admin-modal-close"
+              className="admin-modal-close" aria-label="Close dialog"
               onClick={() => setSelectedApplication(null)}
             >
               ×

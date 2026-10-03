@@ -110,11 +110,11 @@ test('email failure and expired challenge fail closed; unregistered recipients r
 });
 test('failed reset delivery removes only its new challenge and preserves an existing PIN and usable challenge', async () => {
   const f = fixture();
+  const credential = { ...await hashPin('584927'), version: 'existing-version', recoveryEmail: student.email };
+  f.docs.set('attendanceCredentials/oct', credential);
   const pending = await f.service.requestPin({ email: student.email, studentId: 'oct' }, 'first-ip');
   const challengePath = `attendanceChallenges/${pending.challenge}`;
   const existingChallenge = structuredClone(f.docs.get(challengePath));
-  const credential = { ...await hashPin('584927'), version: 'existing-version' };
-  f.docs.set('attendanceCredentials/oct', credential);
   let providerCalls = 0;
   const failedSender = createAttendanceEmailSender({ env: {}, report: () => {}, fetchImpl: async () => { providerCalls++; throw new Error('Missing config must not fetch'); } });
   const unavailable = createAttendanceService({ db: f.db, secret: 'test-secret', now: () => NOW, sendCode: failedSender });
@@ -134,6 +134,43 @@ test('HTTP rejects cross-origin and large requests and does not expose server ex
   assert.equal((await handleAttendance(make({ data: 'a'.repeat(5000) }), {}, {}, {})).status, 413);
   const failed = await handleAttendance(make({ action: 'session' }), {}, {}, { session: () => { throw new Error('sensitive internal detail'); } });
   assert.equal(failed.status, 503); assert.equal((await failed.text()).includes('sensitive'), false);
+});
+
+test('PIN setup rejects old codes after contact/enrollment changes, graduation, deletion or another PIN reset', async () => {
+  for (const mutate of [
+    (f) => { f.docs.get('scholarshipApplications/oct').email = 'changed@example.test'; },
+    (f) => { f.docs.get('scholarshipApplications/oct').status = 'Rejected'; },
+    (f) => { f.docs.get('scholarshipApplications/oct').cohortId = 'july-2026'; },
+    (f) => { f.docs.set('certificateProfile/oct', { status: 'Approved' }); },
+    (f) => { f.docs.delete('scholarshipApplications/oct'); },
+    async (f) => { f.docs.set('attendanceCredentials/oct', { ...await hashPin('684927'), version: 'new-version', recoveryEmail: student.email }); },
+  ]) {
+    const f = fixture();
+    const response = await f.service.requestPin({ email: student.email, studentId: 'oct' }, 'ip');
+    await mutate(f);
+    const before = structuredClone(f.docs.get('attendanceCredentials/oct'));
+    await assert.rejects(f.service.setPin({ challenge: response.challenge, code: f.emails[0].code, pin: '584927' }, 'ip'), /incorrect, expired, or already used/);
+    assert.deepEqual(f.docs.get('attendanceCredentials/oct'), before);
+  }
+});
+
+test('PIN resets keep using the privately verified address after a raw application email replacement', async () => {
+  const f = fixture();
+  f.docs.set('attendanceCredentials/oct', { ...await hashPin('584927'), version: 'old-version', recoveryEmail: student.email });
+  const replacedEmail = 'replacement@example.test';
+  f.docs.get('scholarshipApplications/oct').email = replacedEmail;
+  const response = await f.service.requestPin({ email: replacedEmail, studentId: 'oct' }, 'ip');
+  assert.equal(f.emails[0].email, student.email);
+  assert.equal(JSON.stringify(response).includes(student.email), false);
+  await f.service.setPin({ challenge: response.challenge, code: f.emails[0].code, pin: '684927' }, 'ip');
+  assert.equal(f.docs.get('attendanceCredentials/oct').recoveryEmail, student.email);
+});
+
+test('a missing private recovery binding never redirects an existing PIN reset to an unverified address', async () => {
+  const f = fixture();
+  f.docs.set('attendanceCredentials/oct', { ...await hashPin('584927'), version: 'old-version' });
+  await assert.rejects(f.service.requestPin({ email: student.email, studentId: 'oct' }, 'ip'));
+  assert.equal(f.emails.length, 0);
 });
 test('rules patch is repeatable and refuses unreviewed rule layouts', () => {
   const updated = fs.readFileSync('firestore.rules', 'utf8'); assert.equal(attendanceRules(updated), updated);

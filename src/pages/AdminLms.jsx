@@ -1,3 +1,4 @@
+import AdminWorkspace from "../components/AdminWorkspace";
 import { useEffect, useMemo, useState } from "react";
 import {
   addDoc,
@@ -289,31 +290,13 @@ const AdminLms = () => {
   };
 
   return (
-    <main className="admin-page">
-      {toast && <div className="admin-toast">{toast}</div>}
+    <AdminWorkspace title="Learning content" description="Manage curriculum lessons, resources and the self-paced release schedule."><main className="admin-page">
+      {toast && <div className="admin-toast" role="status">{toast}</div>}
 
-      <section className="admin-header">
-        <div>
-          <span>OVTech Admin</span>
-          <h1>LMS Management</h1>
-          <p>
-            Edit published lessons and resources without changing protected
-            curriculum order fields.
-          </p>
-        </div>
-
-        <div className="admin-header-actions">
-          <a target="_blank" rel="noopener noreferrer" href="/admin" className="admin-home-btn">
-            Scholarship Admin
-          </a>
-          <a target="_blank" rel="noopener noreferrer" href="/admin/live-sessions" className="admin-home-btn">
-            Live Sessions
-          </a>
-          <a target="_blank" rel="noopener noreferrer" href="/lms" className="admin-home-btn">
-            Open LMS
-          </a>
-        </div>
-      </section>
+      <div className="admin-page-toolbar">
+        <p>Learning content is shared across cohorts. Publishing controls determine who can see it.</p>
+        <a target="_blank" rel="noopener noreferrer" href="/lms" className="admin-home-btn">Open student portal ↗</a>
+      </div>
 
       <section className="admin-table-card admin-lms-card admin-programme-card">
         <div>
@@ -455,7 +438,8 @@ const AdminLms = () => {
             <h2>Add Resource</h2>
 
             <form className="admin-lms-form" onSubmit={addResource}>
-              <input
+              <label>Resource title
+<input
                 placeholder="Resource title"
                 value={resourceForm.title}
                 onChange={(event) =>
@@ -466,8 +450,10 @@ const AdminLms = () => {
                 }
                 required
               />
+</label>
 
-              <select
+              <label>Course
+<select
                 value={resourceForm.course}
                 onChange={(event) =>
                   setResourceForm((previousForm) => ({
@@ -484,8 +470,10 @@ const AdminLms = () => {
                   </option>
                 ))}
               </select>
+</label>
 
-              <input
+              <label>Section
+<input
                 placeholder="Section"
                 value={resourceForm.section}
                 onChange={(event) =>
@@ -495,8 +483,10 @@ const AdminLms = () => {
                   }))
                 }
               />
+</label>
 
-              <input
+              <label>Unlock day
+<input
                 type="number"
                 min="1"
                 placeholder="Unlock day"
@@ -508,8 +498,10 @@ const AdminLms = () => {
                   }))
                 }
               />
+</label>
 
-              <input
+              <label>File type
+<input
                 placeholder="File type"
                 value={resourceForm.fileType}
                 onChange={(event) =>
@@ -519,8 +511,10 @@ const AdminLms = () => {
                   }))
                 }
               />
+</label>
 
-              <input
+              <label>Download URL
+<input
                 placeholder="Download URL"
                 value={resourceForm.downloadUrl}
                 onChange={(event) =>
@@ -530,6 +524,7 @@ const AdminLms = () => {
                   }))
                 }
               />
+</label>
 
               <label className="admin-checkbox">
                 <input
@@ -646,7 +641,7 @@ const AdminLms = () => {
           </section>
         </>
       )}
-    </main>
+    </main></AdminWorkspace>
   );
 };
 

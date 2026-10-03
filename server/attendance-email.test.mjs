@@ -125,6 +125,19 @@ test('REST delivery preserves the existing email template fields and uses the op
   }
 });
 
+test('profile and portal verification emails describe their actual purpose using the same private sender', async () => {
+  for (const purpose of ['profile', 'portal']) {
+    let payload;
+    const send = createAttendanceEmailSender({ env: configured, report: () => {}, fetchImpl: async (url, options) => { payload = JSON.parse(options.body); return { ok: true }; } });
+    await send(recipient, 'Test learner', code, purpose);
+    assert.equal(payload.template_params.email, recipient);
+    assert.ok(payload.template_params.mainMessage.includes(code));
+    assert.match(payload.template_params.mainMessage, purpose === 'profile' ? /profile contact verification/ : /student PIN setup or reset/);
+    assert.equal(payload.template_params.mainMessage.includes('Your attendance PIN setup'), false);
+    assert.equal(payload.template_params.ctaLink, 'https://ovtechacademy.com/lms');
+  }
+});
+
 test('provider rejection diagnostics distinguish actionable failures while excluding raw responses and secrets', async () => {
   const cases = [
     [403, 'API calls are disabled for non-browser applications', 'server_requests_disabled'],

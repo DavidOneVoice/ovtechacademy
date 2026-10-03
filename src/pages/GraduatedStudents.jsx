@@ -159,46 +159,120 @@ const GraduatedStudents = () => {
   const certificateLink = (graduate) => `/verify/${encodeURIComponent(graduate.profile.certificateId)}`;
   const showRevoke = (graduate) => { setRevocationTarget(graduate); setReason(""); };
 
-  return <AdminWorkspace cohort={{...cohort, setSelectedId: (id) => { setSelected(null); setRevocationTarget(null); setSearch(""); setCourseFilter("All"); setMethodFilter("All"); setAlumniFilter("All"); cohort.setSelectedId(id); }}} title="Graduates" description="Celebrate completion. Manage certificates and alumni visibility by cohort."><main className="admin-page graduates-page">
-    {toast && <div className="admin-toast">{toast}</div>}
+  const hasFilters = search || courseFilter !== "All" || methodFilter !== "All" || alumniFilter !== "All";
+  const resetFilters = () => {
+    setSearch("");
+    setCourseFilter("All");
+    setMethodFilter("All");
+    setAlumniFilter("All");
+  };
+  const changeCohort = (id) => {
+    setSelected(null);
+    setRevocationTarget(null);
+    resetFilters();
+    cohort.setSelectedId(id);
+  };
 
+  return (
+    <AdminWorkspace cohort={{ ...cohort, setSelectedId: changeCohort }} title="Graduates" description="Manage certificates and alumni visibility for each cohort.">
+      <main className="admin-page graduates-page">
+        {toast && <div className="admin-toast" role="status">{toast}</div>}
 
-    {!loading && !error && <section className="graduate-summary" aria-label="Graduate summary">
-      <article><span>Total Graduates</span><strong>{summary.total}</strong></article>
-      <article><span>Graduated This Month</span><strong>{summary.thisMonth}</strong></article>
-      <article><span>Listed in Alumni Directory</span><strong>{summary.listed}</strong></article>
-      <article><span>Not Listed Publicly</span><strong>{summary.private}</strong></article>
-    </section>}
+        {!loading && !error && (
+          <section className="graduate-summary" aria-label="Graduate summary">
+            <article><span>Total graduates</span><strong>{summary.total}</strong><small>Approved certificates</small></article>
+            <article><span>Completed this month</span><strong>{summary.thisMonth}</strong><small>Across the selected cohort</small></article>
+            <article><span>Public alumni profiles</span><strong>{summary.listed}</strong><small>Visible in the alumni directory</small></article>
+            <article><span>Private profiles</span><strong>{summary.private}</strong><small>Not listed in the directory</small></article>
+          </section>
+        )}
 
-    <section className="admin-table-card">
-      <div className="admin-table-heading"><div><h2>Graduate Directory</h2><p>Graduation is based on approved certificate profiles.</p></div></div>
-      <div className="graduate-filters">
-        <label className="graduate-search"><span>Search graduates</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, email, phone or certificate ID" /></label>
-        <label><span>Course / track</span><select value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}><option value="All">All courses</option>{courseOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
-        <label><span>Learning method</span><select value={methodFilter} onChange={(event) => setMethodFilter(event.target.value)}><option value="All">All methods</option>{methodOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
-        <label><span>Alumni visibility</span><select value={alumniFilter} onChange={(event) => setAlumniFilter(event.target.value)}><option value="All">All</option><option value="listed">Listed publicly</option><option value="private">Not listed publicly</option></select></label>
-        <label><span>Sort by</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="newest">Newest graduates</option><option value="oldest">Oldest graduates</option><option value="name-asc">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>
-      </div>
+        <section className="admin-table-card graduate-directory" aria-labelledby="graduate-directory-title">
+          <div className="admin-table-heading">
+            <div><h2 id="graduate-directory-title">Graduate directory</h2><p>Students with an approved certificate profile.</p></div>
+            {!loading && !error && <span className="graduate-total">{graduates.length} {graduates.length === 1 ? "graduate" : "graduates"}</span>}
+          </div>
+          <div className="graduate-filters">
+            <label className="graduate-search"><span>Search graduates</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, email, phone or certificate ID" /></label>
+            <label><span>Course / track</span><select value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}><option value="All">All courses</option>{courseOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
+            <label><span>Learning method</span><select value={methodFilter} onChange={(event) => setMethodFilter(event.target.value)}><option value="All">All methods</option>{methodOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
+            <label><span>Alumni visibility</span><select value={alumniFilter} onChange={(event) => setAlumniFilter(event.target.value)}><option value="All">All profiles</option><option value="listed">Listed publicly</option><option value="private">Not listed publicly</option></select></label>
+            <label><span>Sort by</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="newest">Newest graduates</option><option value="oldest">Oldest graduates</option><option value="name-asc">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>
+          </div>
+          {!loading && !error && graduates.length > 0 && (
+            <div className="graduate-results">
+              <span aria-live="polite">Showing {visibleGraduates.length} of {graduates.length} graduates</span>
+              {hasFilters && <button type="button" onClick={resetFilters}>Clear filters</button>}
+            </div>
+          )}
 
-      {loading && <p className="admin-loading">Loading graduated students...</p>}
-      {error && <div className="graduate-state"><p>Unable to load graduated students.</p><button type="button" className="admin-view-btn" onClick={loadGraduates}>Retry</button></div>}
-      {!loading && !error && graduates.length === 0 && <p className="admin-empty">No graduated students yet.</p>}
-      {!loading && !error && graduates.length > 0 && visibleGraduates.length === 0 && <p className="admin-empty">No graduates match your search or filters.</p>}
-      {!loading && !error && visibleGraduates.length > 0 && <div className="admin-table-wrap graduate-table"><table><thead><tr><th>Graduate</th><th>Contact</th><th>Course / Track</th><th>Method</th><th>Completion</th><th>Certificate ID</th><th>Alumni</th><th>Actions</th></tr></thead><tbody>
-        {visibleGraduates.map((graduate) => <tr key={graduate.id}>
-          <td data-label="Graduate"><div className="graduate-person">{graduate.profile.photoUrl ? <img src={graduate.profile.photoUrl} alt={`${getName(graduate)} professional profile`} /> : <span className="graduate-avatar" aria-hidden="true">{getName(graduate).charAt(0)}</span>}<strong>{getName(graduate)}</strong></div></td>
-          <td data-label="Contact"><span className="graduate-contact">{textValue(getEmail(graduate))}<small>{textValue(getPhone(graduate))}</small></span></td>
-          <td data-label="Course / Track">{textValue(getCourse(graduate))}</td><td data-label="Method">{textValue(getMethod(graduate))}</td><td data-label="Completion">{formatDate(graduate.profile.completionDate)}</td><td data-label="Certificate ID"><code>{textValue(graduate.profile.certificateId)}</code></td><td data-label="Alumni"><span className={`graduate-status ${isListed(graduate) ? "listed" : "private"}`}>{isListed(graduate) ? "Listed publicly" : "Not listed publicly"}</span></td>
-          <td data-label="Actions"><div className="graduate-actions"><button className="admin-view-btn" onClick={() => openDetails(graduate)}>View Student</button>{graduate.profile.certificateId && <a href={certificateLink(graduate)} target="_blank" rel="noreferrer noopener">View Certificate</a>}<button className="admin-delete" onClick={() => showRevoke(graduate)}>Revoke Certificate</button></div></td>
-        </tr>)}</tbody></table></div>}
-    </section>
+          {loading && <div className="graduate-state" role="status"><span className="graduate-loading-indicator" aria-hidden="true" /><p>Loading graduated students…</p></div>}
+          {error && <div className="graduate-state" role="alert"><h3>We couldn’t load the directory</h3><p>Please try again to see this cohort’s graduates.</p><button type="button" className="admin-view-btn" onClick={loadGraduates}>Try again</button></div>}
+          {!loading && !error && graduates.length === 0 && <div className="graduate-state"><h3>No graduates in this cohort yet</h3><p>Students appear here after their certificate profiles are approved.</p></div>}
+          {!loading && !error && graduates.length > 0 && visibleGraduates.length === 0 && <div className="graduate-state"><h3>No matching graduates</h3><p>Try another name or adjust your filters.</p><button type="button" className="admin-view-btn" onClick={resetFilters}>Clear filters</button></div>}
+          {!loading && !error && visibleGraduates.length > 0 && (
+            <div className="admin-table-wrap graduate-table" tabIndex={0} role="region" aria-label="Graduate directory table">
+              <table>
+                <thead><tr><th scope="col">Graduate</th><th scope="col">Contact</th><th scope="col">Course / track</th><th scope="col">Method</th><th scope="col">Completion</th><th scope="col">Certificate ID</th><th scope="col">Alumni</th><th scope="col">Actions</th></tr></thead>
+                <tbody>
+                  {visibleGraduates.map((graduate) => (
+                    <tr key={graduate.id}>
+                      <td data-label="Graduate"><div className="graduate-person">{graduate.profile.photoUrl ? <img src={graduate.profile.photoUrl} alt={`${getName(graduate)} professional profile`} loading="lazy" /> : <span className="graduate-avatar" aria-hidden="true">{getName(graduate).charAt(0)}</span>}<strong>{getName(graduate)}</strong></div></td>
+                      <td data-label="Contact"><span className="graduate-contact">{textValue(getEmail(graduate))}<small>{textValue(getPhone(graduate))}</small></span></td>
+                      <td data-label="Course / track">{textValue(getCourse(graduate))}</td>
+                      <td data-label="Method">{textValue(getMethod(graduate))}</td>
+                      <td data-label="Completion">{formatDate(graduate.profile.completionDate)}</td>
+                      <td data-label="Certificate ID"><code>{textValue(graduate.profile.certificateId)}</code></td>
+                      <td data-label="Alumni"><span className={`graduate-status ${isListed(graduate) ? "listed" : "private"}`}>{isListed(graduate) ? "Listed publicly" : "Private profile"}</span></td>
+                      <td data-label="Actions"><div className="graduate-actions"><button type="button" className="admin-view-btn" onClick={() => openDetails(graduate)}>View student</button>{graduate.profile.certificateId && <a href={certificateLink(graduate)} target="_blank" rel="noreferrer noopener">View certificate <span aria-hidden="true">↗</span></a>}<button type="button" className="admin-delete" onClick={() => showRevoke(graduate)}>Revoke certificate</button></div></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
-    {selected && <div className="admin-modal-overlay"><div className="admin-modal graduate-modal"><button className="admin-modal-close" onClick={() => setSelected(null)}>×</button><h2>{getName(selected)}</h2><p className="admin-modal-email">{textValue(getEmail(selected))}</p><div className="admin-details-grid">
-      <div><strong>Phone / WhatsApp</strong><span>{textValue(getPhone(selected))}</span></div><div><strong>Course / Track</strong><span>{textValue(getCourse(selected))}</span></div><div><strong>Learning Method</strong><span>{textValue(getMethod(selected))}</span></div><div><strong>Certificate Status</strong><span>{textValue(selected.profile.status)}</span></div><div><strong>Completion Date</strong><span>{formatDate(selected.profile.completionDate)}</span></div><div><strong>Certificate ID</strong><span>{textValue(selected.profile.certificateId)}</span></div><div><strong>Alumni Visibility</strong><span>{isListed(selected) ? "Listed publicly" : "Not listed publicly"}</span></div><div><strong>Submitted Date</strong><span>{formatDate(selected.profile.submittedAt || selected.application.createdAt)}</span></div><div><strong>Attendance</strong><span>{attendanceText(selected.application)}</span></div><div><strong>Progress</strong><span>{detailsLoading ? "Loading..." : progressText(progress)}</span></div>
-    </div><div className="admin-certificate-actions">{selected.profile.certificateId && <a className="admin-certificate-link" href={certificateLink(selected)} target="_blank" rel="noreferrer noopener">View Certificate</a>}<button type="button" className="secondary" onClick={() => showRevoke(selected)}>Revoke Certificate</button></div></div></div>}
+        {selected && (
+          <div className="admin-modal-overlay">
+            <div className="admin-modal graduate-modal" role="dialog" aria-modal="true" aria-labelledby="graduate-details-title">
+              <button type="button" className="admin-modal-close" aria-label="Close graduate details" onClick={() => setSelected(null)}>×</button>
+              <span className="graduate-modal-eyebrow">Graduate profile</span>
+              <h2 id="graduate-details-title">{getName(selected)}</h2>
+              <p className="admin-modal-email">{textValue(getEmail(selected))}</p>
+              <div className="admin-details-grid">
+                <div><strong>Phone / WhatsApp</strong><span>{textValue(getPhone(selected))}</span></div>
+                <div><strong>Course / track</strong><span>{textValue(getCourse(selected))}</span></div>
+                <div><strong>Learning method</strong><span>{textValue(getMethod(selected))}</span></div>
+                <div><strong>Certificate status</strong><span>{textValue(selected.profile.status)}</span></div>
+                <div><strong>Completion date</strong><span>{formatDate(selected.profile.completionDate)}</span></div>
+                <div><strong>Certificate ID</strong><span>{textValue(selected.profile.certificateId)}</span></div>
+                <div><strong>Alumni visibility</strong><span>{isListed(selected) ? "Listed publicly" : "Not listed publicly"}</span></div>
+                <div><strong>Submitted date</strong><span>{formatDate(selected.profile.submittedAt || selected.application.createdAt)}</span></div>
+                <div><strong>Attendance</strong><span>{attendanceText(selected.application)}</span></div>
+                <div><strong>Progress</strong><span>{detailsLoading ? "Loading…" : progressText(progress)}</span></div>
+              </div>
+              <div className="admin-certificate-actions">{selected.profile.certificateId && <a className="admin-certificate-link" href={certificateLink(selected)} target="_blank" rel="noreferrer noopener">View certificate <span aria-hidden="true">↗</span></a>}<button type="button" className="secondary" onClick={() => showRevoke(selected)}>Revoke certificate</button></div>
+            </div>
+          </div>
+        )}
 
-    {revocationTarget && <div className="admin-modal-overlay"><div className="admin-delete-modal admin-certificate-dialog"><h2>Revoke Certificate</h2><form onSubmit={revokeCertificate} className="admin-change-form"><label>Reason for revocation<textarea required value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Explain why this certificate is being revoked." /></label><div className="admin-delete-actions"><button type="button" className="admin-cancel-delete" disabled={saving} onClick={() => setRevocationTarget(null)}>Cancel</button><button type="submit" className="admin-confirm-delete" disabled={saving || !reason.trim()}>{saving ? "Revoking certificate..." : "Confirm Revocation"}</button></div></form></div></div>}
-  </main></AdminWorkspace>;
+        {revocationTarget && (
+          <div className="admin-modal-overlay">
+            <div className="admin-delete-modal admin-certificate-dialog" role="dialog" aria-modal="true" aria-labelledby="graduate-revocation-title">
+              <span className="graduate-modal-eyebrow">Certificate management</span>
+              <h2 id="graduate-revocation-title">Revoke certificate</h2>
+              <p className="graduate-revocation-note">This will revoke the approved certificate for <strong>{getName(revocationTarget)}</strong>.</p>
+              <form onSubmit={revokeCertificate} className="admin-change-form">
+                <label>Reason for revocation<textarea required value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Explain why this certificate is being revoked." /></label>
+                <div className="admin-delete-actions"><button type="button" className="admin-cancel-delete" disabled={saving} onClick={() => setRevocationTarget(null)}>Cancel</button><button type="submit" className="admin-confirm-delete" disabled={saving || !reason.trim()}>{saving ? "Revoking certificate…" : "Revoke certificate"}</button></div>
+              </form>
+            </div>
+          </div>
+        )}
+      </main>
+    </AdminWorkspace>
+  );
 };
 
 export default GraduatedStudents;

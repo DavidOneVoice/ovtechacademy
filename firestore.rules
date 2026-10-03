@@ -12,6 +12,13 @@ service cloud.firestore {
     match /attendanceCredentials/{id} { allow read, write: if false; }
     match /attendanceChallenges/{id} { allow read, write: if false; }
     match /attendanceRateLimits/{id} { allow read, write: if false; }
+    // OVTECH_PORTAL_PIN_V1
+    // Portal sessions and verification proofs are accessible only to the trusted server.
+    match /portalSessions/{id} { allow read, write: if false; }
+    match /portalChallenges/{id} { allow read, write: if false; }
+    match /portalRateLimits/{id} { allow read, write: if false; }
+    match /portalContactLocks/{id} { allow read, write: if false; }
+
     match /academyMigrations/{path=**} { allow read, write: if false; }
     function attendanceTrackSafe(track) {
       let before = resource.data.get('attendance', {}).get(track, {});

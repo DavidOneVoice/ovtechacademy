@@ -357,28 +357,29 @@ const EnrolledStudents = () => {
 
   return (
     <AdminWorkspace cohort={{...cohort, setSelectedId: (id) => { setSelectedStudent(null); setEditingStudent(null); setDeleteTarget(null); setAttendanceModalOpen(false); setConfirmTrack(null); setGeneratedSession(null); setTrackFilter("All"); setLearningMethodFilter("All"); cohort.setSelectedId(id); }}} title="Enrolled students" description="Support your learners, manage certificates, and take attendance by cohort."><main className="admin-page">
-      {toast && <div className="admin-toast">{toast}</div>}
+      {toast && <div className="admin-toast" role="status">{toast}</div>}
 
 
 
       <section className="admin-table-card">
         <div className="admin-table-heading">
           <div>
-            <h2>Total Enrolled: {students.length}</h2>
-            <p>Create course-specific attendance links only when that lecture holds.</p>
+            <h2>Student directory</h2>
+            <p>{filteredStudents.length} of {students.length} enrolled students · {cohort.selected.label}</p>
           </div>
           <button type="button" className="admin-attendance-main-btn" onClick={() => setAttendanceModalOpen(true)}>
             Generate Attendance Link
           </button>
         </div>
         <div className="admin-filters">
-          <select value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}>
+          <select aria-label="Filter by course" value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}>
             <option value="All">All Courses</option>
             {courseOptions.map((course) => (
               <option key={course} value={course}>{course}</option>
             ))}
           </select>
           <select
+            aria-label="Filter by learning method"
             value={learningMethodFilter}
             onChange={(event) => setLearningMethodFilter(event.target.value)}
           >
@@ -389,7 +390,7 @@ const EnrolledStudents = () => {
         </div>
         {loading && <p className="admin-loading">Loading enrolled students...</p>}
 
-        <div className="admin-table-wrap">
+        <div className="admin-table-wrap" tabIndex={0} role="region" aria-label="Enrolled students table">
           <table>
             <thead>
               <tr>
@@ -450,7 +451,7 @@ const EnrolledStudents = () => {
       {attendanceModalOpen && (
         <div className="admin-modal-overlay">
           <div className="admin-modal admin-attendance-modal">
-            <button className="admin-modal-close" onClick={() => setAttendanceModalOpen(false)}>×</button>
+            <button className="admin-modal-close" aria-label="Close dialog" onClick={() => setAttendanceModalOpen(false)}>×</button>
             <h2>Generate Attendance Link</h2><p>{cohort.selected.label} cohort · Live classes only</p>
             <p className="admin-modal-email">Choose the exact course holding today. Each course gets its own daily link.</p>
             <div className="admin-attendance-course-grid">
@@ -491,7 +492,7 @@ const EnrolledStudents = () => {
       {selectedStudent && (
         <div className="admin-modal-overlay">
           <div className="admin-modal">
-            <button className="admin-modal-close" onClick={() => setSelectedStudent(null)}>×</button>
+            <button className="admin-modal-close" aria-label="Close dialog" onClick={() => setSelectedStudent(null)}>×</button>
             <h2>{selectedStudent.fullName}</h2>
             <p className="admin-modal-email">{selectedStudent.email}</p>
             <div className="admin-details-grid">
@@ -581,7 +582,7 @@ const EnrolledStudents = () => {
       {editingStudent && (
         <div className="admin-modal-overlay">
           <div className="admin-modal admin-edit-modal">
-            <button className="admin-modal-close" onClick={() => setEditingStudent(null)}>×</button>
+            <button className="admin-modal-close" aria-label="Close dialog" onClick={() => setEditingStudent(null)}>×</button>
             <h2>Edit Student Details</h2>
             <p className="admin-modal-email">Changes update the student's main application record.</p>
             <form onSubmit={saveStudentDetails} className="admin-edit-form">

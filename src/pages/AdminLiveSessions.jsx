@@ -1,3 +1,4 @@
+import AdminWorkspace from "../components/AdminWorkspace";
 import { useEffect, useMemo, useState } from "react";
 import {
   addDoc,
@@ -125,29 +126,12 @@ const AdminLiveSessions = () => {
   };
 
   return (
-    <main className="admin-page">
-      {toast && <div className="admin-toast">{toast}</div>}
-      <section className="admin-header">
-        <div>
-          <span>OVTech Admin</span>
-          <h1>Publish Live Sessions</h1>
-          <p>
-            Publish, view, edit, update, and delete live-session videos from one
-            dedicated page.
-          </p>
-        </div>
-        <div className="admin-header-actions">
-          <a target="_blank" rel="noopener noreferrer" href="/admin" className="admin-home-btn">
-            Scholarship Admin
-          </a>
-          <a target="_blank" rel="noopener noreferrer" href="/admin/lms" className="admin-home-btn">
-            LMS Management
-          </a>
-          <a target="_blank" rel="noopener noreferrer" href="/lms" className="admin-home-btn">
-            Open LMS
-          </a>
-        </div>
-      </section>
+    <AdminWorkspace title="Live sessions" description="Publish class videos and replays for the right student audience."><main className="admin-page">
+      {toast && <div className="admin-toast" role="status">{toast}</div>}
+      <div className="admin-page-toolbar">
+        <p>Learning content is shared across cohorts. Publishing controls determine who can see it.</p>
+        <a target="_blank" rel="noopener noreferrer" href="/lms" className="admin-home-btn">Open student portal ↗</a>
+      </div>
 
       {loading ? (
         <p className="admin-loading">Loading live sessions...</p>
@@ -163,7 +147,8 @@ const AdminLiveSessions = () => {
               className="admin-lms-form admin-live-session-form"
               onSubmit={(event) => event.preventDefault()}
             >
-              <input
+              <label>Session title
+<input
                 placeholder="Session title"
                 value={liveSessionForm.title}
                 onChange={(e) =>
@@ -173,7 +158,9 @@ const AdminLiveSessions = () => {
                   }))
                 }
               />
-              <input
+</label>
+              <label>Session date
+<input
                 type="date"
                 value={liveSessionForm.sessionDate}
                 onChange={(e) =>
@@ -183,7 +170,9 @@ const AdminLiveSessions = () => {
                   }))
                 }
               />
-              <input
+</label>
+              <label>Video or live-session URL
+<input
                 placeholder="YouTube or live-session URL"
                 value={liveSessionForm.youtubeUrl}
                 onChange={(e) =>
@@ -193,7 +182,9 @@ const AdminLiveSessions = () => {
                   }))
                 }
               />
-              <input
+</label>
+              <label>Attachment URL (optional)
+<input
                 placeholder="Optional attachment URL"
                 value={
                   liveSessionForm.attachmentUrl &&
@@ -209,7 +200,9 @@ const AdminLiveSessions = () => {
                   }))
                 }
               />
-              <input
+</label>
+              <label>Upload attachment (optional)
+<input
                 type="file"
                 onChange={async (e) => {
                   const attachment = await saveLiveAttachment(
@@ -222,6 +215,7 @@ const AdminLiveSessions = () => {
                   }));
                 }}
               />
+</label>
               {liveSessionForm.attachmentName && (
                 <small>Attached: {liveSessionForm.attachmentName}</small>
               )}
@@ -269,7 +263,7 @@ const AdminLiveSessions = () => {
             <h2>Published & Draft Live Sessions</h2>
             {liveSessions.length ? (
               liveSessions.map((session) => (
-                <article className="admin-lms-row" key={session.id}>
+                <article className="admin-lms-row admin-live-row" key={session.id}>
                   <div className="admin-lms-meta">
                     <span>{session.isPublished ? "Published" : "Draft"}</span>
                     <span>{session.sessionDate || "No date"}</span>
@@ -314,7 +308,7 @@ const AdminLiveSessions = () => {
         <div className="admin-modal-overlay">
           <div className="admin-modal admin-publish-modal">
             <button
-              className="admin-modal-close"
+              className="admin-modal-close" aria-label="Close dialog"
               onClick={() => setPublishModalOpen(false)}
             >
               ×
@@ -372,7 +366,7 @@ const AdminLiveSessions = () => {
           </div>
         </div>
       )}
-    </main>
+    </main></AdminWorkspace>
   );
 };
 

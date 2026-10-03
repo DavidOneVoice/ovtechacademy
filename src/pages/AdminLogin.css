@@ -1,124 +1,243 @@
-/* ADMIN LOGIN */
-
 .admin-login-page {
   min-height: 100vh;
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(212, 175, 55, 0.18),
-      transparent 32%
-    ),
-    radial-gradient(
-      circle at bottom right,
-      rgba(18, 35, 63, 0.16),
-      transparent 34%
-    ),
-    #f8f9fc;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+  background: #f5f6f8;
+  color: #172b46;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.admin-login-shell {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: min(980px, 100%);
+  overflow: hidden;
+  border: 1px solid #e2e6eb;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 18px 60px rgba(23, 43, 70, .08);
+}
+
+.admin-login-brand {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 550px;
+  padding: 42px;
+  background: #172b46;
+  color: #fff;
+}
+
+.admin-login-brand-identity {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 24px;
+  gap: 14px;
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.admin-login-brand-identity img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  padding: 6px;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.admin-login-brand-identity small {
+  display: block;
+  margin-top: 4px;
+  color: #bdc8d7;
+  font-size: .76rem;
+  font-weight: 400;
+}
+
+.admin-login-eyebrow {
+  display: block;
+  color: #ad8532;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.admin-login-brand-message .admin-login-eyebrow {
+  color: #ddbd75;
+}
+
+.admin-login-brand-message h2 {
+  max-width: 320px;
+  margin: 18px 0;
+  color: #fff;
+  font-size: clamp(2rem, 3vw, 2.7rem);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -.04em;
+}
+
+.admin-login-brand-message p {
+  max-width: 310px;
+  margin: 0;
+  color: #c6d0dd;
+  font-size: .91rem;
+  line-height: 1.8;
+}
+
+.admin-login-brand-footer {
+  margin: 0;
+  padding-top: 22px;
+  border-top: 1px solid #3b4d65;
+  color: #bdc8d7;
+  font-size: .75rem;
 }
 
 .admin-login-card {
-  width: min(460px, 100%);
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 30px;
-  padding: 38px;
-  box-shadow: 0 28px 80px rgba(18, 35, 63, 0.15);
-}
-
-.admin-login-card::before {
-  content: "OV";
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  background: #12233f;
-  color: #d4af37;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
-  font-weight: 900;
-  margin-bottom: 22px;
-}
-
-.admin-login-card span {
-  color: #d4af37;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  font-size: 0.78rem;
+  min-width: 0;
+  padding: 52px 46px;
 }
 
 .admin-login-card h1 {
   margin: 12px 0 8px;
-  color: #12233f;
-  font-size: 2.2rem;
-  letter-spacing: -1px;
+  color: #172b46;
+  font-size: clamp(1.8rem, 3vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -.04em;
 }
 
-.admin-login-card p {
-  color: #6b7280;
-  line-height: 1.6;
-  margin: 0 0 26px;
+.admin-login-card > p {
+  margin: 0 0 30px;
+  color: #6c7685;
+  font-size: .91rem;
+  line-height: 1.7;
 }
 
 .admin-login-card label {
   display: grid;
   gap: 9px;
-  margin-bottom: 18px;
-  color: #12233f;
-  font-weight: 800;
+  margin-bottom: 20px;
+  color: #34445a;
+  font-size: .81rem;
+  font-weight: 600;
 }
 
 .admin-login-card input {
-  border: 1px solid #e5e7eb;
-  background: #f8f9fc;
-  border-radius: 15px;
-  padding: 15px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #dbe1e8;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff;
+  color: #172b46;
   font: inherit;
-  outline: none;
+  font-size: .94rem;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.admin-login-card input::placeholder {
+  color: #9098a5;
 }
 
 .admin-login-card input:focus {
-  border-color: #d4af37;
-  background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.12);
+  outline: none;
+  border-color: #ad8532;
+  box-shadow: 0 0 0 3px rgba(199, 160, 74, .14);
 }
 
 .admin-login-card button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
-  border: none;
-  background: #12233f;
-  color: #ffffff;
-  padding: 16px;
-  border-radius: 999px;
-  font-weight: 900;
+  min-height: 49px;
+  margin-top: 4px;
+  padding: 14px 18px;
+  border: 1px solid #172b46;
+  border-radius: 10px;
+  background: #172b46;
+  color: #fff;
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 600;
   cursor: pointer;
-  margin-top: 8px;
+  transition: background .15s;
 }
 
 .admin-login-card button:hover {
-  background: #081426;
+  background: #243d5d;
+}
+
+.admin-login-card button:focus-visible,
+.admin-login-back:focus-visible {
+  outline: 3px solid #c7a04a;
+  outline-offset: 3px;
+}
+
+.admin-login-back {
+  align-self: center;
+  margin-top: 24px;
+  color: #6c7685;
+  font-size: .79rem;
+  text-decoration: none;
+}
+
+.admin-login-back:hover {
+  color: #172b46;
+  text-decoration: underline;
 }
 
 .admin-login-error {
-  background: #fee2e2;
-  color: #991b1b;
-  padding: 13px 15px;
-  border-radius: 15px;
-  font-weight: 800;
-  margin-bottom: 18px;
+  margin-bottom: 22px;
+  padding: 12px 14px;
+  border: 1px solid #f1d5d0;
+  border-radius: 10px;
+  background: #fff6f4;
+  color: #a03b2c;
+  font-size: .84rem;
+  line-height: 1.6;
 }
 
-.admin-login-error ul {
-  margin: 10px 0 0;
-  padding-left: 20px;
+@media (max-width: 760px) {
+  .admin-login-page {
+    padding: 30px 18px;
+  }
+
+  .admin-login-shell {
+    grid-template-columns: 1fr;
+    max-width: 460px;
+    border-radius: 20px;
+  }
+
+  .admin-login-brand {
+    min-height: auto;
+    padding: 24px 30px;
+  }
+
+  .admin-login-brand-message,
+  .admin-login-brand-footer {
+    display: none;
+  }
+
+  .admin-login-card {
+    padding: 34px 30px 30px;
+  }
 }
 
-.admin-login-error li {
-  font-family: monospace;
-  font-size: 0.92rem;
-  overflow-wrap: anywhere;
+@media (max-width: 380px) {
+  .admin-login-page {
+    padding: 16px 12px;
+  }
+
+  .admin-login-brand,
+  .admin-login-card {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
 }

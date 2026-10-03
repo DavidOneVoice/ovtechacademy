@@ -226,6 +226,44 @@
 }
 
 .lms-error { color: #b42318; font-weight: 700; }
+
+.portal-message { margin: 0; padding: 14px 16px; border: 1px solid #c5daca; border-radius: 12px; background: #f0f8f3; color: #235c3f; line-height: 1.6; }
+.lms-login-card button.portal-text-button,
+.portal-profile-card button.portal-text-button { padding: 10px 0; border: 0; border-radius: 0; background: none; color: #173a70; box-shadow: none; font-weight: 700; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
+.portal-profile-card { margin-bottom: 24px; padding: clamp(22px, 4vw, 38px); border: 1px solid #dce4ee; border-radius: 24px; background: #fff; }
+.portal-profile-card header { max-width: 760px; margin-bottom: 26px; }
+.portal-profile-card header > span { color: #87721f; font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.portal-profile-card h2 { margin: 8px 0 12px; color: #122033; font-size: clamp(1.5rem, 3vw, 2rem); }
+.portal-profile-card p { line-height: 1.7; }
+.portal-profile-card header p, .portal-security > p { margin: 0; color: #526071; }
+.portal-profile-form { display: grid; gap: 20px; }
+.portal-profile-form label { display: grid; gap: 8px; font-size: .92rem; font-weight: 700; color: #122033; }
+.portal-profile-form input, .portal-profile-form select { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #afb9c8; border-radius: 8px; padding: 14px 12px; color: #122033; background: #fff; font: inherit; }
+.portal-profile-form input:focus-visible, .portal-profile-form select:focus-visible { outline: 3px solid #174c92; outline-offset: 3px; }
+.portal-profile-form input:disabled, .portal-profile-form select:disabled { background: #f4f6f8; color: #526071; }
+.portal-profile-form small { color: #526071; font-size: .82rem; font-weight: 400; line-height: 1.6; }
+.portal-profile-form .academy-phone-field { margin: 0; }
+.portal-profile-form .academy-phone-controls { gap: 20px; }
+.portal-profile-form .academy-phone-input { margin-top: 0; }
+.portal-profile-form .academy-phone-input input { border: 0; border-radius: 0; }
+.portal-profile-form .academy-phone-help, .portal-profile-form .academy-phone-preview { margin: 10px 0 0; }
+.portal-saved-phone { display: grid; gap: 8px; padding: 18px; border: 1px solid #dce4ee; border-radius: 10px; background: #f8fafc; }
+.portal-saved-phone span { font-size: .92rem; font-weight: 700; }
+.portal-saved-phone strong { overflow-wrap: anywhere; }
+.portal-saved-phone button { justify-self: start; }
+.portal-profile-verification { padding: 20px; border: 1px solid #ccd7e5; border-radius: 12px; background: #f7f9fc; }
+.portal-profile-verification p { margin: 0 0 16px; overflow-wrap: anywhere; }
+.portal-profile-actions { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.portal-profile-actions > button:not(.portal-text-button), .portal-profile-reminder button { padding: 13px 20px; border: 0; border-radius: 9px; background: #173a70; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.portal-profile-actions button:disabled { opacity: .55; cursor: wait; }
+.portal-security { margin-top: 34px; padding-top: 28px; border-top: 1px solid #dce4ee; }
+.portal-security h3 { margin: 0 0 10px; color: #122033; font-size: 1.15rem; }
+.portal-security .portal-pin-panel { margin: 22px 0 0; }
+.portal-profile-reminder { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 24px; padding: 22px; border: 1px solid #dce4ee; border-radius: 18px; background: #fff; }
+.portal-profile-reminder strong { color: #122033; }
+.portal-profile-reminder p { margin: 7px 0 0; color: #526071; line-height: 1.6; }
+.portal-profile-reminder button { flex: 0 0 auto; }
+@media (max-width: 620px) { .portal-profile-reminder { align-items: stretch; flex-direction: column; gap: 16px; } .portal-profile-reminder button { width: 100%; } .portal-profile-actions { align-items: stretch; flex-direction: column; gap: 12px; } .portal-profile-actions > button { width: 100%; } }
 .lms-hero { display: flex; align-items: center; justify-content: space-between; gap: 20px; background: linear-gradient(135deg, #102a7a, #315efb); color: #fff; border-radius: 28px; padding: 36px; }
 .lms-hero span { color: #dbe7ff; }
 .lms-hero h1 { color: #fff; }

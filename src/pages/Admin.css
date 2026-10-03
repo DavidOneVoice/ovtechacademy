@@ -1474,3 +1474,109 @@
     flex-direction: column;
   }
 }
+
+
+/* Shared administration surfaces. Scoped so student-facing styles remain independent. */
+.admin-workspace .admin-page-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin: -2px 0 23px; }
+.admin-workspace .admin-page-toolbar p { color: var(--adm-muted); font-size: 12px; line-height: 1.8; }
+.admin-workspace .admin-page-toolbar .admin-home-btn { flex-shrink: 0; background: white; border-color: #d8e0e9; color: #38516f; font-weight: 600; }
+.admin-workspace .admin-filter-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin: 4px 0 0; }
+.admin-workspace .admin-filter-actions button { margin-bottom: 0; }
+.admin-workspace .admin-actions { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.admin-workspace .admin-actions button, .admin-workspace .admin-reset-btn, .admin-workspace .admin-copy-btn, .admin-workspace .admin-view-details-btn, .admin-workspace .admin-confirm-delete, .admin-workspace .admin-cancel-delete, .admin-workspace .admin-confirm-attendance, .admin-workspace .admin-enroll-btn { min-height: 37px; padding: 9px 13px; border: 1px solid transparent; border-radius: 7px; font-size: 11px; font-weight: 600; box-shadow: none; }
+.admin-workspace button { cursor: pointer; font-family: inherit; }
+.admin-workspace button:disabled { cursor: not-allowed; opacity: .55; }
+.admin-workspace .admin-approve { border-color: #cde7dc; background: #edf7f2; color: #2a6952; }
+.admin-workspace .admin-reject, .admin-workspace .admin-delete, .admin-workspace .admin-confirm-delete { border-color: #eed4d5; background: #fbefef; color: #9d4349; }
+.admin-workspace .admin-edit-btn { border-color: #d9e1eb; background: #f0f4f9; color: #385a80; }
+.admin-workspace .admin-reset-btn, .admin-workspace .admin-cancel-delete { border-color: #dce2e9; background: white; color: #5d6c7e; }
+.admin-workspace .admin-enroll-btn, .admin-workspace .admin-confirm-attendance { border-color: #172b46; background: #172b46; color: white; }
+.admin-workspace .admin-copy-btn { border-color: #e5dcc4; background: #fbf7ed; color: #896b2f; }
+.admin-workspace .admin-view-details-btn { background: #edf2f7; color: #3a5575; }
+.admin-workspace .admin-status { min-width: 76px; padding: 6px 10px; background: #f8f1e2; color: #8a6b2e; font-size: 10px; font-weight: 600; }
+.admin-workspace .admin-toast { z-index: 1100; padding: 14px 20px; border-radius: 10px; background: #172b46; box-shadow: 0 8px 24px #172b4626; font-size: 13px; font-weight: 500; }
+.admin-workspace .admin-modal-overlay { background: #10203991; padding: 26px; backdrop-filter: blur(3px); }
+.admin-workspace .admin-modal, .admin-workspace .admin-delete-modal { max-height: calc(100dvh - 52px); padding: 30px; border: 1px solid #e1e6ec; border-radius: 16px; background: white; box-shadow: 0 25px 70px #10203926; }
+.admin-workspace .admin-modal h2, .admin-workspace .admin-delete-modal h2 { margin: 0 40px 10px 0; color: var(--adm-ink); font-size: 23px; font-weight: 650; line-height: 1.3; letter-spacing: -.5px; }
+.admin-workspace .admin-modal-email, .admin-workspace .admin-delete-modal p { color: #788597; font-size: 13px; line-height: 1.8; }
+.admin-workspace .admin-modal-close { display: grid; place-items: center; width: 34px; height: 34px; right: 20px; top: 20px; border: 1px solid #e0e5ec; border-radius: 8px; background: #f7f9fb; color: #66758a; font-size: 22px; font-weight: 400; }
+.admin-workspace .admin-details-grid { gap: 12px; }
+.admin-workspace .admin-details-grid > div, .admin-workspace .admin-reason-box { padding: 16px; border: 1px solid #e6ebf0; border-radius: 9px; background: #fafbfd; }
+.admin-workspace .admin-details-grid strong, .admin-workspace .admin-reason-box strong { margin-bottom: 7px; color: #7b8899; font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: .5px; }
+.admin-workspace .admin-details-grid span, .admin-workspace .admin-reason-box p { color: #344960; font-size: 13px; line-height: 1.8; }
+.admin-workspace .admin-delete-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.admin-workspace .admin-delete-actions button { flex: 0 1 auto; min-height: 43px; padding: 11px 17px; font-size: 12px; }
+.admin-workspace .admin-certificate-profile { border-radius: 10px; background: #f3f6fa; }
+.admin-workspace .admin-certificate-profile strong { font-size: 16px; font-weight: 650; }
+.admin-workspace .admin-certificate-profile span { font-size: 12px; }
+.admin-workspace .admin-certificate-application h3 { font-size: 18px; font-weight: 650; }
+.admin-workspace .admin-certificate-application a { color: #3c5e83; font-weight: 600; }
+.admin-workspace .admin-certificate-actions { flex-wrap: wrap; gap: 10px; }
+.admin-workspace .admin-certificate-actions button, .admin-workspace .admin-certificate-actions .admin-certificate-link { min-height: 43px; padding: 11px 16px; border: 1px solid #172b46; border-radius: 8px; background: #172b46; color: white; font-size: 12px; font-weight: 600; }
+.admin-workspace .admin-certificate-actions button.secondary { border-color: #dce2e9; background: white; color: #536b86; }
+.admin-workspace .admin-edit-form { gap: 16px; }
+.admin-workspace .admin-edit-form label, .admin-workspace .admin-change-form label { color: #4b6078; font-size: 12px; font-weight: 600; }
+.admin-workspace .admin-edit-form input, .admin-workspace .admin-edit-form textarea, .admin-workspace .admin-change-form textarea, .admin-workspace .admin-generated-link input { min-width: 0; padding: 12px 13px; border: 1px solid #dce2e9; border-radius: 8px; color: #34485f; background: white; font: inherit; font-size: 13px; }
+.admin-workspace .admin-generated-link { padding: 20px; border-color: #e8dcc0; border-radius: 10px; background: #fcf9f1; }
+.admin-workspace .admin-generated-link span { font-size: 13px; font-weight: 650; }
+.admin-workspace .admin-generated-link p { font-size: 12px; font-weight: 400; }
+.admin-workspace .admin-generated-link button { border-radius: 8px; font-size: 12px; font-weight: 600; }
+.admin-workspace .admin-commission-card label, .admin-workspace .admin-top-referrer > span { color: #7b8798; font-size: 10px; font-weight: 650; }
+.admin-workspace .admin-commission-card input { width: 100%; padding: 13px; border-color: #dce2e9; border-radius: 8px; color: #344960; background: white; font-size: 24px; font-weight: 600; }
+.admin-workspace .admin-top-referrer h3, .admin-workspace .admin-referral-code-btn { color: #172b46; font-size: 19px; font-weight: 650; }
+.admin-workspace .admin-top-referrer p, .admin-workspace .admin-referral-metrics p { color: #738195; font-size: 12px; font-weight: 400; }
+.admin-workspace .admin-total-commission { padding: 20px; border: 1px solid #e7dcc3; border-radius: 10px; background: #fcf9f1; }
+.admin-workspace .admin-total-commission span { color: #8c743e; font-size: 11px; }
+.admin-workspace .admin-total-commission strong { color: #665326; font-size: 25px; font-weight: 650; }
+.admin-workspace .admin-referral-analytics { gap: 12px; }
+.admin-workspace .admin-referral-analytics > div { padding: 18px; border: 1px solid #e1e6ec; border-radius: 10px; background: #fafbfd; }
+.admin-workspace .admin-referral-analytics span { font-size: 10px; color: #7d8998; font-weight: 600; }
+.admin-workspace .admin-referral-analytics strong { font-size: 25px; color: #172b46; font-weight: 650; }
+.admin-workspace .admin-programme-card { gap: 24px; background: #fbf8f1; border-color: #e8dfcd; }
+.admin-workspace .admin-programme-card label { min-width: min(270px, 100%); color: #647386; font-size: 12px; font-weight: 600; }
+.admin-workspace .admin-programme-card select { padding: 12px; border-color: #d9d2c1; border-radius: 8px; color: #344960; font-size: 13px; }
+.admin-workspace .admin-programme-card small { font-size: 11px; font-weight: 500; }
+.admin-workspace .admin-programme-eyebrow { color: #9a7834; font-size: 10px; font-weight: 650; letter-spacing: 1.3px; }
+.admin-workspace .admin-lms-form, .admin-workspace .admin-live-quick-form { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px; }
+.admin-workspace .admin-lms-row { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 16px; padding: 21px; margin: 18px 0 0; border: 1px solid #e1e6ec; border-radius: 10px; background: #fbfcfe; }
+.admin-workspace .admin-lms-meta { grid-column: 1 / -1; gap: 7px; }
+.admin-workspace .admin-lms-meta span, .admin-workspace .admin-lms-meta strong { padding: 5px 9px; border-radius: 6px; background: #edf1f6; color: #5a708c; font-size: 10px; font-weight: 500; }
+.admin-workspace .admin-lms-row label, .admin-workspace .admin-lms-form label { gap: 8px; color: #4b6078; font-size: 12px; font-weight: 600; }
+.admin-workspace .admin-lms-row input:not([type='checkbox']), .admin-workspace .admin-lms-form input:not([type='checkbox']), .admin-workspace .admin-lms-form select, .admin-workspace .admin-live-quick-form input, .admin-workspace .admin-live-quick-form select { width: 100%; min-height: 44px; min-width: 0; padding: 12px; border: 1px solid #d9e0e9; border-radius: 8px; color: #344960; background: white; font: inherit; font-size: 13px; }
+.admin-workspace input[type='checkbox'] { accent-color: #172b46; }
+.admin-workspace .admin-lms-form input[type='file'] { padding: 8px; }
+.admin-workspace .admin-lms-form input[type='file']::file-selector-button { padding: 6px 9px; margin-right: 10px; border: 0; border-radius: 5px; background: #edf2f7; color: #415d7d; font-family: inherit; }
+.admin-workspace .admin-lms-form > button, .admin-workspace .admin-lms-row > button { justify-self: start; min-height: 42px; padding: 11px 17px; font-size: 12px; }
+.admin-workspace .admin-lms-form > .admin-actions, .admin-workspace .admin-live-quick-form > button, .admin-workspace .admin-lms-row > .admin-actions { grid-column: 1 / -1; }
+.admin-workspace .admin-live-row { display: block; padding: 22px; }
+.admin-workspace .admin-live-row h3 { margin: 14px 0 10px; font-size: 17px; font-weight: 650; color: #172b46; }
+.admin-workspace .admin-live-row .admin-helper-text { margin: 0 0 16px; overflow-wrap: anywhere; }
+.admin-workspace .admin-publish-grid { gap: 13px; }
+.admin-workspace .admin-publish-group { padding: 18px; border-color: #e1e6ec; border-radius: 10px; }
+.admin-workspace .admin-publish-grid button, .admin-workspace .admin-publish-group button { padding: 13px; border: 1px solid #dce3ec; border-radius: 8px; background: #f4f7fb; color: #385575; font-size: 12px; font-weight: 600; }
+.admin-workspace .admin-publish-grid button:hover { border-color: #c8a862; background: #fbf7ee; }
+.admin-workspace .admin-live-quick-card { background: white; border-color: #e1e6ec; }
+.admin-workspace .admin-live-quick-heading span { color: #9a7834; font-size: 10px; font-weight: 650; letter-spacing: 1.3px; }
+.admin-workspace .admin-live-quick-heading p { font-size: 12px; }
+@media (max-width: 850px) {
+  .admin-workspace .admin-page-toolbar { align-items: flex-start; flex-direction: column; gap: 13px; }
+  .admin-workspace .admin-programme-card { align-items: stretch; flex-direction: column; }
+  .admin-workspace .admin-programme-card label { width: 100%; }
+  .admin-workspace .admin-modal-overlay { padding: 15px; }
+  .admin-workspace .admin-modal, .admin-workspace .admin-delete-modal { max-height: calc(100dvh - 30px); padding: 25px; }
+}
+@media (max-width: 540px) {
+  .admin-workspace .admin-lms-row, .admin-workspace .admin-lms-form, .admin-workspace .admin-live-quick-form { grid-template-columns: minmax(0, 1fr); }
+  .admin-workspace .admin-lms-row { padding: 18px 15px; }
+  .admin-workspace .admin-filter-actions { justify-content: stretch; }
+  .admin-workspace .admin-filter-actions > button { flex: 1 1 100%; }
+  .admin-workspace .admin-modal, .admin-workspace .admin-delete-modal { padding: 23px 18px; }
+  .admin-workspace .admin-modal h2, .admin-workspace .admin-delete-modal h2 { font-size: 21px; }
+  .admin-workspace .admin-details-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-workspace .admin-delete-actions { display: grid; grid-template-columns: 1fr; }
+  .admin-workspace .admin-delete-actions button { width: 100%; }
+  .admin-workspace .admin-certificate-actions > * { flex: 1 1 100%; justify-content: center; text-align: center; }
+}
+
+.admin-workspace .admin-status[data-status='Approved'], .admin-workspace .admin-status[data-status='Enrolled'], .admin-workspace .admin-status[data-status='Payment Received'] { background: #edf7f1; color: #3b7158; }
+.admin-workspace .admin-status[data-status='Rejected'] { background: #fbefef; color: #9d4349; }

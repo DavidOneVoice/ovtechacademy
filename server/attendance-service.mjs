@@ -3,6 +3,7 @@ import { attendanceDate, eligibleForSession, isLiveAttendanceStudent, attendance
 import { recordCohortId, cohortLabel } from '../src/data/cohort.js';
 import { normalizeProgrammeName } from '../src/data/programmes.js';
 import { randomToken, randomCode, digest, equal, validPin, hashPin, verifyPin, grantToken, readGrant } from './attendance-security.mjs';
+import { pinCredentialVersion, pinEnrollmentProof, pinRecoveryEmail } from './attendance-pin-proof.mjs';
 export class AttendanceError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
 const validId = (id) => typeof id === 'string' && /^[a-zA-Z0-9_-]{1,160}$/.test(id);
 const invalid = () => new AttendanceError('We could not verify those details. Check your registered email and attendance PIN.', 403);
@@ -51,9 +52,12 @@ export function createAttendanceService({ db, secret, sendCode, now = () => Date
       const student = await findStudent(email, studentId, session);
       const challenge = randomToken();
       if (student) {
+        const credential = (await credentials.doc(student.id).get()).data();
+        const recoveryEmail = pinRecoveryEmail(student, credential);
         const code = randomCode();
-        await challenges.doc(challenge).create({ studentId: student.id, code: digest(`${challenge}:${code}`, secret), expires: now() + 600000, attempts: 0 });
-        try { await sendCode(student.email, student.fullName, code); }
+        await challenges.doc(challenge).create({ studentId: student.id, code: digest(`${challenge}:${code}`, secret), expires: now() + 600000, attempts: 0,
+          enrollmentProof: pinEnrollmentProof(student, secret), credentialVersion: pinCredentialVersion(credential), recoveryEmail });
+        try { await sendCode(recoveryEmail, student.fullName, code); }
         catch { await challenges.doc(challenge).delete(); throw new AttendanceError('The verification email could not be sent. Contact admissions for help setting up your attendance PIN.', 503); }
       }
       return { challenge, message: 'If these details match an enrolled live-class student, a verification code has been sent to the registered email. It expires in 10 minutes.' };
@@ -66,8 +70,19 @@ export function createAttendanceService({ db, secret, sendCode, now = () => Date
       const accepted = await db.runTransaction(async (tx) => {
         const ref = challenges.doc(challenge); const entry = (await tx.get(ref)).data();
         if (!entry || entry.used || entry.expires <= now() || entry.attempts >= 5) return false;
+        if (!validId(entry.studentId)) return false;
+        const [studentSnap, credentialSnap, profileSnap] = await Promise.all([
+          tx.get(apps.doc(entry.studentId)), tx.get(credentials.doc(entry.studentId)),
+          tx.get(db.collection('certificateProfile').doc(entry.studentId)),
+        ]);
+        const student = studentSnap.exists ? { ...studentSnap.data(), id: entry.studentId } : null;
+        const credential = credentialSnap.data();
+        if (!student || !isLiveAttendanceStudent(student) || String(profileSnap.data()?.status || '').toLowerCase() === 'approved' ||
+          entry.credentialVersion !== pinCredentialVersion(credential) ||
+          entry.enrollmentProof !== pinEnrollmentProof(student, secret) ||
+          entry.recoveryEmail !== pinRecoveryEmail(student, credential)) return false;
         if (!equal(entry.code, digest(`${challenge}:${code}`, secret))) { tx.update(ref, { attempts: entry.attempts + 1 }); return false; }
-        tx.set(credentials.doc(entry.studentId), { ...encoded, version: randomToken(), updatedAt: FieldValue.serverTimestamp() });
+        tx.set(credentials.doc(entry.studentId), { ...encoded, version: randomToken(), recoveryEmail: entry.recoveryEmail, updatedAt: FieldValue.serverTimestamp() });
         tx.update(ref, { used: true, code: FieldValue.delete() }); return true;
       });
       if (!accepted) throw new AttendanceError('That code is incorrect, expired, or already used. Request a new code.', 403);

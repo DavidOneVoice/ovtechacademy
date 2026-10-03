@@ -5,6 +5,8 @@ import { attendanceRules } from '../server/attendance-rules.mjs';
 import { migrateDataAnalyticsDay39 } from '../server/data-analytics-day39-migration.mjs';
 import { scholarshipPhoneRules } from '../server/phone-rules.mjs';
 import { migrateProgrammeIdentity } from '../server/programme-identity-migration.mjs';
+import { portalRules } from '../server/portal-rules.mjs';
+import { migratePortalCredentials } from '../server/portal-credential-migration.mjs';
 
 if (process.env.CONTEXT !== 'production' || process.env.BRANCH !== 'master') {
   console.log('Database preparation skipped outside the production master deployment.');
@@ -46,4 +48,19 @@ if (process.env.CONTEXT !== 'production' || process.env.BRANCH !== 'master') {
   console.log(JSON.stringify({ dataAnalyticsDay39: curriculum }));
   const programmes = await migrateProgrammeIdentity(db);
   console.log(JSON.stringify({ programmeIdentity: programmes }));
+  const portalPrevious = await rules.getFirestoreRuleset();
+  const portalSource = portalPrevious.source[0]?.content;
+  if (!portalSource) throw new Error('Could not read current Firestore rules for portal sessions.');
+  const portalUpdated = portalRules(portalSource);
+  if (portalUpdated !== portalSource) {
+    const backup = db.collection('academyMigrations').doc('portal-pin-private-rules-v1');
+    await db.runTransaction(async (tx) => {
+      if (!(await tx.get(backup)).exists) tx.create(backup, { ruleset: portalPrevious.name, source: portalSource, savedAt: new Date() });
+    });
+    await rules.releaseFirestoreRulesetFromSource(portalUpdated);
+    await backup.update({ deployedAt: new Date() });
+    console.log('Private portal session rules deployed; previous rules saved.');
+  }
+  const portalCredentials = await migratePortalCredentials(db);
+  console.log(JSON.stringify({ portalCredentialMigration: portalCredentials }));
 }
