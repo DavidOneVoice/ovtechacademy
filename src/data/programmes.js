@@ -12,7 +12,9 @@ const LEGACY_PROGRAMME_ALIASES = {
   "front end software development": "Software Development",
   "virtual assistance": "Virtual Assistant",
   "cyber security": "Cybersecurity",
+  "data analysis": "Data Analytics",
   "ai automation": "AI Automation",
+  "ai and automation": "AI Automation",
 };
 
 export const normalizeProgrammeKey = (value) =>

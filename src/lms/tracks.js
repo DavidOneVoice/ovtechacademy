@@ -1,4 +1,4 @@
-import { normalizeProgrammeKey } from "../data/programmes.js";
+import { normalizeProgrammeKey, normalizeProgrammeName } from "../data/programmes.js";
 
 const DATA_ANALYTICS_COURSES = [
   "Data Fundamentals",
@@ -48,7 +48,7 @@ const DIRECT_TRACK_COURSE_ALIASES = {
 };
 
 export const normalizeTrackName = (value) =>
-  normalizeProgrammeKey(value);
+  normalizeProgrammeKey(normalizeProgrammeName(value));
 
 const TRACK_CURRICULUM_GROUP_MAP = {
   "cybersecurity": CURRICULUM_GROUPS.CYBERSECURITY,

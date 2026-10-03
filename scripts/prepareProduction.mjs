@@ -4,6 +4,7 @@ import { migrateCohorts } from '../server/cohort-migration.mjs';
 import { attendanceRules } from '../server/attendance-rules.mjs';
 import { migrateDataAnalyticsDay39 } from '../server/data-analytics-day39-migration.mjs';
 import { scholarshipPhoneRules } from '../server/phone-rules.mjs';
+import { migrateProgrammeIdentity } from '../server/programme-identity-migration.mjs';
 
 if (process.env.CONTEXT !== 'production' || process.env.BRANCH !== 'master') {
   console.log('Database preparation skipped outside the production master deployment.');
@@ -43,4 +44,6 @@ if (process.env.CONTEXT !== 'production' || process.env.BRANCH !== 'master') {
   console.log(JSON.stringify({ cohortMigration: counts }));
   const curriculum = await migrateDataAnalyticsDay39(db);
   console.log(JSON.stringify({ dataAnalyticsDay39: curriculum }));
+  const programmes = await migrateProgrammeIdentity(db);
+  console.log(JSON.stringify({ programmeIdentity: programmes }));
 }

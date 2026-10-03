@@ -37,6 +37,12 @@ import { resolveStudentCurriculumGroup } from "../lms/tracks";
 import { normalizeProgrammeName } from "../data/programmes";
 import { cohortLabel, recordCohortId } from "../data/cohort";
 import {
+  buildAttendanceSummary,
+  deduplicateAttendanceRecords,
+  groupCurriculumItems,
+  liveSessionMatchesProgramme,
+} from "../lms/programmeViews";
+import {
   getStudentLogin,
   isPaidOrEnrolled,
   lookupStudents,
@@ -68,12 +74,6 @@ const normalize = (value) =>
     .toLowerCase();
 const hasValue = (value) => String(value || "").trim().length > 0;
 
-const slugifyTrack = (track) =>
-  String(track || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-
 const ENROLLMENT_PACKAGE_FIELDS = [
   "learningMethod",
   "package",
@@ -95,14 +95,6 @@ const getStudentCourse = (student) =>
       student?.program ||
       "",
   );
-
-const getStudentTracks = (student) =>
-  [
-    getStudentCourse(student),
-    ...(Array.isArray(student?.tracks) ? student.tracks : []),
-    ...(Array.isArray(student?.courses) ? student.courses : []),
-    ...(Array.isArray(student?.enrolledCourses) ? student.enrolledCourses : []),
-  ].filter(Boolean);
 
 const formatAttendanceDate = (dateKey) => {
   if (!dateKey) return "Date pending";
@@ -149,62 +141,7 @@ const loadStudentEnrollments = (login) => lookupStudents(login, async (field, va
   return snapshot.docs.map((item) => ({ ...item.data(), id: item.id }));
 });
 
-const buildAttendanceSummary = (student, attendanceRecords = []) => {
-  const attendance = student?.attendance || {};
-  const tracks = [
-    ...new Set([...getStudentTracks(student), ...Object.keys(attendance)]),
-  ];
-  const recordCountsByTrack = attendanceRecords.reduce((counts, record) => {
-    const track = record.track;
-    if (!track) return counts;
-    counts[track] = (counts[track] || 0) + 1;
-    return counts;
-  }, {});
-  const markedSessions = student?.attendanceMarkedSessions || [];
-
-  return tracks.map((track) => {
-    const stats = attendance[track] || {};
-    const recordAttendedDays = recordCountsByTrack[track] || 0;
-    const storedAttendedDays = Number(stats.attendedDays || 0);
-    const storedLectureDays = Number(stats.lectureDays || 0);
-    const trackSlug = slugifyTrack(track);
-    const hasMarkedTrackAttendance =
-      recordAttendedDays > 0 ||
-      markedSessions.some((sessionId) =>
-        String(sessionId || "").startsWith(`${trackSlug}-`),
-      );
-    const attendedDays = hasMarkedTrackAttendance
-      ? Math.min(
-          storedAttendedDays || recordAttendedDays,
-          recordAttendedDays || storedAttendedDays,
-        )
-      : 0;
-    const lectureDays = hasMarkedTrackAttendance
-      ? Math.max(storedLectureDays, attendedDays)
-      : 0;
-
-    return {
-      track,
-      attendedDays,
-      lectureDays,
-      percentage: lectureDays
-        ? Math.round((attendedDays / lectureDays) * 100)
-        : 0,
-    };
-  });
-};
-
-const groupItemsByCourseAndSection = (items) =>
-  items.reduce((courses, item) => {
-    const courseName = item.course || "General Course";
-    const sectionName =
-      item.section || item.module || `Day ${item.unlockDay || 1}`;
-    if (!courses[courseName]) courses[courseName] = {};
-    if (!courses[courseName][sectionName])
-      courses[courseName][sectionName] = [];
-    courses[courseName][sectionName].push(item);
-    return courses;
-  }, {});
+const groupItemsByCourseAndSection = groupCurriculumItems;
 
 const getLessonId = (lesson) => lesson.lessonId || lesson.id;
 
@@ -228,7 +165,7 @@ const liveSessionMatchesStudent = (session, student) => {
         : true;
   if (!modeMatches) return false;
   if (!session.track || session.track === "all") return true;
-  return getStudentTracks(student).some((track) => normalize(track) === normalize(session.track));
+  return liveSessionMatchesProgramme(session, student);
 };
 const LmsDashboard = () => {
   const navigate = useNavigate();
@@ -356,6 +293,7 @@ const LmsDashboard = () => {
         const allRecords = [];
 
         for (const sessionDoc of sessionSnapshot.docs) {
+          const parentSession = sessionDoc.data();
           const recordsSnapshot = await getDocs(
             collection(db, "attendanceSessions", sessionDoc.id, "records"),
           );
@@ -367,13 +305,20 @@ const LmsDashboard = () => {
               allRecords.push({
                 id: recordDoc.id,
                 ...record,
+                // Record IDs repeat across sessions; the parent remains the
+                // authoritative identity for history and deduplication.
+                parentSessionId: sessionDoc.id,
+                sessionId: sessionDoc.id,
+                track: record.track || parentSession.track,
+                dateKey: record.dateKey || parentSession.dateKey,
+                cohortId: recordCohortId(parentSession),
               });
             }
           });
         }
 
         setAttendanceRecords(
-          allRecords.sort((a, b) =>
+          deduplicateAttendanceRecords(student, allRecords).sort((a, b) =>
             String(b.dateKey || "").localeCompare(String(a.dateKey || "")),
           ),
         );

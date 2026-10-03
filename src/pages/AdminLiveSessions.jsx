@@ -10,7 +10,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../src/firebase";
-import courseCatalog from "../data/courses";
+import { getProgrammeAudienceOptions, normalizeLiveSessionProgramme } from "../lms/programmeViews";
 import "./Admin.css";
 
 const emptyLiveSession = {
@@ -28,7 +28,6 @@ const emptyLiveSession = {
 const AdminLiveSessions = () => {
   const [liveSessions, setLiveSessions] = useState([]);
   const [liveSessionForm, setLiveSessionForm] = useState(emptyLiveSession);
-  const [studentTracks, setStudentTracks] = useState([]);
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
@@ -40,34 +39,13 @@ const AdminLiveSessions = () => {
 
   const loadLiveSessions = async () => {
     setLoading(true);
-    const [liveSessionSnapshot, applicationSnapshot] = await Promise.all([
-      getDocs(
-        query(collection(db, "liveSessions"), orderBy("sessionDate", "desc")),
-      ),
-      getDocs(collection(db, "scholarshipApplications")),
-    ]);
-
-    setLiveSessions(
-      liveSessionSnapshot.docs.map((item) => ({ id: item.id, ...item.data() })),
+    const liveSessionSnapshot = await getDocs(
+      query(collection(db, "liveSessions"), orderBy("sessionDate", "desc")),
     );
 
-    const enrolledTracks = applicationSnapshot.docs
-      .map((item) => item.data())
-      .filter((student) =>
-        [student.status, student.paymentStatus, student.enrollmentStatus]
-          .join(" ")
-          .toLowerCase()
-          .match(/enrolled|paid|approved|successful/),
-      )
-      .flatMap((student) => [
-        student.track,
-        student.course,
-        student.courseName,
-        ...(Array.isArray(student.tracks) ? student.tracks : []),
-      ])
-      .filter(Boolean);
-
-    setStudentTracks([...new Set(enrolledTracks)].sort());
+    setLiveSessions(
+      liveSessionSnapshot.docs.map((item) => normalizeLiveSessionProgramme({ id: item.id, ...item.data() })),
+    );
     setLoading(false);
   };
 
@@ -79,16 +57,7 @@ const AdminLiveSessions = () => {
     });
   }, []);
 
-  const courses = useMemo(
-    () =>
-      [
-        ...new Set([
-          ...studentTracks,
-          ...courseCatalog.map((course) => course.title).filter(Boolean),
-        ]),
-      ].sort(),
-    [studentTracks],
-  );
+  const courses = useMemo(() => getProgrammeAudienceOptions(), []);
 
   const saveLiveAttachment = (file) =>
     new Promise((resolve, reject) => {
@@ -110,12 +79,12 @@ const AdminLiveSessions = () => {
       return;
     }
 
-    const payload = {
+    const payload = normalizeLiveSessionProgramme({
       ...liveSessionForm,
       ...audienceOverrides,
       isPublished,
       updatedAt: new Date(),
-    };
+    });
     delete payload.id;
 
     if (liveSessionForm.id) {
@@ -145,7 +114,7 @@ const AdminLiveSessions = () => {
   };
 
   const editLiveSession = (session) => {
-    setLiveSessionForm({ ...emptyLiveSession, ...session });
+    setLiveSessionForm(normalizeLiveSessionProgramme({ ...emptyLiveSession, ...session }));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

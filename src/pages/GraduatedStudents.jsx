@@ -9,6 +9,7 @@ import { revokeApprovedCertificate } from "../services/certificateAdministration
 import "./Admin.css";
 import "./GraduatedStudents.css";
 import { normalizeProgrammeName } from "../data/programmes";
+import { attendanceStats } from "../attendance/model";
 
 const normalized = (value) => String(value || "").trim().toLowerCase();
 
@@ -29,8 +30,9 @@ const getCourse = (graduate) => normalizeProgrammeName(graduate.profile.course |
 const getMethod = (graduate) => graduate.application.learningMethod || graduate.profile.learningMethod || "";
 
 const attendanceText = (application) => {
-  const stats = application.attendance?.[application.track];
-  if (!stats) return "Not available";
+  if (!Object.keys(application.attendance || {}).some((track) =>
+    normalizeProgrammeName(track) === normalizeProgrammeName(application.track))) return "Not available";
+  const stats = attendanceStats(application, application.track);
   const attended = Number(stats.attendedDays || 0);
   const held = Number(stats.lectureDays || 0);
   return `${attended} of ${held} classes${held ? ` (${Math.round((attended / held) * 100)}%)` : ""}`;

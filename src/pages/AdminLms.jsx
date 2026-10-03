@@ -12,7 +12,8 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../src/firebase";
-import courseCatalog from "../data/courses";
+import { normalizeProgrammeName } from "../data/programmes";
+import { getCurriculumCourseOptions } from "../lms/programmeViews";
 import {
   CURRICULUM_GROUPS,
   CURRICULUM_PROGRAMMES,
@@ -149,13 +150,7 @@ const AdminLms = () => {
   }, [selectedGroup]);
 
   const courses = useMemo(
-    () =>
-      [
-        ...new Set([
-          ...lessons.map((lesson) => lesson.course).filter(Boolean),
-          ...courseCatalog.map((course) => course.title).filter(Boolean),
-        ]),
-      ].sort(),
+    () => getCurriculumCourseOptions(lessons.map((lesson) => lesson.course)),
     [lessons],
   );
 
@@ -241,6 +236,7 @@ const AdminLms = () => {
 
     const payload = {
       ...resourceForm,
+      course: normalizeProgrammeName(resourceForm.course),
       curriculumGroup: selectedGroup,
       unlockDay: toNumber(resourceForm.unlockDay, 1),
       isPublished: Boolean(resourceForm.isPublished),
@@ -393,7 +389,7 @@ const AdminLms = () => {
               <article className="admin-lms-row" key={lesson.id}>
                 <div className="admin-lms-meta">
                   <strong>#{lesson.globalOrder || "—"}</strong>
-                  <span>{lesson.course || "No course"}</span>
+                  <span>{normalizeProgrammeName(lesson.course) || "No course"}</span>
                   <span>{lesson.section || lesson.module || "No section"}</span>
                   <span>Day {lesson.unlockDay || 1}</span>
                 </div>
@@ -561,7 +557,7 @@ const AdminLms = () => {
             {resources.map((resource) => (
               <article className="admin-lms-row" key={resource.id}>
                 <div className="admin-lms-meta">
-                  <span>{resource.course || "No course"}</span>
+                  <span>{normalizeProgrammeName(resource.course) || "No course"}</span>
                   <span>{resource.section || "No section"}</span>
                   <span>Day {resource.unlockDay || 1}</span>
                 </div>

@@ -17,8 +17,7 @@ export async function generateAttendance(track, cohort, students) {
     if (existing.exists()) return true;
     tx.set(ref, { ...session, createdAt: serverTimestamp() });
     snapshots.filter((snapshot) => snapshot.exists() && eligibleForSession(snapshot.data(), session)).forEach((snapshot) => {
-      const originalTrack = Object.keys(snapshot.data().attendance || {}).find((key) => normalizeProgrammeName(key) === session.track) || session.track;
-      tx.update(snapshot.ref, new FieldPath('attendance', originalTrack, 'lectureDays'), increment(1));
+      tx.update(snapshot.ref, new FieldPath('attendance', session.track, 'lectureDays'), increment(1));
     });
     return false;
   });

@@ -72,6 +72,35 @@ test('real verification precedes marking, duplicate requests count once and rese
   f.docs.set('attendanceCredentials/oct', { ...f.docs.get('attendanceCredentials/oct'), version: 'v2' });
   await assert.rejects(f.service.mark({ grant: verification.grant }, 'ip'));
 });
+test('marking a legacy course consolidates alias counters atomically and increments the canonical course once', async () => {
+  const f = fixture();
+  f.docs.set('scholarshipApplications/oct', {
+    ...student, track: 'Cyber Security',
+    attendance: { Cybersecurity: { attendedDays: 0, lectureDays: 0 }, 'Cyber Security': { attendedDays: 9, lectureDays: 12, customNote: 'keep' }, 'Web Development': { attendedDays: 2, lectureDays: 4 } },
+  });
+  f.docs.set('attendanceSessions/session', { ...session, track: 'Cyber Security' });
+  f.docs.set('attendanceCredentials/oct', { ...await hashPin('584927'), version: 'v1' });
+  const verification = await f.service.verify({ sessionId: 'session', email: student.email, pin: '584927' }, 'ip');
+  assert.equal(verification.student.track, 'Cybersecurity');
+  assert.equal(verification.student.attendedDays, 9); assert.equal(verification.student.lectureDays, 12);
+  const results = await Promise.all([f.service.mark({ grant: verification.grant }, 'ip'), f.service.mark({ grant: verification.grant }, 'ip')]);
+  assert.equal(results.filter((result) => !result.alreadyMarked).length, 1);
+  const saved = f.docs.get('scholarshipApplications/oct');
+  assert.deepEqual(saved.attendance, { Cybersecurity: { attendedDays: 10, lectureDays: 12, customNote: 'keep' }, 'Web Development': { attendedDays: 2, lectureDays: 4 } });
+  assert.deepEqual(saved.attendanceMarkedSessions, ['session']);
+  assert.equal(f.docs.get('attendanceSessions/session/records/oct').track, 'Cybersecurity');
+  assert.equal(f.docs.get('attendanceSessions/session').track, 'Cyber Security');
+});
+test('ambiguous legacy counter metadata prevents recording rather than silently discarding saved attendance', async () => {
+  const f = fixture();
+  const attendance = { 'Data Analytics': { attendedDays: 1, lectureDays: 2, note: 'first' }, 'Data Analysis': { attendedDays: 2, lectureDays: 3, note: 'conflict' } };
+  f.docs.set('scholarshipApplications/oct', { ...student, attendance });
+  f.docs.set('attendanceCredentials/oct', { ...await hashPin('584927'), version: 'v1' });
+  const verification = await f.service.verify({ sessionId: 'session', email: student.email, pin: '584927' }, 'ip');
+  await assert.rejects(f.service.mark({ grant: verification.grant }, 'ip'), /no metadata was discarded/);
+  assert.deepEqual(f.docs.get('scholarshipApplications/oct').attendance, attendance);
+  assert.equal(f.docs.has('attendanceSessions/session/records/oct'), false);
+});
 test('email failure and expired challenge fail closed; unregistered recipients receive no email', async () => {
   const f = fixture(); await f.service.requestPin({ email: 'unknown@example.test', studentId: 'oct' }, 'ip'); assert.equal(f.emails.length, 0);
   const response = await f.service.requestPin({ email: student.email, studentId: 'oct' }, 'ip'); f.advance(600001);

@@ -1,5 +1,5 @@
-import { FieldValue, FieldPath } from 'firebase-admin/firestore';
-import { attendanceDate, eligibleForSession, isLiveAttendanceStudent, attendanceStats } from '../src/attendance/model.js';
+import { FieldValue } from 'firebase-admin/firestore';
+import { attendanceDate, eligibleForSession, isLiveAttendanceStudent, attendanceStats, canonicalAttendanceMap } from '../src/attendance/model.js';
 import { recordCohortId, cohortLabel } from '../src/data/cohort.js';
 import { normalizeProgrammeName } from '../src/data/programmes.js';
 import { randomToken, randomCode, digest, equal, validPin, hashPin, verifyPin, grantToken, readGrant } from './attendance-security.mjs';
@@ -94,9 +94,14 @@ export function createAttendanceService({ db, secret, sendCode, now = () => Date
         if (!student || !session || String(profileSnap.data()?.status || '').toLowerCase() === 'approved' || !eligibleForSession(student, session) || credentialSnap.data()?.version !== grant.version) throw invalid();
         if (session.dateKey !== attendanceDate(new Date(now()))) throw new AttendanceError('This attendance link has expired.', 410);
         if (recordSnap.exists) return { alreadyMarked: true };
-        const originalTrack = Object.keys(student.attendance || {}).find((key) => normalizeProgrammeName(key) === normalizeProgrammeName(session.track)) || normalizeProgrammeName(session.track);
+        const track = normalizeProgrammeName(session.track);
+        const attendance = canonicalAttendanceMap(student.attendance || {});
+        const stats = attendance[track] || {};
+        const attendedDays = (stats.attendedDays || 0) + 1;
+        if (!Number.isSafeInteger(attendedDays)) throw new AttendanceError('Attendance totals need an administrator review.', 503);
+        attendance[track] = { ...stats, attendedDays };
         tx.create(recordRef, { studentId: grant.studentId, track: normalizeProgrammeName(session.track), cohortId: recordCohortId(student), sessionId: grant.sessionId, dateKey: session.dateKey, markedAt: FieldValue.serverTimestamp(), verification: 'attendance-pin-v1' });
-        tx.update(studentRef, new FieldPath('attendance', originalTrack, 'attendedDays'), FieldValue.increment(1), 'attendanceMarkedSessions', FieldValue.arrayUnion(grant.sessionId), 'lastAttendanceMarkedAt', FieldValue.serverTimestamp());
+        tx.update(studentRef, { attendance, attendanceMarkedSessions: FieldValue.arrayUnion(grant.sessionId), lastAttendanceMarkedAt: FieldValue.serverTimestamp() });
         return { alreadyMarked: false };
       });
       return { ...result, message: result.alreadyMarked ? 'Your attendance was already recorded for this class.' : 'Your attendance has been recorded successfully.' };

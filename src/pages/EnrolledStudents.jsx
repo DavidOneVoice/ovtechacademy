@@ -1,5 +1,5 @@
 import { generateAttendance } from "../attendance/generate";
-import { isLiveAttendanceStudent } from "../attendance/model";
+import { attendanceStats, isLiveAttendanceStudent } from "../attendance/model";
 import AdminWorkspace from "../components/AdminWorkspace";
 import useAdminCohort from "../hooks/useAdminCohort";
 import { useEffect, useMemo, useState } from "react";
@@ -69,7 +69,7 @@ const getCourseCode = (course) => COURSE_CODES[String(course || "").trim().toLow
   String(course || "GEN").split(/\s+/).map((word) => word[0]).join("").replace(/[^A-Z]/gi, "").toUpperCase().slice(0, 4) || "GEN";
 
 const getAttendanceDisplay = (student) => {
-  const stats = student.attendance?.[student.track] || {};
+  const stats = attendanceStats(student, student.track);
   const attended = Number(stats.attendedDays || 0);
   const held = Number(stats.lectureDays || 0);
   return `${attended} of ${held} classes${held ? ` (${Math.round((attended / held) * 100)}%)` : ""}`;
