@@ -34,15 +34,21 @@ import {
 } from "../lms/content";
 import { resolveStudentCurriculumGroup } from "../lms/tracks";
 import { normalizeProgrammeName } from "../data/programmes";
-import { recordCohortId } from "../data/cohort";
+import { cohortLabel, recordCohortId } from "../data/cohort";
 import {
   buildAttendanceSummary,
   deduplicateAttendanceRecords,
   groupCurriculumItems,
-  liveSessionMatchesProgramme,
 } from "../lms/programmeViews";
 import {
-  isPaidOrEnrolled,
+  filterLiveSessionsForStudent,
+  getEnrollmentPackage,
+  getStudentLiveSessionQuery,
+  isInstructorLedStudent,
+  isLiveClassStudent,
+  isSelfPacedStudent,
+} from "../lms/liveSessions";
+import {
   STUDENT_EMAIL_FIELDS,
   STUDENT_PHONE_FIELDS,
 } from "../lms/enrollment";
@@ -63,29 +69,12 @@ import "./LmsDashboard.css";
 
 const LEGACY_STORAGE_KEY = "ovtech_lms_student";
 const CERTIFICATE_PROFILE_COLLECTION = "certificateProfile";
-const PRE_RECORDED_ACCESS_TEXT = "pre-recorded videos";
-const LIVE_CLASS_ACCESS_TEXT = "live";
 const emptyCertificateForm = () => ({
   displayName: "", professionalEmail: "", phone: "", linkedin: "", facebook: "",
   instagram: "", twitter: "", tiktok: "", photoUrl: "", showInAlumniDirectory: true,
 });
 
-const normalize = (value) =>
-  String(value || "")
-    .trim()
-    .toLowerCase();
 const hasValue = (value) => String(value || "").trim().length > 0;
-
-const ENROLLMENT_PACKAGE_FIELDS = [
-  "learningMethod",
-  "package",
-  "packageName",
-  "mode",
-  "enrollmentMode",
-  "selectedPackage",
-  "selectedMode",
-  "plan",
-];
 
 const getStudentName = (student) =>
   student?.fullName || student?.name || student?.studentName || "Student";
@@ -111,29 +100,6 @@ const formatAttendanceDate = (dateKey) => {
       });
 };
 
-const getEnrollmentPackage = (student) =>
-  ENROLLMENT_PACKAGE_FIELDS.map((field) => student?.[field])
-    .filter(Boolean)
-    .join(" ");
-
-const isSelfPacedStudent = (student) =>
-  student &&
-  isPaidOrEnrolled(student) &&
-  normalize(getEnrollmentPackage(student)).includes(PRE_RECORDED_ACCESS_TEXT);
-
-const isLiveClassStudent = (student) =>
-  student &&
-  isPaidOrEnrolled(student) &&
-  normalize(getEnrollmentPackage(student)).includes(LIVE_CLASS_ACCESS_TEXT);
-
-const hasUnselectedLearningMethod = (student) =>
-  student &&
-  isPaidOrEnrolled(student) &&
-  !hasValue(getEnrollmentPackage(student));
-
-const isInstructorLedStudent = (student) =>
-  isLiveClassStudent(student) || hasUnselectedLearningMethod(student);
-
 const groupItemsByCourseAndSection = groupCurriculumItems;
 
 const getLessonId = (lesson) => lesson.lessonId || lesson.id;
@@ -147,19 +113,6 @@ const formatSessionDate = (dateKey) => {
     : date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 };
 
-const liveSessionMatchesStudent = (session, student) => {
-  if (session.isPublished === false) return false;
-  if (session.audienceType === "all") return true;
-  const modeMatches =
-    session.learningMode === "live"
-      ? isLiveClassStudent(student) || hasUnselectedLearningMethod(student)
-      : session.learningMode === "self-paced"
-        ? isSelfPacedStudent(student)
-        : true;
-  if (!modeMatches) return false;
-  if (!session.track || session.track === "all") return true;
-  return liveSessionMatchesProgramme(session, student);
-};
 const LmsDashboard = () => {
   const navigate = useNavigate();
   const playerRef = useRef(null);
@@ -190,6 +143,10 @@ const LmsDashboard = () => {
   const [editingCertificate, setEditingCertificate] = useState(false);
   const [alumniVisibilitySaving, setAlumniVisibilitySaving] = useState(false);
   const [alumniVisibilityMessage, setAlumniVisibilityMessage] = useState("");
+  // A restored enrollment may change cohort/course while an earlier request
+  // is finishing. Re-check the rendered list immediately against this student.
+  const visibleLiveSessions = useMemo(() =>
+    filterLiveSessionsForStudent(liveSessions, student), [liveSessions, student]);
 
   const resetStudentData = useCallback(() => {
     setCertificateProfile(null); setCertificateForm(emptyCertificateForm());
@@ -376,15 +333,19 @@ const LmsDashboard = () => {
 
     const fetchLiveSessions = async () => {
       try {
+        const constraints = getStudentLiveSessionQuery(student);
+        if (!constraints) {
+          if (isCurrent()) setLiveSessions([]);
+          return;
+        }
         const liveSnapshot = await getDocs(
-          query(collection(db, "liveSessions"), where("isPublished", "==", true)),
+          query(collection(db, "liveSessions"),
+            ...constraints.map(({ field, value }) => where(field, "==", value))),
         );
         if (!isCurrent()) return;
         setLiveSessions(
-          liveSnapshot.docs
-            .map((item) => ({ id: item.id, ...item.data() }))
-            .filter((session) => liveSessionMatchesStudent(session, student))
-            .sort((a, b) => String(b.sessionDate || "").localeCompare(String(a.sessionDate || ""))),
+          filterLiveSessionsForStudent(liveSnapshot.docs
+            .map((item) => ({ id: item.id, ...item.data() })), student),
         );
       } catch (error) {
         if (!isCurrent()) return;
@@ -896,14 +857,14 @@ const LmsDashboard = () => {
       )}
       {activePanel === "live" && (
         <section className="lms-live-sessions">
-          <div className="lms-section-title"><span>Watch live sessions</span><h2>Published sessions for you</h2></div>
-          {liveSessions.length ? liveSessions.map((session) => (
+          <div className="lms-section-title"><span>Watch live sessions · {cohortLabel(recordCohortId(student))}</span><h2>Published sessions for you</h2></div>
+          {visibleLiveSessions.length ? visibleLiveSessions.map((session) => (
             <article className="lms-live-card" key={session.id}>
               <div><span>{formatSessionDate(session.sessionDate)}</span><h3>{session.title}</h3></div>
               {getSafeYouTubeEmbedUrl(session.youtubeUrl) ? <iframe src={getSafeYouTubeEmbedUrl(session.youtubeUrl)} title={session.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /> : <a href={session.youtubeUrl} target="_blank" rel="noreferrer">Open live session</a>}
               {session.attachmentUrl && <a className="lms-download-link" href={session.attachmentUrl} download={session.attachmentName || undefined} target="_blank" rel="noreferrer">Download attached file{session.attachmentName ? `: ${session.attachmentName}` : ""}</a>}
             </article>
-          )) : <p className="lms-empty-state">No live sessions have been published for your program yet.</p>}
+          )) : <p className="lms-empty-state">No live sessions have been published for your course in the {cohortLabel(recordCohortId(student))} cohort yet.</p>}
         </section>
       )}
       {activePanel === "overview" && (isLiveOnlyStudent ? (

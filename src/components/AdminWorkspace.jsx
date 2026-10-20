@@ -25,7 +25,7 @@ function NavigationIcon({ kind }) {
   return <svg className="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{iconPaths[kind].map((path) => <path key={path} d={path} />)}</svg>;
 }
 
-export default function AdminWorkspace({ children, cohort, title, description, onLogout, assistant = false }) {
+export default function AdminWorkspace({ children, cohort, title, description, onLogout, assistant = false, cohortDescription }) {
   const location = useLocation();
   const selectedId = cohort?.selectedId || new URLSearchParams(location.search).get('cohort') || COHORT.id;
   const logout = onLogout || (async () => {
@@ -45,7 +45,7 @@ export default function AdminWorkspace({ children, cohort, title, description, o
         {!assistant && <><p className="admin-nav-label">Learning & community</p><nav aria-label="Learning management">{navigation(learning)}<a href="/alumni" target="_blank" rel="noopener noreferrer"><NavigationIcon kind="graduates" /><span>Public alumni</span><span className="admin-external-arrow" aria-hidden="true">↗</span></a></nav></>}
       </div>
       <div className="admin-sidebar-bottom">
-        <div className="admin-sidebar-note"><span className="admin-online-dot" />{cohort?.selected?.label || 'Academy learning content'}<p>{cohort ? 'Applications and student lists follow your selected cohort.' : 'Lessons and live videos are shared across cohorts.'}</p></div>
+        <div className="admin-sidebar-note"><span className="admin-online-dot" />{cohort?.selected?.label || 'Academy learning content'}<p>{cohort ? cohortDescription || 'Applications and student lists follow your selected cohort.' : 'Curriculum lessons and resources are shared across cohorts.'}</p></div>
         <div className="admin-sidebar-actions"><a className="admin-site-link" href="/" target="_blank" rel="noopener noreferrer">Visit website <span aria-hidden="true">↗</span></a><button type="button" className="admin-sidebar-logout" onClick={logout}>Sign out</button></div>
       </div>
     </aside>

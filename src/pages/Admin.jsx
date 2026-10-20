@@ -19,6 +19,7 @@ import { pricing, formatMoney, getCoursePricing } from "../data/pricing";
 import { COHORT, LEGACY_COHORT, recordCohortId } from "../data/cohort";
 import courses from "../data/courses";
 import { CANONICAL_PROGRAMMES, normalizeProgrammeName } from "../data/programmes";
+import { getLiveSessionCohortId } from "../lms/liveSessions";
 import { clearStoredAdminRole } from "../auth/adminRoles";
 
 const DEFAULT_COMMISSION = 2500;
@@ -110,6 +111,7 @@ const getApplicationCSVRows = (apps) => {
 
 const Admin = () => {
   const emptyQuickLiveSession = {
+    cohortId: "",
     title: "",
     sessionDate: "",
     youtubeUrl: "",
@@ -142,6 +144,9 @@ const Admin = () => {
   const [quickLiveSaving, setQuickLiveSaving] = useState(false);
   const [enrollingId, setEnrollingId] = useState(null);
   const [loadError, setLoadError] = useState("");
+  const recordingCohorts = cohort.cohorts.filter((item) => getLiveSessionCohortId({ cohortId: item.id }));
+  const quickLiveCohortId = getLiveSessionCohortId(quickLiveSession);
+  const quickLiveCohort = recordingCohorts.find((item) => item.id === quickLiveCohortId);
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -335,6 +340,13 @@ const Admin = () => {
 
   const publishQuickLiveSession = async (event) => {
     event.preventDefault();
+    if (quickLiveSaving) return;
+
+    if (!quickLiveCohortId || !quickLiveCohort) {
+      setToast("Select a valid cohort for this live session before publishing.");
+      setTimeout(() => setToast(""), 3000);
+      return;
+    }
 
     if (
       !quickLiveSession.title.trim() ||
@@ -350,6 +362,7 @@ const Admin = () => {
     try {
       await addDoc(collection(db, "liveSessions"), {
         ...quickLiveSession,
+        cohortId: quickLiveCohortId,
         isPublished: true,
         attachmentName: "",
         attachmentUrl: "",
@@ -597,7 +610,7 @@ const Admin = () => {
       </section>
 
 </details>
-<details className="admin-tool-drawer"><summary>Publish a live session <span>Shared learning content</span></summary>      <section
+<details className="admin-tool-drawer"><summary>Publish a live session <span>Choose a cohort and audience</span></summary>      <section
         className="admin-table-card admin-live-quick-card"
         id="live-session-upload"
       >
@@ -606,22 +619,35 @@ const Admin = () => {
             <span>Live Session Publishing</span>
             <h2>Upload a live video for students</h2>
             <p>
-              Publish a session immediately from the main admin dashboard, or
-              open advanced LMS management for drafts, attachments, editing, and
-              deletion.
+              Choose the cohort for this recording, then its audience. Only students
+              in that cohort can see it in their portal.
             </p>
           </div>
-          <a target="_blank" rel="noopener noreferrer" href="/admin/lms" className="admin-home-btn">
-            LMS Management
+          <a target="_blank" rel="noopener noreferrer" href={`/admin/live-sessions?cohort=${encodeURIComponent(quickLiveCohortId || cohort.selectedId)}`} className="admin-home-btn">
+            Manage live sessions
           </a>
         </div>
+        <p className="admin-helper-text" id="quick-live-cohort-help">
+          {quickLiveCohort ? `Publishing to ${quickLiveCohort.label || quickLiveCohort.id}.` : "Select the recording’s cohort before publishing."}
+          {" "}This selection stays the same when you change the dashboard cohort.
+        </p>
         <form
           className="admin-live-quick-form"
           onSubmit={publishQuickLiveSession}
         >
+          <label htmlFor="quick-live-cohort">Recording cohort
+            <select id="quick-live-cohort" required value={quickLiveSession.cohortId}
+              disabled={quickLiveSaving} aria-describedby="quick-live-cohort-help"
+              onChange={(event) => setQuickLiveSession((previous) => ({ ...previous, cohortId: event.target.value }))}>
+              <option value="">Select the recording’s cohort</option>
+              {quickLiveSession.cohortId && !quickLiveCohort && <option value={quickLiveSession.cohortId} disabled>Saved cohort unavailable — choose another cohort</option>}
+              {recordingCohorts.map((item) => <option key={item.id} value={item.id}>{item.label || item.id}</option>)}
+            </select>
+          </label>
           <input
             placeholder="Session title"
             value={quickLiveSession.title}
+            disabled={quickLiveSaving}
             onChange={(e) =>
               setQuickLiveSession((prev) => ({
                 ...prev,
@@ -632,6 +658,7 @@ const Admin = () => {
           <input
             type="date"
             value={quickLiveSession.sessionDate}
+            disabled={quickLiveSaving}
             onChange={(e) =>
               setQuickLiveSession((prev) => ({
                 ...prev,
@@ -642,6 +669,7 @@ const Admin = () => {
           <input
             placeholder="YouTube or live-session URL"
             value={quickLiveSession.youtubeUrl}
+            disabled={quickLiveSaving}
             onChange={(e) =>
               setQuickLiveSession((prev) => ({
                 ...prev,
@@ -651,6 +679,7 @@ const Admin = () => {
           />
           <select
             value={`${quickLiveSession.audienceType}|${quickLiveSession.learningMode}|${quickLiveSession.track}`}
+            aria-label="Audience within the recording’s cohort" disabled={quickLiveSaving}
             onChange={(e) => {
               const [audienceType, learningMode, track] =
                 e.target.value.split("|");
@@ -662,9 +691,9 @@ const Admin = () => {
               }));
             }}
           >
-            <option value="all||all">All enrolled students</option>
-            <option value="mode|live|all">All live class students</option>
-            <option value="mode|self-paced|all">All self-paced learners</option>
+            <option value="all||all">All enrolled students in this cohort</option>
+            <option value="mode|live|all">All live class students in this cohort</option>
+            <option value="mode|self-paced|all">All self-paced learners in this cohort</option>
             {courses.map((course) => (
               <option
                 key={`live-${course.id}`}
@@ -685,7 +714,7 @@ const Admin = () => {
           <button
             type="submit"
             className="admin-approve"
-            disabled={quickLiveSaving}
+            disabled={quickLiveSaving || !quickLiveCohortId || !quickLiveCohort}
           >
             {quickLiveSaving ? "Publishing..." : "Publish Live Session"}
           </button>

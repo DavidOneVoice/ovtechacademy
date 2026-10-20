@@ -7,6 +7,7 @@ import { scholarshipPhoneRules } from '../server/phone-rules.mjs';
 import { migrateProgrammeIdentity } from '../server/programme-identity-migration.mjs';
 import { portalRules } from '../server/portal-rules.mjs';
 import { migratePortalCredentials } from '../server/portal-credential-migration.mjs';
+import { migrateLiveSessionCohorts } from '../server/live-session-cohort-migration.mjs';
 
 if (process.env.CONTEXT !== 'production' || process.env.BRANCH !== 'master') {
   console.log('Database preparation skipped outside the production master deployment.');
@@ -48,6 +49,8 @@ if (process.env.CONTEXT !== 'production' || process.env.BRANCH !== 'master') {
   console.log(JSON.stringify({ dataAnalyticsDay39: curriculum }));
   const programmes = await migrateProgrammeIdentity(db);
   console.log(JSON.stringify({ programmeIdentity: programmes }));
+  const recordings = await migrateLiveSessionCohorts(db);
+  console.log(JSON.stringify({ liveSessionCohorts: recordings }));
   const portalPrevious = await rules.getFirestoreRuleset();
   const portalSource = portalPrevious.source[0]?.content;
   if (!portalSource) throw new Error('Could not read current Firestore rules for portal sessions.');
