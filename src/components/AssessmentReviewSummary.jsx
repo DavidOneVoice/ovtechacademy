@@ -26,11 +26,11 @@ export default function AssessmentReviewSummary({ student, compact = false }) {
 
   const score = result?.lastResult;
   let status = 'Loading…';
-  if (failure) status = failure.status === 401 ? 'Verify your academy email to view the score.' : failure.message;
+  if (failure) status = failure.status === 401 ? 'Sign in again to view the score.' : failure.message;
   if (result) status = result.stage === 'unavailable' ? 'Assessment unpublished' : result.stage === 'ready' ? 'Awaiting first attempt' : assessmentStatusLabels[result.stage];
   return <section className="va-admin-summary" aria-label="Final assessment result">
     <h3>Final assessment</h3>
     <p>{score && <><strong>{score.score}/{score.total}</strong> · </>}{status}</p>
-    {!compact && <Link to={link}>Open assessment review</Link>}
+    {(!compact || failure?.status === 401) && <Link to={link}>Open assessment review</Link>}
   </section>;
 }

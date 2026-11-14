@@ -41,6 +41,10 @@ export function validateQuestionBank(input) {
   });
 }
 
+export function questionBankFingerprint(questions) {
+  return createHash('sha256').update(JSON.stringify(questions)).digest('hex');
+}
+
 function shuffled(values) {
   const result = [...values];
   for (let end = result.length - 1; end > 0; end -= 1) {
@@ -77,6 +81,7 @@ export function createFinalAssessmentService({ db, now = Date.now }) {
   const claims = db.collection('vaAssessmentClaims');
   const attempts = db.collection('vaAssessmentAttempts');
   const enrollments = db.collection('scholarshipApplications');
+  const defaultBank = db.collection('vaAssessmentConfiguration').doc('questionBank');
 
   function enrollment(student) {
     const cohortId = recordCohortId(student);
@@ -246,19 +251,49 @@ export function createFinalAssessmentService({ db, now = Date.now }) {
       return overdue.docs.length;
     },
 
-    async publish({ cohortId, bank }, admin) {
-      if (!validId(cohortId)) throw notAvailable();
+    async installBank({ bank }, expectedDigest, cohort) {
       const questions = validateQuestionBank(bank);
+      if (questionBankFingerprint(questions) !== expectedDigest) throw new FinalAssessmentError('The questions did not match the expected bank.', 400, 'assessment_bank_invalid');
+      return db.runTransaction(async (tx) => {
+        const publicationRef = publications.doc(cohort.id);
+        const bankRef = banks.doc(cohort.id);
+        const [storedDefault, storedPublication, storedBank] = await Promise.all([
+          tx.get(defaultBank), tx.get(publicationRef), tx.get(bankRef),
+        ]);
+        if (storedDefault.exists && storedDefault.data().digest !== expectedDigest) {
+          throw new FinalAssessmentError('A different default question bank already exists.', 409, 'assessment_bank_exists');
+        }
+        if (!storedDefault.exists) tx.create(defaultBank, { questions, digest: expectedDigest });
+        if (storedPublication.exists) {
+          const published = storedBank.data()?.questions;
+          return { publication: storedPublication.data(), questionCount: published?.length || 0,
+            matchesSyllabusBank: Array.isArray(published) && questionBankFingerprint(published) === expectedDigest };
+        }
+        const publication = { cohortId: cohort.id, cohortLabel: cohort.label, publishedAt: now(), publishedBy: 'initial-deployment' };
+        tx.create(bankRef, { questions });
+        tx.create(publicationRef, publication);
+        return { publication, questionCount: questions.length, matchesSyllabusBank: true };
+      });
+    },
+
+    async publish({ cohortId }, admin) {
+      if (!validId(cohortId)) throw notAvailable();
       const catalogue = (await db.collection('cohorts').doc(cohortId).get()).data();
       if (!catalogue && !DEFAULT_COHORTS.some((item) => item.id === cohortId)) throw notAvailable();
       const publication = { cohortId, cohortLabel: catalogue?.label || cohortLabel(cohortId), publishedAt: now(), publishedBy: admin };
       const ref = publications.doc(cohortId);
-      await db.runTransaction(async (tx) => {
-        if ((await tx.get(ref)).exists) throw new FinalAssessmentError('This cohort already has a published assessment.', 409, 'assessment_already_published');
+      const result = await db.runTransaction(async (tx) => {
+        const [current, source] = await Promise.all([tx.get(ref), tx.get(defaultBank)]);
+        if (current.exists) return current.data();
+        const questions = source.data()?.questions;
+        if (!Array.isArray(questions) || questions.length !== total) {
+          throw new FinalAssessmentError('The Virtual Assistant question bank is temporarily unavailable.', 503, 'assessment_bank_unavailable');
+        }
         tx.create(banks.doc(cohortId), { questions });
         tx.create(ref, publication);
+        return publication;
       });
-      return { publication };
+      return { publication: result };
     },
 
     async overview({ cohortId }) {
@@ -274,6 +309,16 @@ export function createFinalAssessmentService({ db, now = Date.now }) {
         return { ...entry, latest: summary, lastResult: summary };
       }));
       return { publication, students: students.sort((a, b) => a.name.localeCompare(b.name)) };
+    },
+
+    async questionBank({ cohortId }) {
+      if (!validId(cohortId)) throw notAvailable();
+      const publication = await publications.doc(cohortId).get();
+      const questions = publication.exists ? await bankFor(cohortId) : (await defaultBank.get()).data()?.questions;
+      if (!Array.isArray(questions) || questions.length !== total) {
+        throw new FinalAssessmentError('The Virtual Assistant question bank is temporarily unavailable.', 503, 'assessment_bank_unavailable');
+      }
+      return { questions: questions.map(({ prompt, options, correct }) => ({ prompt, options, correct: ANSWER_LETTERS[correct] })) };
     },
 
     async studentResult({ studentId }) {

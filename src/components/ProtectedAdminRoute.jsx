@@ -1,43 +1,38 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth, isFirebaseConfigured } from "../src/firebase";
-import { getStoredAdminRole } from "../auth/adminRoles";
+import { Navigate, useLocation } from "react-router-dom";
+import { ADMIN_ROLES, getStoredAdminRole, setStoredAdminRole } from "../auth/adminRoles";
+import { assessmentAdminRequest } from "../lms/assessmentAdminClient";
 
 const ProtectedAdminRoute = ({ children, allowedRoles }) => {
-  const hasStoredAdmin = () => Boolean(getStoredAdminRole());
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(hasStoredAdmin);
+  const location = useLocation();
+  const [role, setRole] = useState(undefined);
 
   useEffect(() => {
-    if (hasStoredAdmin()) {
-      setIsAdmin(true);
-      setIsCheckingAuth(false);
-      return undefined;
+    const controller = new AbortController();
+    async function check() {
+      if (getStoredAdminRole() === ADMIN_ROLES.ASSISTANT) {
+        setRole(ADMIN_ROLES.ASSISTANT);
+        return;
+      }
+      try {
+        const result = await assessmentAdminRequest("session", {}, controller.signal);
+        if (!controller.signal.aborted) {
+          const signedIn = result.role === ADMIN_ROLES.ADMIN;
+          if (signedIn) setStoredAdminRole(ADMIN_ROLES.ADMIN);
+          setRole(signedIn ? ADMIN_ROLES.ADMIN : null);
+        }
+      } catch {
+        if (!controller.signal.aborted) setRole(null);
+      }
     }
-
-    if (!isFirebaseConfigured || !auth) {
-      setIsAdmin(false);
-      setIsCheckingAuth(false);
-      return undefined;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAdmin(Boolean(user) || hasStoredAdmin());
-      setIsCheckingAuth(false);
-    });
-
-    return unsubscribe;
+    void check();
+    return () => controller.abort();
   }, []);
 
-  if (isCheckingAuth) {
-    return null;
+  if (role === undefined) return <p role="status" className="route-loading">Loading…</p>;
+  if (!role || (allowedRoles && !allowedRoles.includes(role))) {
+    return <Navigate to="/admin-login" replace state={{ returnTo: location.pathname + location.search }} />;
   }
-
-  if (!isAdmin || (allowedRoles && !allowedRoles.includes(getStoredAdminRole()))) {
-    return <Navigate to="/admin-login" replace />;
-  }
-
   return children;
 };
 

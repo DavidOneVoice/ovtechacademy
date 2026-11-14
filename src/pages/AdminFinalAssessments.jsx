@@ -1,56 +1,50 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import AdminWorkspace from '../components/AdminWorkspace';
 import { cohortLink } from '../data/cohort.js';
 import useAdminCohort from '../hooks/useAdminCohort';
 import { assessmentAdminRequest } from '../lms/assessmentAdminClient.js';
-import { assessmentStatusLabels, FINAL_ASSESSMENT } from '../lms/finalAssessment.js';
+import { ANSWER_LETTERS, assessmentStatusLabels, FINAL_ASSESSMENT } from '../lms/finalAssessment.js';
 import './FinalAssessment.css';
 
-function VerifyAccess({ onVerified }) {
-  const [email, setEmail] = useState('');
-  const [challenge, setChallenge] = useState('');
-  const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
+function QuestionBank({ cohortId, onFailure }) {
+  const panel = useRef(null);
+  const request = useRef(null);
+  const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const current = useRef(null);
-  useEffect(() => () => current.current?.abort(), []);
+  useEffect(() => () => request.current?.abort(), []);
 
-  async function verify(event) {
-    event.preventDefault();
+  async function open() {
+    panel.current.showModal();
+    if (result || request.current) return;
     const controller = new AbortController();
-    current.current = controller;
-    setBusy(true);
+    request.current = controller;
     setError('');
     try {
-      if (challenge) {
-        await assessmentAdminRequest('verifyCode', { challenge, code }, controller.signal);
-        if (!controller.signal.aborted) onVerified();
-      } else {
-        const result = await assessmentAdminRequest('requestCode', { email }, controller.signal);
-        if (!controller.signal.aborted) setChallenge(result.challenge);
-      }
+      const bank = await assessmentAdminRequest('questionBank', { cohortId }, controller.signal);
+      if (!controller.signal.aborted) setResult(bank.questions);
     } catch (failure) {
-      if (!controller.signal.aborted) setError(failure.message);
+      if (!controller.signal.aborted) {
+        if (failure.status === 401) onFailure(failure);
+        else setError(failure.message);
+      }
     } finally {
-      if (!controller.signal.aborted) setBusy(false);
+      request.current = null;
     }
   }
 
-  return <section className="va-panel">
-    <h2>Verify assessment access</h2>
-    <p>{challenge ? 'Enter the six-digit code sent to your academy email. It expires in 10 minutes.' : 'Use the academy email authorised to publish assessments and review student results.'}</p>
-    <form className="va-admin-form" onSubmit={verify}>
-      {challenge
-        ? <label>Verification code<input autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value)} inputMode="numeric" pattern="[0-9]{6}" minLength={6} maxLength={6} required disabled={busy} /></label>
-        : <label>Academy email<input autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required disabled={busy} /></label>}
-      {error && <p className="va-alert" role="alert">{error}</p>}
-      <div className="va-admin-row">
-        <button className="va-button" type="submit" disabled={busy}>{busy ? 'Please wait…' : challenge ? 'Verify access' : 'Email verification code'}</button>
-        {challenge && <button className="va-button va-button-secondary" type="button" disabled={busy} onClick={() => { setChallenge(''); setCode(''); setError(''); }}>Request another code</button>}
-      </div>
-    </form>
-  </section>;
+  return <>
+    <button className="va-button va-button-secondary" type="button" onClick={open}>View questions</button>
+    <dialog className="va-dialog va-bank-dialog" ref={panel} aria-labelledby="va-bank-title">
+      <div className="va-bank-heading"><h2 id="va-bank-title">Virtual Assistant questions</h2>
+        <button className="va-button va-button-secondary" type="button" onClick={() => panel.current.close()}>Close</button></div>
+      {error ? <p className="va-alert" role="alert">{error}</p> : !result ? <p role="status">Loading questions…</p>
+        : <ol className="va-bank-list">{result.map(({ prompt, options, correct }) => <li key={prompt}>
+          <strong>{prompt}</strong>
+          <ol type="A">{options.map((option, index) => <li key={option}>{option}{ANSWER_LETTERS[index] === correct && <strong> · Correct answer</strong>}</li>)}</ol>
+        </li>)}</ol>}
+    </dialog>
+  </>;
 }
 
 function CohortResults({ cohort, data, requestedStudent, onRefresh, onFailure }) {
@@ -64,20 +58,13 @@ function CohortResults({ cohort, data, requestedStudent, onRefresh, onFailure })
   useEffect(() => () => operation.current?.abort(), []);
   const students = data.students.filter(({ latest }) => filter === 'all' || latest.status === filter);
 
-  async function publish(event) {
-    event.preventDefault();
-    const file = new FormData(event.currentTarget).get('questions');
-    if (!file?.size) return;
+  async function publish() {
     const controller = new AbortController();
     operation.current = controller;
     setBusy(true);
     setError('');
     try {
-      if (file.size > 235_000) throw new Error('The assessment file is too large.');
-      let bank;
-      try { bank = JSON.parse(await file.text()); }
-      catch { throw new Error('Choose the valid assessment question bank JSON file.'); }
-      await assessmentAdminRequest('publish', { cohortId: cohort.id, bank }, controller.signal);
+      await assessmentAdminRequest('publish', { cohortId: cohort.id }, controller.signal);
       if (!controller.signal.aborted) {
         setFeedback(`The assessment is open for ${cohort.label} Virtual Assistant students.`);
         onRefresh();
@@ -125,18 +112,20 @@ function CohortResults({ cohort, data, requestedStudent, onRefresh, onFailure })
   }
 
   if (!data.publication) return <section className="va-panel">
-    <h2>Publish to {cohort.label}</h2>
-    <p>Choose the {FINAL_ASSESSMENT.total}-question Virtual Assistant question bank. Publishing makes the assessment available to enrolled Virtual Assistant students in this cohort.</p>
-    <form className="va-admin-form" onSubmit={publish}>
-      <label>Question bank (.json)<input name="questions" type="file" accept="application/json,.json" required disabled={busy} /></label>
-      {error && <p className="va-alert" role="alert">{error}</p>}
-      <button className="va-button" type="submit" disabled={busy}>{busy ? 'Publishing…' : `Publish to ${cohort.label}`}</button>
-    </form>
+    <h2>Virtual Assistant final assessment</h2>
+    <p>{FINAL_ASSESSMENT.total} questions · {FINAL_ASSESSMENT.minutes} minutes</p>
+    <p>Open the assessment for enrolled Virtual Assistant students in {cohort.label}.</p>
+    {error && <p className="va-alert" role="alert">{error}</p>}
+    <div className="va-admin-row">
+      <button className="va-button" type="button" disabled={busy} onClick={publish}>{busy ? 'Opening…' : `Open for ${cohort.label}`}</button>
+      <QuestionBank cohortId={cohort.id} onFailure={onFailure} />
+    </div>
   </section>;
 
   return <section className="va-panel">
     <div className="va-admin-header">
-      <div><h2>{cohort.label} results</h2><p>Virtual Assistant · {data.students.filter(({ latest }) => latest.status === 'submitted').length} awaiting review</p></div>
+      <div><h2>{cohort.label} results</h2><p>Virtual Assistant · {FINAL_ASSESSMENT.total} questions · {FINAL_ASSESSMENT.minutes} minutes · {data.students.filter(({ latest }) => latest.status === 'submitted').length} awaiting review</p>
+        <QuestionBank cohortId={cohort.id} onFailure={onFailure} /></div>
       <label className="va-admin-filter">Filter by status<select value={filter} onChange={(event) => setFilter(event.target.value)}>
         <option value="all">All attempts</option>
         {Object.entries(assessmentStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -174,6 +163,7 @@ function CohortResults({ cohort, data, requestedStudent, onRefresh, onFailure })
 }
 
 export default function AdminFinalAssessments() {
+  const location = useLocation();
   const [search, setSearch] = useSearchParams();
   const cohort = useAdminCohort();
   const [data, setData] = useState(null);
@@ -198,10 +188,11 @@ export default function AdminFinalAssessments() {
     setSearch({ cohort: id }, { replace: true });
   }
 
-  return <AdminWorkspace cohort={{ ...cohort, setSelectedId: selectCohort }} title="Final assessments" description="Publish the Virtual Assistant assessment by cohort and review student results." cohortDescription="Assessments and results follow your selected cohort.">
+  if (failure?.status === 401) return <Navigate to="/admin-login" replace state={{ returnTo: location.pathname + location.search }} />;
+
+  return <AdminWorkspace cohort={{ ...cohort, setSelectedId: selectCohort }} title="Final assessments" description="Manage the Virtual Assistant assessment and review student results." cohortDescription="Assessments and results follow your selected cohort.">
     <main className="va-admin-section">
-      {failure?.status === 401 ? <VerifyAccess onVerified={refresh} />
-        : failure ? <section className="va-panel"><p className="va-alert" role="alert">{failure.message}</p><button className="va-button" type="button" onClick={refresh}>Try again</button></section>
+      {failure ? <section className="va-panel"><p className="va-alert" role="alert">{failure.message}</p><button className="va-button" type="button" onClick={refresh}>Try again</button></section>
           : data?.cohortId === cohort.selectedId
             ? <CohortResults key={cohort.selectedId} data={data} cohort={cohort.selected} requestedStudent={search.get('student')} onRefresh={refresh} onFailure={setFailure} />
             : <section className="va-panel"><p role="status">Loading final assessments…</p></section>}

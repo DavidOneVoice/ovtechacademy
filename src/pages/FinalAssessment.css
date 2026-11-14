@@ -127,9 +127,8 @@
 
 .va-admin-section { color: #172842; }
 .va-admin-section .va-panel:first-child { margin-top: 0; }
-.va-admin-form { display: grid; align-items: start; justify-items: start; gap: 12px; }
-.va-admin-form label, .va-admin-filter { display: grid; gap: 5px; width: min(100%, 380px); font-size: .88rem; font-weight: 700; }
-.va-admin-form input, .va-admin-filter select { min-width: 0; width: 100%; padding: 9px; color: #172842; border: 1px solid #becbdd; border-radius: 7px; background: #fff; font: inherit; }
+.va-admin-filter { display: grid; gap: 5px; width: min(100%, 380px); font-size: .88rem; font-weight: 700; }
+.va-admin-filter select { min-width: 0; width: 100%; padding: 9px; color: #172842; border: 1px solid #becbdd; border-radius: 7px; background: #fff; font: inherit; }
 .va-admin-row { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
 .va-admin-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 14px; margin-bottom: 18px; }
 .va-admin-table { width: 100%; border-collapse: collapse; text-align: left; }
@@ -142,6 +141,13 @@
 .va-admin-summary h3 { margin: 0 0 8px; }
 .va-admin-summary p { margin: 0 0 6px; }
 .va-admin-summary a { color: #244a82; text-decoration: underline; }
+.va-bank-dialog { width: min(720px, calc(100% - 28px)); }
+.va-bank-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -20px -20px 0; padding: 16px 20px; position: sticky; top: -20px; background: white; border-bottom: 1px solid #e6ebf2; }
+.va-bank-heading h2 { margin: 0; }
+.va-bank-list { padding-left: 22px; line-height: 1.45; }
+.va-bank-list > li { border-bottom: 1px solid #e6ebf2; padding: 10px 0; }
+.va-bank-list ol { padding-left: 23px; margin-top: 6px; }
+.va-bank-list ol strong { color: #216250; }
 
 @media (max-width: 850px) {
   .va-exam-grid { display: block; }

@@ -52,7 +52,9 @@ The attendance page has a visible create/reset PIN button beside the PIN field. 
 
 ## Virtual Assistant final assessment
 
-In the admin dashboard, open **Final assessments**, verify the academy email, select the cohort and upload the private question bank JSON. Each bank needs 100 questions with a `prompt`, four `options`, and a `correct` letter from A to D. Keep the bank outside the public repository. Assessment administration uses the existing server email setup and defaults to the academy contact inbox. Netlify Functions can override it with `FINAL_ASSESSMENT_ADMIN_EMAIL`.
+Sign in as the academy administrator and open **Final assessments**. Use **View questions** to see the preloaded Virtual Assistant bank. Select a cohort to see results or open the assessment for a new cohort. Each cohort retains the question bank it opened with. The initial October 2026 launch uses the 100-question bank from the instructor's syllabus.
+
+The owner signs in with the existing admin username and a private password. The first password is set with the one-time owner setup link. Review and publication check the resulting server session. Assistant sign-in and the student PIN email flow operate independently.
 
 Students use **Take final assessment** on their dashboard. The server checks the active enrollment and student PIN, sets a 60-minute deadline when the student confirms Start, and accepts answers until that deadline. A scheduled Netlify function grades overdue attempts for students who close the page. Opening the result also finalizes an overdue attempt immediately.
 
