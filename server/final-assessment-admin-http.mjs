@@ -30,7 +30,7 @@ export async function handleFinalAssessmentAdmin(request, context, env = process
     const body = JSON.parse(text);
     if (!body || typeof body !== 'object' || Array.isArray(body)) return reply({ error: 'Invalid assessment request.' }, 400);
     const { action, ...input } = body;
-    if (!['login', 'setup', 'session', 'logout', 'overview', 'studentResult', 'publish', 'review', 'installBank'].includes(action)) {
+    if (!['login', 'setup', 'session', 'logout', 'overview', 'questionBank', 'studentResult', 'publish', 'review', 'installBank'].includes(action)) {
       return reply({ error: 'Unknown assessment request.' }, 400);
     }
     const importing = action === 'installBank';

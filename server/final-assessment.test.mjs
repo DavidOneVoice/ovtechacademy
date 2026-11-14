@@ -162,6 +162,7 @@ test('the standard admin login authorizes assessment actions without email verif
   const { adminRequest, student, portal, docs, installBank, advance } = fixture();
   const token = student('ada', 1);
   assert.equal((await adminRequest('overview', { cohortId })).status, 401);
+  assert.equal((await adminRequest('questionBank', { cohortId }, `ovtech_portal=${token}`)).status, 401);
   assert.equal((await adminRequest('publish', { cohortId, bank }, `ovtech_portal=${token}`)).status, 401);
   assert.equal((await adminRequest('requestCode', { email: owner })).status, 400);
   assert.equal((await adminRequest('setup', { setupToken, password }, '', 'https://other.example')).status, 403);
@@ -180,6 +181,10 @@ test('the standard admin login authorizes assessment actions without email verif
   assert.equal((await adminRequest('login', { email: 'adminassistant@ovtechacademy.com', password })).status, 401);
   assert.equal((await adminRequest('login', { email: owner, password })).status, 200);
   await installBank();
+  const loaded = await (await adminRequest('questionBank', { cohortId }, cookie)).json();
+  assert.deepEqual(loaded, bank);
+  const nextCohortBank = await (await adminRequest('questionBank', { cohortId: 'july-2026' }, cookie)).json();
+  assert.deepEqual(nextCohortBank, bank);
   assert.equal((await adminRequest('publish', { cohortId }, cookie)).status, 200);
   const { latest } = await portal.assessmentStart({ studentId: 'ada', cohortId }, token);
   await portal.assessmentSubmit({ attemptId: latest.id }, token);

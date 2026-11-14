@@ -141,6 +141,13 @@
 .va-admin-summary h3 { margin: 0 0 8px; }
 .va-admin-summary p { margin: 0 0 6px; }
 .va-admin-summary a { color: #244a82; text-decoration: underline; }
+.va-bank-dialog { width: min(720px, calc(100% - 28px)); }
+.va-bank-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -20px -20px 0; padding: 16px 20px; position: sticky; top: -20px; background: white; border-bottom: 1px solid #e6ebf2; }
+.va-bank-heading h2 { margin: 0; }
+.va-bank-list { padding-left: 22px; line-height: 1.45; }
+.va-bank-list > li { border-bottom: 1px solid #e6ebf2; padding: 10px 0; }
+.va-bank-list ol { padding-left: 23px; margin-top: 6px; }
+.va-bank-list ol strong { color: #216250; }
 
 @media (max-width: 850px) {
   .va-exam-grid { display: block; }

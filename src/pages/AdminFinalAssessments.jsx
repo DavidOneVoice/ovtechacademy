@@ -4,8 +4,48 @@ import AdminWorkspace from '../components/AdminWorkspace';
 import { cohortLink } from '../data/cohort.js';
 import useAdminCohort from '../hooks/useAdminCohort';
 import { assessmentAdminRequest } from '../lms/assessmentAdminClient.js';
-import { assessmentStatusLabels, FINAL_ASSESSMENT } from '../lms/finalAssessment.js';
+import { ANSWER_LETTERS, assessmentStatusLabels, FINAL_ASSESSMENT } from '../lms/finalAssessment.js';
 import './FinalAssessment.css';
+
+function QuestionBank({ cohortId, onFailure }) {
+  const panel = useRef(null);
+  const request = useRef(null);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+  useEffect(() => () => request.current?.abort(), []);
+
+  async function open() {
+    panel.current.showModal();
+    if (result || request.current) return;
+    const controller = new AbortController();
+    request.current = controller;
+    setError('');
+    try {
+      const bank = await assessmentAdminRequest('questionBank', { cohortId }, controller.signal);
+      if (!controller.signal.aborted) setResult(bank.questions);
+    } catch (failure) {
+      if (!controller.signal.aborted) {
+        if (failure.status === 401) onFailure(failure);
+        else setError(failure.message);
+      }
+    } finally {
+      request.current = null;
+    }
+  }
+
+  return <>
+    <button className="va-button va-button-secondary" type="button" onClick={open}>View questions</button>
+    <dialog className="va-dialog va-bank-dialog" ref={panel} aria-labelledby="va-bank-title">
+      <div className="va-bank-heading"><h2 id="va-bank-title">Virtual Assistant questions</h2>
+        <button className="va-button va-button-secondary" type="button" onClick={() => panel.current.close()}>Close</button></div>
+      {error ? <p className="va-alert" role="alert">{error}</p> : !result ? <p role="status">Loading questions…</p>
+        : <ol className="va-bank-list">{result.map(({ prompt, options, correct }) => <li key={prompt}>
+          <strong>{prompt}</strong>
+          <ol type="A">{options.map((option, index) => <li key={option}>{option}{ANSWER_LETTERS[index] === correct && <strong> · Correct answer</strong>}</li>)}</ol>
+        </li>)}</ol>}
+    </dialog>
+  </>;
+}
 
 function CohortResults({ cohort, data, requestedStudent, onRefresh, onFailure }) {
   const [filter, setFilter] = useState(requestedStudent ? 'all' : 'submitted');
@@ -76,12 +116,16 @@ function CohortResults({ cohort, data, requestedStudent, onRefresh, onFailure })
     <p>{FINAL_ASSESSMENT.total} questions · {FINAL_ASSESSMENT.minutes} minutes</p>
     <p>Open the assessment for enrolled Virtual Assistant students in {cohort.label}.</p>
     {error && <p className="va-alert" role="alert">{error}</p>}
-    <button className="va-button" type="button" disabled={busy} onClick={publish}>{busy ? 'Opening…' : `Open for ${cohort.label}`}</button>
+    <div className="va-admin-row">
+      <button className="va-button" type="button" disabled={busy} onClick={publish}>{busy ? 'Opening…' : `Open for ${cohort.label}`}</button>
+      <QuestionBank cohortId={cohort.id} onFailure={onFailure} />
+    </div>
   </section>;
 
   return <section className="va-panel">
     <div className="va-admin-header">
-      <div><h2>{cohort.label} results</h2><p>Virtual Assistant · {data.students.filter(({ latest }) => latest.status === 'submitted').length} awaiting review</p></div>
+      <div><h2>{cohort.label} results</h2><p>Virtual Assistant · {FINAL_ASSESSMENT.total} questions · {FINAL_ASSESSMENT.minutes} minutes · {data.students.filter(({ latest }) => latest.status === 'submitted').length} awaiting review</p>
+        <QuestionBank cohortId={cohort.id} onFailure={onFailure} /></div>
       <label className="va-admin-filter">Filter by status<select value={filter} onChange={(event) => setFilter(event.target.value)}>
         <option value="all">All attempts</option>
         {Object.entries(assessmentStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}

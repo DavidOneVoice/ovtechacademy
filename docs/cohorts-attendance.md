@@ -52,7 +52,7 @@ The attendance page has a visible create/reset PIN button beside the PIN field. 
 
 ## Virtual Assistant final assessment
 
-Sign in as the academy administrator and open **Final assessments**. The Virtual Assistant question bank is preloaded in the private database. Select a cohort to see its results or open the assessment for a new cohort. Each cohort retains the question bank it opened with. The initial October 2026 launch uses the 100-question bank from the instructor's syllabus.
+Sign in as the academy administrator and open **Final assessments**. Use **View questions** to see the preloaded Virtual Assistant bank. Select a cohort to see results or open the assessment for a new cohort. Each cohort retains the question bank it opened with. The initial October 2026 launch uses the 100-question bank from the instructor's syllabus.
 
 The owner signs in with the existing admin username and a private password. The first password is set with the one-time owner setup link. Review and publication check the resulting server session. Assistant sign-in and the student PIN email flow operate independently.
 

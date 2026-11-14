@@ -311,6 +311,16 @@ export function createFinalAssessmentService({ db, now = Date.now }) {
       return { publication, students: students.sort((a, b) => a.name.localeCompare(b.name)) };
     },
 
+    async questionBank({ cohortId }) {
+      if (!validId(cohortId)) throw notAvailable();
+      const publication = await publications.doc(cohortId).get();
+      const questions = publication.exists ? await bankFor(cohortId) : (await defaultBank.get()).data()?.questions;
+      if (!Array.isArray(questions) || questions.length !== total) {
+        throw new FinalAssessmentError('The Virtual Assistant question bank is temporarily unavailable.', 503, 'assessment_bank_unavailable');
+      }
+      return { questions: questions.map(({ prompt, options, correct }) => ({ prompt, options, correct: ANSWER_LETTERS[correct] })) };
+    },
+
     async studentResult({ studentId }) {
       if (!validId(studentId)) throw notAvailable();
       const enrollmentSnapshot = await enrollments.doc(studentId).get();
