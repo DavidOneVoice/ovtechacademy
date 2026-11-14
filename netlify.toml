@@ -7,6 +7,12 @@
   node_bundler = "esbuild"
 
 [[headers]]
+  for = "/admin-login"
+  [headers.values]
+    Referrer-Policy = "no-referrer"
+    Cache-Control = "no-store"
+
+[[headers]]
   for = "/registration/complete"
   [headers.values]
     Referrer-Policy = "no-referrer"

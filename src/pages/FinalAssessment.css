@@ -127,9 +127,8 @@
 
 .va-admin-section { color: #172842; }
 .va-admin-section .va-panel:first-child { margin-top: 0; }
-.va-admin-form { display: grid; align-items: start; justify-items: start; gap: 12px; }
-.va-admin-form label, .va-admin-filter { display: grid; gap: 5px; width: min(100%, 380px); font-size: .88rem; font-weight: 700; }
-.va-admin-form input, .va-admin-filter select { min-width: 0; width: 100%; padding: 9px; color: #172842; border: 1px solid #becbdd; border-radius: 7px; background: #fff; font: inherit; }
+.va-admin-filter { display: grid; gap: 5px; width: min(100%, 380px); font-size: .88rem; font-weight: 700; }
+.va-admin-filter select { min-width: 0; width: 100%; padding: 9px; color: #172842; border: 1px solid #becbdd; border-radius: 7px; background: #fff; font: inherit; }
 .va-admin-row { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
 .va-admin-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 14px; margin-bottom: 18px; }
 .va-admin-table { width: 100%; border-collapse: collapse; text-align: left; }
