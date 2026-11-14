@@ -47,7 +47,7 @@ for (const [from, to, code] of rules) {
   if (to.startsWith("/") && !to.startsWith("/.netlify") && /^(200|404)/.test(code)) await read(to.slice(1));
 }
 for (const path of PRIVATE_PATHS) assert.ok(rules.some(([from, to]) => from === path && to === "/app.html"));
-for (const api of ["cohorts", "attendance", "payments", "paystack-webhook", "visitor-country"]) assert.ok(rules.some(([from, to]) => from === `/api/${api}` && to === `/.netlify/functions/${api}`));
+for (const api of ["cohorts", "attendance", "payments", "paystack-webhook", "visitor-country", "final-assessment-admin"]) assert.ok(rules.some(([from, to]) => from === `/api/${api}` && to === `/.netlify/functions/${api}`));
 assert.deepEqual(rules.at(-1), ["/*", "/404.html", "404"]);
 const headers = await read("_headers");
 for (const path of PRIVATE_PATHS) assert.ok(headers.includes(`${path}\n  X-Robots-Tag: noindex, nofollow`));

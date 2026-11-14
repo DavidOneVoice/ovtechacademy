@@ -5,6 +5,7 @@ import { getStudentLogin, isPaidOrEnrolled, normalizePhone, STUDENT_EMAIL_FIELDS
 import { normalizeProgrammeName } from '../src/data/programmes.js';
 import { recordCohortId } from '../src/data/cohort.js';
 import { validateWhatsAppNumber } from '../src/data/phoneNumbers.js';
+import { createFinalAssessmentService } from './final-assessment.mjs';
 
 export class PortalError extends Error {
   constructor(message, status = 400, code = 'invalid_request') { super(message); this.status = status; this.code = code; }
@@ -46,6 +47,7 @@ export function createPortalService({ db, secret, sendCode, now = () => Date.now
   const limits = db.collection('portalRateLimits');
   const contactLocks = db.collection('portalContactLocks');
   const clock = () => Number(now());
+  const finalAssessment = createFinalAssessmentService({ db, now: clock });
   const contactProof = (student) => digest(JSON.stringify([
     STUDENT_EMAIL_FIELDS.map((field) => [field, emailValue(student[field])]),
     STUDENT_PHONE_FIELDS.map((field) => [field, normalizePhone(student[field])]),
@@ -63,9 +65,10 @@ export function createPortalService({ db, secret, sendCode, now = () => Date.now
     });
     if (!allowed) throw new PortalError('Too many attempts. Please wait 15 minutes before trying again.', 429, 'rate_limited');
   }
-  async function loadStudent(id) {
+  async function loadStudent(id, tx) {
     if (!validId(id)) return null;
-    const snapshot = await apps.doc(id).get();
+    const ref = apps.doc(id);
+    const snapshot = tx ? await tx.get(ref) : await ref.get();
     return snapshot.exists ? { ...snapshot.data(), id } : null;
   }
   async function matchingStudents(identifier) {
@@ -80,13 +83,17 @@ export function createPortalService({ db, secret, sendCode, now = () => Date.now
       ? session.mode === 'pin' && healthyCredential(credential) && session.version === credentialVersion(credential)
       : session.mode === 'legacy' && session.version === 'legacy';
   }
-  async function requireSession(token) {
+  async function requireSession(token, tx) {
     if (!validPortalToken(token)) throw invalidSession();
     const key = portalSessionKey(token, secret);
-    const saved = await sessions.doc(key).get();
+    const sessionRef = sessions.doc(key);
+    const saved = tx ? await tx.get(sessionRef) : await sessionRef.get();
     const session = saved.data();
     if (!session || !validId(session.studentId)) throw invalidSession();
-    const [student, credential] = await Promise.all([loadStudent(session.studentId), credentials.doc(session.studentId).get()]);
+    const credentialRef = credentials.doc(session.studentId);
+    const [student, credential] = await Promise.all([
+      loadStudent(session.studentId, tx), tx ? tx.get(credentialRef) : credentialRef.get(),
+    ]);
     if (!sessionMatches(session, student, credential)) throw invalidSession();
     return { key, session, student, credential };
   }
@@ -201,6 +208,19 @@ export function createPortalService({ db, secret, sendCode, now = () => Date.now
     async restore(token) {
       const auth = await requireSession(token);
       return studentResponse(auth.student, auth.credential);
+    },
+    async assessmentStatus({ includeQuestions }, token) {
+      return finalAssessment.studentState(await requireSession(token), includeQuestions === true);
+    },
+    async assessmentStart(input, token) {
+      await finalAssessment.start(input, (tx) => requireSession(token, tx));
+      return finalAssessment.studentState(await requireSession(token), true);
+    },
+    assessmentSave(input, token) {
+      return finalAssessment.save(input, (tx) => requireSession(token, tx));
+    },
+    assessmentSubmit(input, token) {
+      return finalAssessment.submit(input, (tx) => requireSession(token, tx));
     },
     async logout(token) {
       if (validPortalToken(token)) await sessions.doc(portalSessionKey(token, secret)).delete();

@@ -1,5 +1,9 @@
 export async function portalRequest(action, data = {}, signal, fetchImpl = fetch) {
-  const response = await fetchImpl("/api/portal", {
+  return requestPortalApi("/api/portal", action, data, signal, fetchImpl);
+}
+
+export async function requestPortalApi(path, action, data = {}, signal, fetchImpl = fetch) {
+  const response = await fetchImpl(path, {
     method: "POST",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
