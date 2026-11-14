@@ -1,5 +1,6 @@
 import { recordCohortId } from "../data/cohort";
 import AdminWorkspace from "../components/AdminWorkspace";
+import AssessmentReviewSummary from "../components/AssessmentReviewSummary";
 import useAdminCohort from "../hooks/useAdminCohort";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
@@ -10,6 +11,7 @@ import "./Admin.css";
 import "./GraduatedStudents.css";
 import { normalizeProgrammeName } from "../data/programmes";
 import { attendanceStats } from "../attendance/model";
+import { isFinalAssessmentStudent } from "../lms/finalAssessment";
 
 const normalized = (value) => String(value || "").trim().toLowerCase();
 
@@ -252,6 +254,7 @@ const GraduatedStudents = () => {
                 <div><strong>Attendance</strong><span>{attendanceText(selected.application)}</span></div>
                 <div><strong>Progress</strong><span>{detailsLoading ? "Loading…" : progressText(progress)}</span></div>
               </div>
+              {isFinalAssessmentStudent(selected.application) && <AssessmentReviewSummary key={selected.id} student={{ ...selected.application, id: selected.id, cohortId: selected.cohortId }} />}
               <div className="admin-certificate-actions">{selected.profile.certificateId && <a className="admin-certificate-link" href={certificateLink(selected)} target="_blank" rel="noreferrer noopener">View certificate <span aria-hidden="true">↗</span></a>}<button type="button" className="secondary" onClick={() => showRevoke(selected)}>Revoke certificate</button></div>
             </div>
           </div>

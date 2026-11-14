@@ -1,8 +1,11 @@
 import { generateAttendance } from "../attendance/generate";
 import { attendanceStats, isLiveAttendanceStudent } from "../attendance/model";
 import AdminWorkspace from "../components/AdminWorkspace";
+import AssessmentReviewSummary from "../components/AssessmentReviewSummary";
 import useAdminCohort from "../hooks/useAdminCohort";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { isFinalAssessmentStudent } from "../lms/finalAssessment";
 import { db } from "../src/firebase";
 import {
   collection,
@@ -95,6 +98,9 @@ const EDITABLE_FIELDS = [
 ];
 
 const EnrolledStudents = () => {
+  const [search] = useSearchParams();
+  const requestedStudent = search.get("student");
+  const openedFromLink = useRef(null);
   const [allStudents, setStudents] = useState([]);
   const cohort = useAdminCohort(allStudents);
   const students = cohort.scopedRecords;
@@ -162,12 +168,12 @@ const EnrolledStudents = () => {
     return matchesTrack && matchesLearningMethod;
   }), [learningMethodFilter, students, trackFilter]);
 
-  const showToast = (message) => {
+  const showToast = useCallback((message) => {
     setToast(message);
     setTimeout(() => setToast(""), 2600);
-  };
+  }, []);
 
-  const openStudentDetails = async (student) => {
+  const openStudentDetails = useCallback(async (student) => {
     setSelectedStudent(student);
     setCertificateProfile(null);
     setStudentProgress(null);
@@ -186,7 +192,18 @@ const EnrolledStudents = () => {
       console.error("Unable to load certificate application:", error);
       showToast("Certificate details could not be loaded.");
     } finally { setCertificateLoading(false); }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    if (!requestedStudent || openedFromLink.current === requestedStudent) return;
+    const student = students.find(({ id }) => id === requestedStudent);
+    if (!student) return;
+    const handle = setTimeout(() => {
+      openedFromLink.current = requestedStudent;
+      void openStudentDetails(student);
+    }, 0);
+    return () => clearTimeout(handle);
+  }, [requestedStudent, students, openStudentDetails]);
 
   const approveCertificate = async () => {
     if (!selectedStudent || !["Pending", "Revoked"].includes(certificateProfile?.status)) return;
@@ -509,6 +526,7 @@ const EnrolledStudents = () => {
               <div><strong>Date Enrolled</strong><span>{getDateValue(selectedStudent.enrolledAt)}</span></div>
             </div>
             <div className="admin-reason-box"><strong>Reason for Applying</strong><p>{selectedStudent.reason || "—"}</p></div>
+            {isFinalAssessmentStudent(selectedStudent) && <AssessmentReviewSummary key={selectedStudent.id} student={selectedStudent} />}
             {certificateLoading && <p className="admin-loading">Loading certificate application...</p>}
             {!certificateLoading && certificateProfile && (
               <section className="admin-certificate-application">
@@ -560,6 +578,7 @@ const EnrolledStudents = () => {
           <div><strong>Current attendance</strong><span>{getAttendanceDisplay(selectedStudent)}</span></div>
           <div><strong>Current progress</strong><span>{getProgressDisplay(studentProgress)}</span></div>
         </div>
+        {isFinalAssessmentStudent(selectedStudent) && <AssessmentReviewSummary key={selectedStudent.id} student={selectedStudent} compact />}
         <div className="admin-delete-actions"><button className="admin-cancel-delete" onClick={() => setApprovalOpen(false)}>Cancel</button><button className="admin-confirm-attendance" disabled={saving} onClick={approveCertificate}>{saving ? "Approving..." : "Confirm Approval"}</button></div>
       </div></div>}
 

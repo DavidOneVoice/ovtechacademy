@@ -3,6 +3,7 @@ import { digest } from './attendance-security.mjs';
 import { createAttendanceEmailSender } from './attendance-email.mjs';
 import { createPortalService, PortalError } from './portal-service.mjs';
 import { portalCookie, readPortalCookie } from './portal-security.mjs';
+import { FinalAssessmentError } from './final-assessment.mjs';
 
 const reply = (body, status = 200, headers = {}) => Response.json(body, { status,
   headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', ...headers } });
@@ -20,7 +21,8 @@ export async function handlePortal(request, context, env = process.env, injected
       if (!body || typeof body !== 'object' || Array.isArray(body)) return reply({ error: 'Invalid portal request.', code: 'invalid_request' }, 400);
     }
     const { action, ...input } = body;
-    if (!['lookup', 'login', 'restore', 'logout', 'updateProfile', 'verifyProfile', 'requestPin', 'setPin'].includes(action)) return reply({ error: 'Unknown portal request.', code: 'invalid_request' }, 400);
+    if (!['lookup', 'login', 'restore', 'logout', 'updateProfile', 'verifyProfile', 'requestPin', 'setPin',
+      'assessmentStatus', 'assessmentStart', 'assessmentSave', 'assessmentSubmit'].includes(action)) return reply({ error: 'Unknown portal request.', code: 'invalid_request' }, 400);
     const service = injectedService || createPortalService({ db: academyDb(env),
       secret: digest('ovtech-portal-v1', JSON.parse(env.FIREBASE_SERVICE_ACCOUNT_JSON).private_key),
       sendCode: createAttendanceEmailSender({ env }) });
@@ -40,8 +42,9 @@ export async function handlePortal(request, context, env = process.env, injected
     return reply(await service[action](input, token, ip));
   } catch (error) {
     if (error instanceof SyntaxError) return reply({ error: 'Invalid portal request.', code: 'invalid_request' }, 400);
-    const status = error instanceof PortalError ? error.status : 503;
-    return reply({ error: error instanceof PortalError ? error.message : 'The student portal is temporarily unavailable. Please try again later.', code: error instanceof PortalError ? error.code : 'unavailable' }, status,
+    const known = error instanceof PortalError || error instanceof FinalAssessmentError;
+    const status = known ? error.status : 503;
+    return reply({ error: known ? error.message : 'The student portal is temporarily unavailable. Please try again later.', code: known ? error.code : 'unavailable' }, status,
       status === 401 ? { 'Set-Cookie': portalCookie('', true) } : {});
   }
 }

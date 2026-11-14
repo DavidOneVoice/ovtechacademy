@@ -1,5 +1,6 @@
 import courses from "../data/courses.js";
 import { guides } from "../data/guides.js";
+import { FINAL_ASSESSMENT, FINAL_ASSESSMENT_ADMIN_PATH } from "../lms/finalAssessment.js";
 
 export const SITE_URL = "https://ovtechacademy.com";
 export const SITE_NAME = "OVTech Academy";
@@ -31,7 +32,7 @@ for (const guide of guides) {
 }
 
 export const PUBLIC_PATHS = Object.keys(PUBLIC_METADATA);
-export const PRIVATE_PATHS = ["/register", "/payment-review", "/registration/complete", "/scholarship-payment", "/payment-success", "/lms", "/admin-login", "/admin", "/admin/assistant", "/admin/lms", "/admin/live-sessions", "/admin/graduated-students", "/enrolled-students", "/verify"];
+export const PRIVATE_PATHS = ["/register", "/payment-review", "/registration/complete", "/scholarship-payment", "/payment-success", "/lms", FINAL_ASSESSMENT.path, "/admin-login", "/admin", "/admin/assistant", "/admin/lms", "/admin/live-sessions", FINAL_ASSESSMENT_ADMIN_PATH, "/admin/graduated-students", "/enrolled-students", "/verify"];
 export const normalizePath = (path = "/") => path.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
 
 function breadcrumb(path, title) {
@@ -45,7 +46,7 @@ function breadcrumb(path, title) {
 export function metadataForPath(pathname) {
   const path = normalizePath(pathname);
   const page = PUBLIC_METADATA[path];
-  if (!page) return { path, title: "OVTech Academy", description: "OVTech Academy student, admissions and verification services.", robots: "noindex, nofollow", canonical: null, structuredData: null };
+  if (!page) return { path, title: [FINAL_ASSESSMENT.path, FINAL_ASSESSMENT_ADMIN_PATH].includes(path) ? "Final Assessment | OVTech Academy" : "OVTech Academy", description: "OVTech Academy student, admissions and verification services.", robots: "noindex, nofollow", canonical: null, structuredData: null };
   const imageCourse = page.course || courses.find((course) => page.guide?.courseIds.includes(course.id));
   const image = `${SITE_URL}${imageCourse?.image || "/images/hero.webp"}`;
   const imageAlt = imageCourse?.alt || "A learner and mentor working together on a practical technology project";

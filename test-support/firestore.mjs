@@ -24,7 +24,19 @@ export function memoryFirestore(initial = {}) {
     docs.set(path, value);
   }
   const ref = (path) => ({ path, id: path.split('/').at(-1), collection: (name) => collection(`${path}/${name}`), get: async () => snapshot(ref(path)), create: async (value) => { assert.ok(!docs.has(path)); docs.set(path, value); }, update: async (...fields) => update(path, fields), delete: async () => docs.delete(path) });
-  const collection = (path) => ({ doc: (id) => ref(`${path}/${id}`), get: async () => ({ docs: list(path) }), where: (key, operator, value) => ({ get: async () => ({ docs: list(path, (data) => { assert.equal(operator, '=='); return data[key] === value; }) }) }) });
+  function query(path, filter, maximum) {
+    return {
+      get: async () => ({ docs: list(path, filter).slice(0, maximum) }),
+      limit: (size) => query(path, filter, size),
+    };
+  }
+  const collection = (path) => ({
+    doc: (id) => ref(`${path}/${id}`), get: async () => ({ docs: list(path) }),
+    where: (key, operator, value) => query(path, (data) => {
+      assert.ok(['==', '<='].includes(operator));
+      return operator === '==' ? data[key] === value : data[key] <= value;
+    }),
+  });
   const db = { collection, runTransaction: (fn) => {
     const run = async () => {
       const writes = [];

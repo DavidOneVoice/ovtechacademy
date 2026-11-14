@@ -39,6 +39,7 @@ export function createAttendanceEmailSender({ env = process.env, fetchImpl = fet
       report({ kind: 'missing_function_configuration' });
       throw new AttendanceEmailError('missing_function_configuration');
     }
+    const assessmentAdmin = purpose === 'assessment-admin';
     let response;
     try {
       response = await fetchImpl('https://api.emailjs.com/api/v1.0/email/send', {
@@ -48,10 +49,11 @@ export function createAttendanceEmailSender({ env = process.env, fetchImpl = fet
           ...(settings.privateKey ? { accessToken: settings.privateKey } : {}),
           template_params: {
             email, to_name: name,
-            subjectTitle: purpose === 'profile' ? 'Verify your OVTech profile update' : purpose === 'portal' ? 'Your OVTech student PIN verification code' : 'Your OVTech attendance verification code',
-            mainMessage: purpose === 'profile' ? `Your profile contact verification code is ${code}. This code expires in 10 minutes. Your details will change only after you confirm this code.` : purpose === 'portal' ? `Your student PIN setup or reset code is ${code}. This code expires in 10 minutes. This PIN is used for student portal sign-in and live-class attendance.` : `Your attendance PIN setup or reset code is ${code}. This code expires in 10 minutes.`,
-            extraMessage: purpose === 'profile' ? 'Do not share this code or your student PIN. If you did not request this change, ignore this email; your contact details have not changed.' : purpose === 'portal' ? 'Do not share this code or your student PIN. If you did not request this, ignore this email; your current PIN has not changed.' : 'Do not share this code or your attendance PIN. If you did not request this, ignore this email; your current PIN has not changed.',
-            ctaText: 'Open student portal', ctaLink: 'https://ovtechacademy.com/lms',
+            subjectTitle: assessmentAdmin ? 'Verify OVTech final assessment access' : purpose === 'profile' ? 'Verify your OVTech profile update' : purpose === 'portal' ? 'Your OVTech student PIN verification code' : 'Your OVTech attendance verification code',
+            mainMessage: assessmentAdmin ? `Your code to manage final assessments is ${code}. It expires in 10 minutes.` : purpose === 'profile' ? `Your profile contact verification code is ${code}. This code expires in 10 minutes. Your details will change only after you confirm this code.` : purpose === 'portal' ? `Your student PIN setup or reset code is ${code}. This code expires in 10 minutes. This PIN is used for student portal sign-in and live-class attendance.` : `Your attendance PIN setup or reset code is ${code}. This code expires in 10 minutes.`,
+            extraMessage: assessmentAdmin ? 'Use this code only in the academy admin dashboard. If you did not request it, you can ignore this email.' : purpose === 'profile' ? 'Do not share this code or your student PIN. If you did not request this change, ignore this email; your contact details have not changed.' : purpose === 'portal' ? 'Do not share this code or your student PIN. If you did not request this, ignore this email; your current PIN has not changed.' : 'Do not share this code or your attendance PIN. If you did not request this, ignore this email; your current PIN has not changed.',
+            ctaText: assessmentAdmin ? 'Open final assessment administration' : 'Open student portal',
+            ctaLink: assessmentAdmin ? 'https://ovtechacademy.com/admin/final-assessments' : 'https://ovtechacademy.com/lms',
           },
         }),
       });

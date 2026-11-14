@@ -1,7 +1,9 @@
 import PortalLogin from "../components/PortalLogin";
 import PortalProfile from "../components/PortalProfile";
+import StudentAssessmentCard from "../components/StudentAssessmentCard";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { isFinalAssessmentStudent } from "../lms/finalAssessment";
 import {
   collection,
   doc,
@@ -115,6 +117,7 @@ const formatSessionDate = (dateKey) => {
 
 const LmsDashboard = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const playerRef = useRef(null);
   const portalScope = useRef(null);
   if (portalScope.current === null) portalScope.current = createPortalSessionScope();
@@ -128,7 +131,7 @@ const LmsDashboard = () => {
   const [completedLessonIds, setCompletedLessonIds] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [liveSessions, setLiveSessions] = useState([]);
-  const [activePanel, setActivePanel] = useState("overview");
+  const [activePanel, setActivePanel] = useState(() => searchParams.get("panel") === "profile" ? "profile" : "overview");
   const [isAttendanceHistoryOpen, setIsAttendanceHistoryOpen] = useState(false);
   const [selectedLessonId, setSelectedLessonId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -760,6 +763,8 @@ const LmsDashboard = () => {
         <button disabled={authBusy} onClick={logout}>{authBusy ? "Signing out…" : "Logout"}</button>
       </section>
       {authError && <p className="lms-error" role="alert">{authError}</p>}
+      {isFinalAssessmentStudent(student) && ["overview", "profile"].includes(activePanel) &&
+        <StudentAssessmentCard key={`${student.id}:${recordCohortId(student)}:${pinRequired}`} studentId={student.id} cohortId={recordCohortId(student)} />}
       {activePanel === "profile" && <PortalProfile key={student.id} student={student} pinRequired={pinRequired}
         onUpdated={(session) => { setStudent(session.student); setPinRequired(session.pinRequired); }} onPinSaved={pinSaved} />}
       {activePanel === "overview" && <section className="portal-profile-reminder"><div><strong>{pinRequired ? "Keep your enrollment details correct" : "Create your student PIN"}</strong><p>{pinRequired ? "Update your name, email or WhatsApp number and manage your student PIN in My profile." : "Check your name, email and WhatsApp number, then create a PIN for signing in to your student portal."}</p></div><button type="button" onClick={() => setActivePanel("profile")}>{pinRequired ? "Open my profile" : "Check profile & create PIN"}</button></section>}

@@ -1,0 +1,162 @@
+.va-page {
+  min-height: 100vh;
+  padding: 0 20px 40px;
+  color: #172842;
+  background: #f3f5f8;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.va-shell { width: min(1120px, 100%); margin: auto; }
+.va-top, .va-brand, .va-exam-bar, .va-nav-heading, .va-question-meta, .va-question-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.va-top { min-height: 70px; }
+.va-brand { justify-content: flex-start; color: #172842; font-size: .94rem; font-weight: 800; text-decoration: none; }
+.va-brand img { width: 36px; height: 36px; object-fit: contain; }
+.va-top-link, .va-text-link { color: #244a82; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.va-top-link { font-size: .9rem; }
+.va-text-link { padding: 0; border: 0; background: transparent; cursor: pointer; font: inherit; font-weight: 700; }
+
+.va-hero, .va-exam-bar {
+  padding: 24px 28px;
+  border-radius: 20px;
+  background: #142741;
+  color: #fff;
+}
+
+.va-hero h1, .va-exam-bar h1 { margin: 0; color: inherit; line-height: 1.2; }
+.va-hero h1 { font-size: clamp(1.55rem, 3.2vw, 2.35rem); }
+.va-exam-bar h1 { font-size: clamp(1.18rem, 2.65vw, 1.72rem); }
+.va-exam-bar { position: sticky; top: 0; z-index: 2; }
+.va-exam-bar p { margin: 6px 0 0; color: #dbe5f2; font-size: .88rem; overflow-wrap: anywhere; }
+.va-enrollment { display: flex; flex-wrap: wrap; gap: 14px 32px; margin: 22px 0 0; }
+.va-enrollment dt { color: #eaca76; font-size: .78rem; font-weight: 700; }
+.va-enrollment dd { margin: 4px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+
+.va-panel, .va-dashboard-card {
+  border: 1px solid #dce3ec;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 10px 26px #14274108;
+}
+
+.va-panel { margin-top: 18px; padding: clamp(18px, 3vw, 28px); }
+.va-panel h2, .va-dashboard-card h2, .va-dialog h2 { margin: 0 0 8px; color: #172842; font-size: 1.25rem; line-height: 1.35; }
+.va-panel p, .va-dialog p, .va-dashboard-card p { margin: 0 0 13px; color: #495b70; line-height: 1.55; }
+.va-panel p:last-child, .va-dashboard-card p:last-child { margin-bottom: 0; }
+.va-dashboard-card { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 17px 21px; margin: 16px 0; }
+.va-dashboard-card h2 { font-size: 1.07rem; margin-bottom: 4px; }
+.va-dashboard-card p { font-size: .9rem; }
+.va-instructions ul { padding-left: 21px; margin: 12px 0 20px; }
+.va-instructions li { padding: 4px 0; line-height: 1.55; }
+
+.va-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 42px;
+  border: 1px solid #142741;
+  border-radius: 9px;
+  background: #142741;
+  padding: 9px 16px;
+  color: white;
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 750;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.va-button:hover { background: #254468; }
+.va-button:disabled { opacity: .55; cursor: default; }
+.va-button-secondary { background: #fff; border-color: #c5d1e0; color: #172842; }
+.va-button-secondary:hover { background: #eef3f8; }
+.va-page :focus-visible, .va-dashboard-card :focus-visible, .va-admin-section :focus-visible, .va-dialog :focus-visible { outline: 3px solid #4079c6; outline-offset: 2px; }
+
+.va-timer { flex: 0 0 auto; min-width: 112px; padding: 8px 12px; border: 1px solid #52647b; border-radius: 10px; text-align: center; }
+.va-timer span, .va-timer strong { display: block; }
+.va-timer span { margin-bottom: 2px; color: #dbe5f2; font-size: .73rem; }
+.va-timer strong { color: #f6d983; font-size: 1.42rem; font-variant-numeric: tabular-nums; }
+.va-timer-warning { background: #752e38; border-color: #f2a6af; }
+.va-timer-warning strong { color: #fff2f3; }
+.va-exam-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 370px); align-items: start; gap: 16px; }
+.va-question-meta, .va-nav-heading strong { font-size: .83rem; font-weight: 750; }
+.va-question-meta { margin-bottom: 14px; padding-bottom: 13px; border-bottom: 1px solid #edf0f5; }
+.va-save-status { color: #4b6159; text-align: right; }
+.va-question h2 { margin-bottom: 16px; font-size: clamp(1.07rem, 2.3vw, 1.36rem); }
+.va-question { scroll-margin-top: 120px; }
+.va-options { display: grid; gap: 9px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.va-option { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 9px 11px; border: 1px solid #dce3ec; border-radius: 10px; line-height: 1.38; cursor: pointer; }
+.va-option:hover { border-color: #9cb4d3; }
+.va-option:has(:checked) { border-color: #4574ae; background: #eef5ff; }
+.va-option input { flex: 0 0 auto; margin: 0; accent-color: #244b84; }
+.va-option-letter, .va-pill { padding: 3px 7px; border-radius: 6px; background: #e9eff7; color: #244a76; font-size: .8rem; font-weight: 800; }
+.va-question-actions { flex-wrap: wrap; margin-top: 18px; }
+.va-nav-heading h2 { margin: 0; font-size: 1.02rem; }
+.va-navigation progress { display: block; width: 100%; height: 7px; margin: 12px 0; accent-color: #286759; }
+.va-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; color: #495b70; font-size: .77rem; }
+.va-legend span { display: flex; align-items: center; gap: 5px; }
+.va-legend i { width: 11px; height: 11px; border: 1px solid #c7d2df; border-radius: 3px; }
+.va-legend .va-legend-answered { background: #d9f0e9; border-color: #498a78; }
+.va-question-numbers { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
+.va-question-numbers button { min-height: 29px; padding: 0; border: 1px solid #c7d2df; border-radius: 5px; background: #fff; color: #233953; cursor: pointer; font: inherit; font-size: .74rem; font-weight: 700; }
+.va-question-numbers button:hover { background: #edf4ff; }
+.va-question-numbers button[data-answered="true"] { border-color: #498a78; background: #d9f0e9; color: #1e5244; }
+.va-question-numbers button[aria-current="true"] { border-color: #315d96; box-shadow: inset 0 0 0 1px #315d96; color: #153b70; }
+.va-submit { width: 100%; margin: 14px 0 0; }
+.va-navigation p { margin-top: 10px; font-size: .84rem; }
+
+.va-alert { margin: 12px 0; padding: 10px 12px; border-radius: 9px; background: #fff2e1; color: #633e12 !important; line-height: 1.45; }
+.va-dialog { width: min(520px, calc(100% - 28px)); max-height: calc(100vh - 32px); margin: auto; border: 1px solid #ccd7e5; border-radius: 17px; padding: 20px; color: #172842; box-shadow: 0 24px 80px #101c36a0; }
+.va-dialog::backdrop { background: #16233c99; }
+.va-missing-numbers { padding: 4px; max-height: 198px; overflow-y: auto; }
+.va-missing-numbers button { min-height: 34px; }
+.va-result { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 16px; }
+.va-result h2 { margin-top: 10px; }
+.va-result-score { display: grid; justify-items: center; align-content: center; gap: 4px; min-width: 145px; padding: 14px; border-radius: 14px; background: #eaf1fa; color: #273e60; }
+.va-result-score strong { font-size: 3rem; line-height: 1.03; }
+.va-result-score small { font-size: 1.12rem; }
+.va-result-score span { font-size: .82rem; }
+.va-visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.va-admin-section { color: #172842; }
+.va-admin-section .va-panel:first-child { margin-top: 0; }
+.va-admin-form { display: grid; align-items: start; justify-items: start; gap: 12px; }
+.va-admin-form label, .va-admin-filter { display: grid; gap: 5px; width: min(100%, 380px); font-size: .88rem; font-weight: 700; }
+.va-admin-form input, .va-admin-filter select { min-width: 0; width: 100%; padding: 9px; color: #172842; border: 1px solid #becbdd; border-radius: 7px; background: #fff; font: inherit; }
+.va-admin-row { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+.va-admin-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 14px; margin-bottom: 18px; }
+.va-admin-table { width: 100%; border-collapse: collapse; text-align: left; }
+.va-admin-table th, .va-admin-table td { padding: 11px 8px; border-bottom: 1px solid #e6ebf2; vertical-align: middle; white-space: nowrap; }
+.va-admin-table th { font-size: .83rem; }
+.va-admin-table td { font-size: .9rem; }
+.va-requested-student { background: #eef5ff; }
+.va-admin-table-wrap { overflow-x: auto; }
+.va-admin-summary { margin: 14px 0; }
+.va-admin-summary h3 { margin: 0 0 8px; }
+.va-admin-summary p { margin: 0 0 6px; }
+.va-admin-summary a { color: #244a82; text-decoration: underline; }
+
+@media (max-width: 850px) {
+  .va-exam-grid { display: block; }
+  .va-question-numbers button { min-height: 36px; }
+}
+
+@media (max-width: 530px) {
+  .va-page { padding: 0 12px 24px; }
+  .va-hero, .va-exam-bar { padding: 14px; border-radius: 13px; }
+  .va-top { min-height: 56px; }
+  .va-top-link, .va-brand { font-size: .8rem; }
+  .va-brand img { width: 29px; height: 29px; }
+  .va-timer { min-width: 82px; padding: 5px 5px; }
+  .va-timer strong { font-size: 1.23rem; }
+  .va-timer span { font-size: .65rem; }
+  .va-result-score { justify-items: start; }
+  .va-admin-header { grid-template-columns: 1fr; }
+}

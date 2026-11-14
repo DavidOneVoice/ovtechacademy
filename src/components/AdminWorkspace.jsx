@@ -3,6 +3,8 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../src/firebase';
 import { clearStoredAdminRole } from '../auth/adminRoles';
 import { COHORT, cohortLink } from '../data/cohort';
+import { FINAL_ASSESSMENT_ADMIN_PATH } from '../lms/finalAssessment';
+import { assessmentAdminRequest } from '../lms/assessmentAdminClient';
 import './AdminWorkspace.css';
 
 const admissions = [
@@ -13,6 +15,7 @@ const admissions = [
 const learning = [
   ['/admin/lms', 'Learning content', 'content'],
   ['/admin/live-sessions', 'Live sessions', 'sessions'],
+  [FINAL_ASSESSMENT_ADMIN_PATH, 'Final assessments', 'assessments'],
 ];
 const iconPaths = {
   applications: ['M8 5H5v15h14V5h-3', 'M8 3h8v4H8z', 'M8 12h8M8 16h5'],
@@ -20,6 +23,7 @@ const iconPaths = {
   graduates: ['M2 9l10-5 10 5-10 5z', 'M6 11v6c4 3 8 3 12 0v-6M22 9v7'],
   content: ['M12 6v15M3 3h5a4 4 0 0 1 4 3 4 4 0 0 1 4-3h5v16h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3z'],
   sessions: ['M3 5h13v14H3z', 'M16 10l5-3v10l-5-3'],
+  assessments: ['M7 3h10l3 3v15H4V3z', 'M8 9h8M8 13h8M8 17h5'],
 };
 function NavigationIcon({ kind }) {
   return <svg className="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{iconPaths[kind].map((path) => <path key={path} d={path} />)}</svg>;
@@ -28,11 +32,15 @@ function NavigationIcon({ kind }) {
 export default function AdminWorkspace({ children, cohort, title, description, onLogout, assistant = false, cohortDescription }) {
   const location = useLocation();
   const selectedId = cohort?.selectedId || new URLSearchParams(location.search).get('cohort') || COHORT.id;
-  const logout = onLogout || (async () => {
+  const logout = async () => {
+    if (!assistant) {
+      await assessmentAdminRequest('logout', {}, AbortSignal.timeout(2500)).catch(() => {});
+    }
+    if (onLogout) return onLogout();
     clearStoredAdminRole();
     if (auth) await signOut(auth);
     window.location.href = '/admin-login';
-  });
+  };
   const destinations = assistant ? [['/admin/assistant', 'Applications', 'applications']] : admissions;
   const navigation = (items) => items.map(([path, label, icon]) => <Link key={path} to={cohortLink(path, selectedId)} aria-current={location.pathname === path ? 'page' : undefined}><NavigationIcon kind={icon} /><span>{label}</span></Link>);
 

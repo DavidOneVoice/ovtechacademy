@@ -50,6 +50,14 @@ Email uses the existing EmailJS service and general academy template with `email
 
 The attendance page has a visible create/reset PIN button beside the PIN field. It opens the setup panel, carries over the registered email until that address is edited, and returns students to verification after a PIN is saved. Opening another attendance link resets all verification state; pending browser requests are aborted so a previous link's details cannot remain on the new page.
 
+## Virtual Assistant final assessment
+
+In the admin dashboard, open **Final assessments**, verify the academy email, select the cohort and upload the private question bank JSON. Each bank needs 100 questions with a `prompt`, four `options`, and a `correct` letter from A to D. Keep the bank outside the public repository. Assessment administration uses the existing server email setup and defaults to the academy contact inbox. Netlify Functions can override it with `FINAL_ASSESSMENT_ADMIN_EMAIL`.
+
+Students use **Take final assessment** on their dashboard. The server checks the active enrollment and student PIN, sets a 60-minute deadline when the student confirms Start, and accepts answers until that deadline. A scheduled Netlify function grades overdue attempts for students who close the page. Opening the result also finalizes an overdue attempt immediately.
+
+Use **Approve** to lock the result for the cohort or **Reject & allow retake** to unlock one new attempt. A score appears in the student profile and in the admin certificate review. Certificate approval remains a manual decision.
+
 ## Existing access limitations
 
 Portal sign-in and profile endpoints now use server-verified sessions. The remaining browser data access and admin screens still depend on legacy public Firestore permissions and browser-based admin roles. This change does not make the entire student database private or authenticate administrators. Existing public application/deletion and progress/certificate permissions remain for compatibility, so a separate admin-authentication and database-access migration is needed to protect all student information. Do not describe this gradual PIN feature as complete platform security.

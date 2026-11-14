@@ -15,6 +15,8 @@ const EnrolledStudents = lazy(() => import("./pages/EnrolledStudents"));
 const GraduatedStudents = lazy(() => import("./pages/GraduatedStudents"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const LmsDashboard = lazy(() => import("./pages/LmsDashboard"));
+const FinalAssessment = lazy(() => import("./pages/FinalAssessment"));
+const AdminFinalAssessments = lazy(() => import("./pages/AdminFinalAssessments"));
 const AdminLms = lazy(() => import("./pages/AdminLms"));
 const AdminLiveSessions = lazy(() => import("./pages/AdminLiveSessions"));
 const AttendancePage = lazy(() => import("./pages/AttendancePage"));
@@ -22,6 +24,7 @@ const AdminAssistant = lazy(() => import("./pages/AdminAssistant"));
 const VerifySearch = lazy(() => import("./pages/VerifySearch"));
 const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate"));
 import { ADMIN_ROLES, getStoredAdminRole } from "./auth/adminRoles";
+import { FINAL_ASSESSMENT, FINAL_ASSESSMENT_ADMIN_PATH } from "./lms/finalAssessment";
 
 const AdminDashboardRoute = () => (
   getStoredAdminRole() === ADMIN_ROLES.ASSISTANT
@@ -47,6 +50,7 @@ function App() {
         <Route path="/registration/complete" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><PaymentReturn /></Suspense>} />
         <Route path="/scholarship-payment" element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><ScholarshipPayment /></Suspense>} />
         <Route path="/lms" caseSensitive element={<Suspense fallback={<p role="status" className="route-loading">Loading…</p>}><LmsDashboard /></Suspense>} />
+        <Route path={FINAL_ASSESSMENT.path} element={<FinalAssessment />} />
         <Route
           path="/LMS"
           caseSensitive
@@ -80,6 +84,7 @@ function App() {
             </ProtectedAdminRoute>
           }
         />
+        <Route path={FINAL_ASSESSMENT_ADMIN_PATH} element={<ProtectedAdminRoute allowedRoles={[ADMIN_ROLES.ADMIN]}><AdminFinalAssessments /></ProtectedAdminRoute>} />
         <Route
           path="/enrolled-students"
           element={

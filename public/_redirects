@@ -7,4 +7,5 @@ https://www.ovtechacademy.com/* https://ovtechacademy.com/:splat 301!
 /api/payments /.netlify/functions/payments 200
 /api/paystack-webhook /.netlify/functions/paystack-webhook 200
 /api/visitor-country /.netlify/functions/visitor-country 200
+/api/final-assessment-admin /.netlify/functions/final-assessment-admin 200
 /* /index.html 200
