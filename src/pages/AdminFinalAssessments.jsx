@@ -114,17 +114,17 @@ function CohortResults({ cohort, data, requestedStudent, onRefresh, onFailure })
   if (!data.publication) return <section className="va-panel">
     <h2>Virtual Assistant final assessment</h2>
     <p>{FINAL_ASSESSMENT.total} questions · {FINAL_ASSESSMENT.minutes} minutes</p>
-    <p>Open the assessment for enrolled Virtual Assistant students in {cohort.label}.</p>
+    <p>Unpublished. Approve the questions to open this exam for Virtual Assistant students in {cohort.label}.</p>
     {error && <p className="va-alert" role="alert">{error}</p>}
     <div className="va-admin-row">
-      <button className="va-button" type="button" disabled={busy} onClick={publish}>{busy ? 'Opening…' : `Open for ${cohort.label}`}</button>
+      <button className="va-button" type="button" disabled={busy} onClick={publish}>{busy ? 'Opening…' : `Approve and open for ${cohort.label}`}</button>
       <QuestionBank cohortId={cohort.id} onFailure={onFailure} />
     </div>
   </section>;
 
   return <section className="va-panel">
     <div className="va-admin-header">
-      <div><h2>{cohort.label} results</h2><p>Virtual Assistant · {FINAL_ASSESSMENT.total} questions · {FINAL_ASSESSMENT.minutes} minutes · {data.students.filter(({ latest }) => latest.status === 'submitted').length} awaiting review</p>
+      <div><h2>{cohort.label} results</h2><p>Exam open to this cohort{data.publication.publishedBy === 'initial-deployment' ? ' · Published automatically during setup' : ''}.</p><p>Virtual Assistant · {FINAL_ASSESSMENT.total} questions · {FINAL_ASSESSMENT.minutes} minutes · {data.students.filter(({ latest }) => latest.status === 'submitted').length} awaiting review</p>
         <QuestionBank cohortId={cohort.id} onFailure={onFailure} /></div>
       <label className="va-admin-filter">Filter by status<select value={filter} onChange={(event) => setFilter(event.target.value)}>
         <option value="all">All attempts</option>
