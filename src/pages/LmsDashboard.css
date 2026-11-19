@@ -597,6 +597,12 @@
 .lms-sidebar-profile strong { font-size: 1.15rem; }
 .lms-sidebar-profile small { color: #dbe7ff; }
 
+.lms-sidebar > div:empty { display: none; }
+.lms-sidebar > div:has(> a) { display: contents; }
+
+.lms-sidebar > div > a { font: inherit; text-decoration: none; }
+
+.lms-sidebar > div > a,
 .lms-sidebar button {
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 16px;
@@ -608,6 +614,8 @@
   cursor: pointer;
 }
 
+.lms-sidebar > div > a:hover,
+.lms-sidebar > div > a:focus-visible,
 .lms-sidebar button.active,
 .lms-sidebar button:hover { background: #fff; color: #102a7a; }
 .lms-sidebar .lms-sidebar-logout { margin-top: 12px; background: #fee2e2; color: #991b1b; }
