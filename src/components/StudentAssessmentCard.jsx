@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { portalRequest } from '../lms/portalClient.js';
 import { assessmentStatusLabels, FINAL_ASSESSMENT } from '../lms/finalAssessment.js';
 import '../pages/FinalAssessment.css';
 
-export default function StudentAssessmentCard({ studentId, cohortId }) {
+export default function StudentAssessmentCard({ studentId, cohortId, sidebarSlot, showCard = true }) {
   const [status, setStatus] = useState(null);
   const [problem, setProblem] = useState('');
   const [reload, setReload] = useState(0);
@@ -37,7 +38,9 @@ export default function StudentAssessmentCard({ studentId, cohortId }) {
     rejected: 'Retake final assessment',
   }[status?.stage] || 'Take final assessment';
 
-  return <section className="va-dashboard-card" aria-label="Final assessment">
+  return <>
+    {status && sidebarSlot?.current && createPortal(<Link to={FINAL_ASSESSMENT.path}>Final assessment</Link>, sidebarSlot.current)}
+    {showCard && <section className="va-dashboard-card" aria-label="Final assessment">
     <div>
       <h2>Final assessment</h2>
       {status?.lastResult ? <p><strong>{status.lastResult.score}/{status.lastResult.total}</strong> · {assessmentStatusLabels[status.stage]}</p>
@@ -46,5 +49,6 @@ export default function StudentAssessmentCard({ studentId, cohortId }) {
     </div>
     {status ? <Link className="va-button" to={FINAL_ASSESSMENT.path}>{label}</Link>
       : <button type="button" className="va-button" onClick={() => setReload((current) => current + 1)}>Check availability</button>}
-  </section>;
+  </section>}
+  </>;
 }
