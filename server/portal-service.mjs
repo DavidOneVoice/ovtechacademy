@@ -16,7 +16,19 @@ const validId = (value) => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,160}$/
 const emailValue = (value) => String(value || '').trim().toLowerCase();
 const validEmail = (value) => typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 const emailMatches = (student, value) => STUDENT_EMAIL_FIELDS.some((field) => student[field] && emailValue(student[field]) === value);
-const phoneMatches = (student, value) => STUDENT_PHONE_FIELDS.some((field) => student[field] && normalizePhone(student[field]) === value);
+// July registrations can contain a Nigerian mobile in national format.
+// October registrations store the country calling code with the same number.
+function nigerianMobileDigits(digits) {
+  return /^0[789][0-9]\d{8}$/.test(digits) ? '234' + digits.slice(1) : digits;
+}
+const phoneMatches = (student, value) => STUDENT_PHONE_FIELDS.some((field) => {
+  if (!student[field]) return false;
+  const stored = normalizePhone(student[field]);
+  if (stored === value) return true;
+  if ((student.phoneCountry && student.phoneCountry !== 'NG') ||
+      (student.phoneCallingCode && normalizePhone(student.phoneCallingCode) !== '234')) return false;
+  return nigerianMobileDigits(stored) === nigerianMobileDigits(value);
+});
 function contactIdentifier(value) {
   const text = typeof value === 'string' ? value.trim() : '';
   if (text.includes('@')) return validEmail(text) ? { type: 'email', value: emailValue(text) } : null;
